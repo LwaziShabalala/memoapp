@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # Node.js dependencies
-/node_modules
+/node_modules/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -13,18 +13,20 @@
 /.next/
 /out/
 
-# Production
+# Build and production
 /build
+/dist
+*.gz
 
 # Python virtual environments
-venv/
-python-server/venv/
+/venv/
+/python-server/venv/
 
 # Python bytecode
 __pycache__/
 *.py[cod]
 
-# Distribution/packaging
+# Python packaging
 *.egg-info/
 *.dist-info/
 
@@ -36,16 +38,18 @@ yarn-error.log*
 *.tmp
 *.swp
 *.swo
+*.pid
 
 # Environment variables
-.env*.local
 .env
+.env*.local
 
 # macOS-specific
 .DS_Store
 
 # Security keys
 *.pem
+*.key
 
 # Debugging files
 *.pid
@@ -56,3 +60,14 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE-specific
+.idea/
+.vscode/
+*.code-workspace
+
+# Miscellaneous
+*.bak
+*.old
+*.orig
+*.rej
