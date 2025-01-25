@@ -1,6 +1,0 @@
-fastapi
-uvicorn
-numpy
-torch
-transformers
-pydub
