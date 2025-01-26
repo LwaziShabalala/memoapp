@@ -73,3 +73,5 @@ next-env.d.ts
 *.rej
 venv/
 venv/
+.env
+myenv/
