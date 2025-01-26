@@ -11,7 +11,7 @@
     "devStart": "nodemon app/api/server.js"
   },
   "dependencies": {
-    "@auth/core": "^0.37.4",
+    "@auth/core": "^0.34.2",
     "@clerk/nextjs": "^6.9.12",
     "@headlessui/react": "^2.1.10",
     "@hookform/resolvers": "^3.9.0",
