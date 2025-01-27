@@ -55,7 +55,7 @@ app.post('/upload', upload.single('audio'), async (req, res) => {
         console.log('FormData created, preparing to send to FastAPI...');
 
         // Update the URL to point to your local FastAPI server
-        const response = await axios.post('http://localhost:8001/predict', formData, {
+        const response = await axios.post('https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai/predict', formData, {
             headers: formData.getHeaders()  // Important: Set headers for form-data
         });
 
