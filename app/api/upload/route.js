@@ -19,13 +19,13 @@ export async function POST(req) {
 
     // Create new FormData
     const uploadData = new FormData();
-    uploadData.append('audio', buffer, { filename: 'recording.wav', contentType: 'audio/wav' });
+    uploadData.append('audio', buffer, { filename: file.name || 'recording.wav', contentType: file.type });
 
     // Send to FastAPI server
     const response = await axios.post(
       'https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai/predict',
       uploadData,
-      { headers: uploadData.getHeaders() }
+      { headers: { ...uploadData.getHeaders() } }
     );
 
     // Return transcription result
@@ -33,6 +33,10 @@ export async function POST(req) {
 
   } catch (error) {
     console.error('Error processing request:', error);
-    return NextResponse.json({ error: 'Error processing audio file or transcription failed.' }, { status: 500 });
+
+    return NextResponse.json(
+      { error: error.response?.data?.detail || 'Error processing audio file or transcription failed.' },
+      { status: error.response?.status || 500 }
+    );
   }
 }
