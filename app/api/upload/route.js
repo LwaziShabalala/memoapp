@@ -1,34 +1,12 @@
 import { NextResponse } from 'next/server';
-import multer from 'multer';
 import axios from 'axios';
 import FormData from 'form-data';
 
-// Configure multer for memory storage
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
-// Helper function to handle multer upload
-function runMiddleware(req, res, fn) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
-}
-
-// Keep API configuration for Next.js
-export const config = {
-  api: {
-    bodyParser: false, // Disable body parser as we're using multer
-  },
-};
+export const dynamic = 'force-dynamic'; // ✅ New Next.js 14+ config
 
 export async function POST(req) {
   try {
-    const formData = await req.formData(); // Convert incoming request to FormData
+    const formData = await req.formData(); // Convert request to FormData
 
     // Check if audio file exists
     const file = formData.get('audio');
