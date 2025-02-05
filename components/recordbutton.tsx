@@ -48,7 +48,7 @@ const RecordButton: React.FC = () => {
                             formData.append("audio", new File([wavBlob], "recording.wav", { type: "audio/wav" }));
 
                             // 🔥 Updated URL
-                            const response = await fetch("https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai/upload", {
+                            const response = await fetch("https://memo-app-backend.vercel.app", {
                                 method: "POST",
                                 body: formData,
                             });
