@@ -61,7 +61,7 @@ const RecordButton: React.FC = () => {
                             console.log("📡 Sending audio file to backend...");
 
                             try {
-                                const response = await fetch("https://memo-app-backend.vercel.app/", {
+                                const response = await fetch("https://memo-app-backend.vercel.app/upload", {
                                     method: "POST",
                                     body: formData,
                                 });
