@@ -43,17 +43,18 @@ const RecordButton: React.FC = () => {
 
                             const wavBlob = new Blob([wavData], { type: "audio/wav" });
 
-                            // Send the WAV blob to the server for transcription
+                            // Send the WAV blob to the deployed Express server
                             const formData = new FormData();
                             formData.append("audio", new File([wavBlob], "recording.wav", { type: "audio/wav" }));
 
-                            const response = await fetch("http://localhost:3001/upload", {
+                            // 🔥 Updated URL
+                            const response = await fetch("https://your-express-backend.com/upload", {
                                 method: "POST",
                                 body: formData,
                             });
 
                             const result = await response.json();
-                            console.log("Transcription result:", result.transcription); // Log transcription
+                            console.log("Transcription result:", result.transcription);
                             setTranscription(result.transcription); // Save transcription to context
                             setShowFilenameModal(true);
                         }
@@ -70,7 +71,7 @@ const RecordButton: React.FC = () => {
     }, [isRecording, setTranscription]);
 
     const handleSave = (filename: string) => {
-        console.log("Saving filename:", filename); // Log filename
+        console.log("Saving filename:", filename);
         setFilename(filename); // Save filename to context
         setShowFilenameModal(false);
     };
