@@ -34,7 +34,7 @@ app.post('/upload', upload.single('audio'), async (req, res) => {
         });
 
         // ✅ Use public FastAPI server URL
-        const FASTAPI_URL = 'https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai'; // Replace with actual instance URL
+        const FASTAPI_URL = 'https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai/predict'; // Replace with actual instance URL
 
         console.log('Sending file to FastAPI...');
         const response = await axios.post(FASTAPI_URL, formData, {
