@@ -11,7 +11,7 @@ const PORT = 3001;
 
 // Enable CORS for all origins (you can customize this for specific origins)
 app.use(cors({
-    origin: 'http://localhost:3000' // Allow requests from your React app
+    origin: 'https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai' // Allow requests from your React app
 }));
 
 // Set up multer for file storage
