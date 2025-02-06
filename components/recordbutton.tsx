@@ -67,7 +67,7 @@ const RecordButton: React.FC = () => {
                             const controller = new AbortController();
                             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-                            const response = await fetch("https://memo-app-backend.vercel.app/upload", {
+                            const response = await fetch("https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai/upload", {
                                 method: "POST",
                                 body: formData,
                                 headers: {
