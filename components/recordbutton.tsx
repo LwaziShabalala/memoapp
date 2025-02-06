@@ -9,6 +9,7 @@ import { useTranscription } from "../app/transcriptioncontext";
 const RecordButton: React.FC = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [showFilenameModal, setShowFilenameModal] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -18,6 +19,7 @@ const RecordButton: React.FC = () => {
     useEffect(() => {
         if (isRecording) {
             console.log("🔴 Recording started...");
+            setError(null); // Clear any previous errors
             audioContextRef.current = new (window.AudioContext || window.AudioContext)();
 
             navigator.mediaDevices.getUserMedia({ audio: true })
@@ -34,15 +36,19 @@ const RecordButton: React.FC = () => {
                     };
 
                     mediaRecorder.onstop = async () => {
-                        console.log("🛑 Recording stopped. Processing audio...");
-                        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-                        console.log("📁 Audio blob created:", audioBlob.size, "bytes");
+                        try {
+                            console.log("🛑 Recording stopped. Processing audio...");
+                            const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+                            console.log("📁 Audio blob created:", audioBlob.size, "bytes");
 
-                        const audioArrayBuffer = await audioBlob.arrayBuffer();
-                        console.log("🔄 Converting blob to array buffer...");
+                            const audioArrayBuffer = await audioBlob.arrayBuffer();
+                            console.log("🔄 Converting blob to array buffer...");
 
-                        const audioBuffer = await audioContextRef.current?.decodeAudioData(audioArrayBuffer);
-                        if (audioBuffer) {
+                            const audioBuffer = await audioContextRef.current?.decodeAudioData(audioArrayBuffer);
+                            if (!audioBuffer) {
+                                throw new Error("Failed to decode audio data");
+                            }
+
                             console.log("✅ Audio successfully decoded. Encoding to WAV...");
 
                             const wavData = await WavEncoder.encode({
@@ -58,36 +64,53 @@ const RecordButton: React.FC = () => {
 
                             console.log("📡 Sending audio file to backend...");
 
-                            try {
-                                const response = await fetch("https://memo-app-backend.vercel.app/upload", {
-                                    method: "POST",
-                                    body: formData,
-                                    headers: {
-                                        'Accept': 'application/json',
-                                    }
-                                });
-                                
-                                if (!response.ok) {
-                                    console.error('Server response:', response.status);
-                                    throw new Error(`HTTP error! status: ${response.status}`);
-                                }
-                                
-                                const result = await response.json();
-                                console.log("✅ Transcription received:", result.transcription);
-                                setTranscription(result.transcription);
-                                setShowFilenameModal(true);
-                            } catch (error) {
-                                console.error("❌ Fetch error:", error);
-                                // Show user-friendly error message
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+                            const response = await fetch("https://memo-app-backend.vercel.app/upload", {
+                                method: "POST",
+                                body: formData,
+                                headers: {
+                                    'Accept': 'application/json',
+                                },
+                                signal: controller.signal,
+                                mode: 'cors', // Explicitly state CORS mode
+                            });
+
+                            clearTimeout(timeoutId);
+
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`Server error (${response.status}): ${errorText}`);
                             }
+
+                            const result = await response.json();
+                            console.log("✅ Transcription received:", result.transcription);
+                            setTranscription(result.transcription);
+                            setShowFilenameModal(true);
+                        } catch (error) {
+                            console.error("❌ Error processing recording:", error);
+                            let errorMessage = "Failed to process recording. ";
+                            
+                            if (error instanceof TypeError && error.message === "Failed to fetch") {
+                                errorMessage += "Could not connect to the server. Please check your internet connection and try again.";
+                            } else if (error instanceof DOMException && error.name === "AbortError") {
+                                errorMessage += "Request timed out. Please try again.";
+                            } else {
+                                errorMessage += error instanceof Error ? error.message : "Unknown error occurred.";
+                            }
+                            
+                            setError(errorMessage);
+                        } finally {
+                            audioChunksRef.current = [];
                         }
-                        audioChunksRef.current = [];
                     };
 
                     mediaRecorder.start();
                 })
                 .catch((error) => {
                     console.error("❌ Error accessing microphone:", error);
+                    setError("Failed to access microphone. Please ensure microphone permissions are granted.");
                     setIsRecording(false);
                 });
         } else if (mediaRecorderRef.current) {
@@ -119,6 +142,11 @@ const RecordButton: React.FC = () => {
                     {isRecording ? "Recording..." : "Record"}
                 </div>
             </Card>
+            {error && (
+                <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-md max-w-md text-center">
+                    {error}
+                </div>
+            )}
             <FilenameModal
                 open={showFilenameModal}
                 onClose={() => setShowFilenameModal(false)}
