@@ -68,14 +68,12 @@ const RecordButton: React.FC = () => {
                             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
                             const response = await fetch("https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai/predict", {
-                                method: "POST",
-                                body: formData,
-                                headers: {
-                                    'Accept': 'application/json',
-                                },
-                                signal: controller.signal,
-                                mode: 'cors', // Explicitly state CORS mode
-                            });
+    method: "POST",
+    body: formData,
+    headers: { 'Accept': 'application/json' },
+    mode: "no-cors"  // Debugging mode
+});
+
 
                             clearTimeout(timeoutId);
 
