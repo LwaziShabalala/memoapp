@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Mic } from "lucide-react";
 import WavEncoder from "wav-encoder";
 import FilenameModal from "./ui/filenamemodal";
-import { useTranscription } from "../app/transcriptioncontext"; // Import the context hook
+import { useTranscription } from "../app/transcriptioncontext";
 
 const RecordButton: React.FC = () => {
     const [isRecording, setIsRecording] = useState(false);
@@ -13,7 +13,6 @@ const RecordButton: React.FC = () => {
     const audioChunksRef = useRef<Blob[]>([]);
     const audioContextRef = useRef<AudioContext | null>(null);
 
-    // Access context values
     const { setFilename, setTranscription } = useTranscription();
 
     useEffect(() => {
@@ -54,7 +53,6 @@ const RecordButton: React.FC = () => {
                             const wavBlob = new Blob([wavData], { type: "audio/wav" });
                             console.log("📀 WAV file created:", wavBlob.size, "bytes");
 
-                            // Send the WAV blob to the deployed Express server
                             const formData = new FormData();
                             formData.append("audio", new File([wavBlob], "recording.wav", { type: "audio/wav" }));
 
@@ -64,18 +62,23 @@ const RecordButton: React.FC = () => {
                                 const response = await fetch("https://memo-app-backend.vercel.app/upload", {
                                     method: "POST",
                                     body: formData,
+                                    headers: {
+                                        'Accept': 'application/json',
+                                    }
                                 });
-
+                                
                                 if (!response.ok) {
-                                    throw new Error(`Server responded with status: ${response.status}`);
+                                    console.error('Server response:', response.status);
+                                    throw new Error(`HTTP error! status: ${response.status}`);
                                 }
-
+                                
                                 const result = await response.json();
                                 console.log("✅ Transcription received:", result.transcription);
-                                setTranscription(result.transcription); // Save transcription to context
+                                setTranscription(result.transcription);
                                 setShowFilenameModal(true);
                             } catch (error) {
                                 console.error("❌ Fetch error:", error);
+                                // Show user-friendly error message
                             }
                         }
                         audioChunksRef.current = [];
@@ -96,7 +99,7 @@ const RecordButton: React.FC = () => {
 
     const handleSave = (filename: string) => {
         console.log("💾 Saving filename:", filename);
-        setFilename(filename); // Save filename to context
+        setFilename(filename);
         setShowFilenameModal(false);
     };
 
