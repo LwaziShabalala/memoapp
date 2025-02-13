@@ -22,10 +22,20 @@ export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
 
-        // ✅ Log Request Headers & Body
-        console.log("📥 Request Headers:", JSON.stringify(req.headers));
-        const { text } = await req.json();
-        console.log("📥 Received text input:", text);
+        // Parse and validate request body
+        let body;
+        try {
+            body = await req.json();
+        } catch (e) {
+            console.error("❌ Error parsing request body:", e);
+            return NextResponse.json(
+                { error: "Invalid request body" },
+                { status: 400 }
+            );
+        }
+
+        const { text } = body;
+        console.log("📥 Received text input length:", text?.length || 0);
 
         if (!text) {
             console.error("❌ Error: No text input provided.");
@@ -35,27 +45,30 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ✅ Check if OpenAI API Key is Set
-        if (!process.env.OPENAI_API_KEY) {
-            console.error("❌ Error: OpenAI API key not provided.");
+        // Validate API key
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.error("❌ Error: OpenAI API key not found in environment variables");
             return NextResponse.json(
-                { error: "OpenAI API key not provided" },
+                { error: "Server configuration error" },
                 { status: 500 }
             );
         }
-        console.log("✅ OpenAI API Key is available.");
+        console.log("✅ OpenAI API Key is available");
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
 
+        // Initialize OpenAI with error handling
         const model = new ChatOpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
+            apiKey,
             modelName: "gpt-3.5-turbo",
+            temperature: 0.7,
         });
 
         const parser = new JsonOutputFunctionsParser();
         const extractionFunctionSchema = {
             name: "extractor",
-            description: "Extracts fields from output",
+            description: "Extracts quiz data from the provided text",
             parameters: {
                 type: "object",
                 properties: {
@@ -77,15 +90,21 @@ export async function POST(req: NextRequest) {
                                                 properties: {
                                                     answerText: { type: "string" },
                                                     isCorrect: { type: "boolean" },
-                                                }
-                                            }
+                                                },
+                                                required: ["answerText", "isCorrect"]
+                                            },
+                                            minItems: 2
                                         }
-                                    }
-                                }
+                                    },
+                                    required: ["questionText", "answers"]
+                                },
+                                minItems: 1
                             }
-                        }
+                        },
+                        required: ["name", "description", "questions"]
                     }
-                }
+                },
+                required: ["quizz"]
             }
         };
 
@@ -101,53 +120,62 @@ export async function POST(req: NextRequest) {
             Return JSON only that contains a quiz object with fields: name, description, and questions. 
             The questions should be an array of objects with fields: questionText, answers. 
             The answers should be an array of objects with fields: answerText, isCorrect.
+            Each question should have 4 answer options with only one correct answer.
+            Make questions that test understanding rather than just memorization.
         `;
 
-        const message = new HumanMessage({
-            content: [
-                {
-                    type: "text",
-                    text: `${prompt}\n${textContent}`,
-                },
-            ],
-        });
-
         console.log("🧠 [DEBUG] Sending request to OpenAI...");
-        const result = await runnable.invoke([message]) as QuizResult;
-
-        console.log("✅ OpenAI Response:", JSON.stringify(result, null, 2));
-
-        // ✅ Ensure AI Response is Valid
-        if (!result || !result.quizz) {
-            console.error("❌ Error: OpenAI returned invalid quiz data.");
+        let result: QuizResult;
+        try {
+            const message = new HumanMessage({
+                content: [
+                    {
+                        type: "text",
+                        text: `${prompt}\n${textContent}`,
+                    },
+                ],
+            });
+            result = await runnable.invoke([message]) as QuizResult;
+        } catch (error) {
+            console.error("❌ OpenAI API Error:", error);
             return NextResponse.json(
-                { error: "Failed to generate quiz data" },
+                { error: "Failed to generate quiz content", details: error instanceof Error ? error.message : 'Unknown error' },
                 { status: 500 }
             );
         }
 
-        console.log("📝 [DEBUG] Saving quiz to database...");
-        const { quizzId } = await saveQuizz(result.quizz);
-        console.log("✅ Quiz saved with ID:", quizzId);
+        console.log("✅ OpenAI Response received");
 
-        return NextResponse.json(
-            { quizzId },
-            { status: 200 }
-        );
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            console.error("❌ [ERROR] An error occurred:", error.message);
-            console.error("🔍 Stack trace:", error.stack);
-
+        // Validate quiz structure
+        if (!result?.quizz?.questions?.length) {
+            console.error("❌ Error: Invalid quiz structure returned from OpenAI");
             return NextResponse.json(
-                { error: "Internal Server Error", details: error.message, stack: error.stack },
+                { error: "Invalid quiz structure generated" },
                 { status: 500 }
             );
         }
 
-        console.error("❌ [ERROR] Unknown error:", error);
+        // Save to database with error handling
+        try {
+            console.log("📝 [DEBUG] Saving quiz to database...");
+            const { quizzId } = await saveQuizz(result.quizz);
+            console.log("✅ Quiz saved with ID:", quizzId);
+            
+            return NextResponse.json({ quizzId }, { status: 200 });
+        } catch (error) {
+            console.error("❌ Database Error:", error);
+            return NextResponse.json(
+                { error: "Failed to save quiz", details: error instanceof Error ? error.message : 'Unknown error' },
+                { status: 500 }
+            );
+        }
+    } catch (error) {
+        console.error("❌ Unexpected Error:", error);
         return NextResponse.json(
-            { error: "Internal Server Error", details: "An unknown error occurred" },
+            { 
+                error: "Internal Server Error", 
+                details: error instanceof Error ? error.message : 'Unknown error'
+            },
             { status: 500 }
         );
     }
