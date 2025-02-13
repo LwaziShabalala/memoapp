@@ -1,9 +1,29 @@
+import { NextRequest, NextResponse } from "next/server";
+import { ChatOpenAI } from "@langchain/openai";
+import { HumanMessage } from "@langchain/core/messages";
+import { JsonOutputFunctionsParser } from "langchain/output_parsers";
+import saveQuizz from "./saveToDb";
+
+// Define a custom type for the expected result
+interface QuizResult {
+    quizz: {
+        name: string;
+        description: string;
+        questions: {
+            questionText: string;
+            answers: {
+                answerText: string;
+                isCorrect: boolean;
+            }[];
+        }[];
+    };
+}
+
 export async function POST(req: NextRequest) {
     try {
         const { text } = await req.json();
 
         if (!text) {
-            console.warn("Request received without text input.");
             return NextResponse.json(
                 { error: "Text input is required" },
                 { status: 400 }
@@ -11,7 +31,6 @@ export async function POST(req: NextRequest) {
         }
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
-        console.log("Received text for quiz generation:", textContent);
 
         if (!process.env.OPENAI_API_KEY) {
             console.error("OpenAI API key not provided");
@@ -23,13 +42,13 @@ export async function POST(req: NextRequest) {
 
         const model = new ChatOpenAI({
             apiKey: process.env.OPENAI_API_KEY,
-            modelName: "gpt-3.5-turbo",
+            modelName: "gpt-3.5-turbo",  
         });
 
         const parser = new JsonOutputFunctionsParser();
         const extractionFunctionSchema = {
             name: "extractor",
-            description: "Extracts fields from output",
+            description: "Extracts fields from output", 
             parameters: {
                 type: "object",
                 properties: {
@@ -51,16 +70,16 @@ export async function POST(req: NextRequest) {
                                                 properties: {
                                                     answerText: { type: "string" },
                                                     isCorrect: { type: "boolean" },
-                                                },
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         };
 
         const runnable = model
@@ -76,29 +95,25 @@ export async function POST(req: NextRequest) {
         const message = new HumanMessage({
             content: [
                 {
-                    type: "text",
+                    type: "text",  
                     text: `${prompt}\n${textContent}`,
                 },
             ],
         });
 
-        console.log("Sending message to OpenAI:", message);
+        const result = await runnable.invoke([message]) as QuizResult; // Type assertion
 
-        const result = await runnable.invoke([message]) as QuizResult;
-        console.log("Raw OpenAI response:", result);
+        console.log(result);
 
+        // Check if the result has the 'quizz' property
         if (!result || !result.quizz) {
-            console.error("Quiz data missing in OpenAI response:", result);
             return NextResponse.json(
-                { error: "Failed to generate quiz data", details: result },
+                { error: "Failed to generate quiz data" },
                 { status: 500 }
             );
         }
 
-        console.log("Generated quiz:", result.quizz);
-
         const { quizzId } = await saveQuizz(result.quizz);
-        console.log("Quiz saved with ID:", quizzId);
 
         return NextResponse.json(
             { quizzId },
