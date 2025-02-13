@@ -4,7 +4,6 @@ import { HumanMessage } from "@langchain/core/messages";
 import { JsonOutputFunctionsParser } from "langchain/output_parsers";
 import saveQuizz from "./saveToDb";
 
-// Define a custom type for the expected result
 interface QuizResult {
     quizz: {
         name: string;
@@ -101,14 +100,15 @@ export async function POST(req: NextRequest) {
             ],
         });
 
-        const result = await runnable.invoke([message]) as QuizResult; // Type assertion
+        const result = await runnable.invoke([message]) as QuizResult;
 
-        console.log(result);
+        console.log('Generated quiz result:', JSON.stringify(result, null, 2));  // Log the full result
 
         // Check if the result has the 'quizz' property
         if (!result || !result.quizz) {
+            console.error('Invalid quiz result:', result);  // Log the invalid result
             return NextResponse.json(
-                { error: "Failed to generate quiz data" },
+                { error: "Failed to generate quiz data", details: "Missing quiz structure" },
                 { status: 500 }
             );
         }
@@ -120,19 +120,29 @@ export async function POST(req: NextRequest) {
             { status: 200 }
         );
     } catch (error: unknown) {
+        // Log the full error details
+        console.error('Full error object:', error);
+        
         if (error instanceof Error) {
-            console.error("An error occurred:", error.message);
-            console.error("Error stack trace:", error.stack);
+            console.error("Error message:", error.message);
+            console.error("Error stack:", error.stack);
 
             return NextResponse.json(
-                { error: "Internal Server Error", details: error.message, stack: error.stack },
+                { 
+                    error: "Quiz generation failed",
+                    message: error.message,
+                    stack: error.stack 
+                },
                 { status: 500 }
             );
         }
 
-        console.error("An unknown error occurred:", error);
         return NextResponse.json(
-            { error: "Internal Server Error", details: "An unknown error occurred" },
+            { 
+                error: "Quiz generation failed",
+                details: "An unknown error occurred",
+                errorObject: JSON.stringify(error)
+            },
             { status: 500 }
         );
     }
