@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, File } from "lucide-react";
+import { ArrowLeft, File, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { Heading } from "../../../../../components/heading";
-import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Lecture {
     id: string;
@@ -22,6 +22,7 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
     const router = useRouter();
     const [lecture, setLecture] = useState<Lecture | null>(null);
     const [loading, setLoading] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         try {
@@ -29,31 +30,74 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
             const foundLecture = lectures.find(lecture => lecture.id === id);
             if (foundLecture) {
                 setLecture(foundLecture);
+            } else {
+                throw new Error("Lecture not found");
             }
         } catch (error) {
             console.error("Error loading lecture:", error);
+            toast({
+                title: "Error",
+                description: "Failed to load lecture details",
+                variant: "destructive",
+            });
         }
-    }, [id]);
+    }, [id, toast]);
 
     const handleQuizGeneration = async () => {
-        if (!lecture?.transcription) return;
+        if (!lecture?.transcription) {
+            toast({
+                title: "Error",
+                description: "No transcription available to generate quiz",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (lecture.transcription.length < 50) {
+            toast({
+                title: "Error",
+                description: "Transcription is too short to generate a meaningful quiz",
+                variant: "destructive",
+            });
+            return;
+        }
 
         setLoading(true);
         try {
             const response = await fetch("/api/quiz/generate-quiz", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: lecture.transcription }),
+                headers: { 
+                    "Content-Type": "application/json" 
+                },
+                body: JSON.stringify({ 
+                    text: lecture.transcription 
+                }),
             });
 
-            if (!response.ok) throw new Error("Failed to generate quiz");
+            const data = await response.json();
 
-            const { quizzId } = await response.json();
-            if (quizzId) {
-                router.push(`/quiz/${quizzId}`);
+            if (!response.ok) {
+                throw new Error(data.error || data.details || "Failed to generate quiz");
             }
+
+            const { quizzId } = data;
+            if (!quizzId) {
+                throw new Error("No quiz ID returned from server");
+            }
+
+            toast({
+                title: "Success",
+                description: "Quiz generated successfully!",
+            });
+
+            router.push(`/quiz/${quizzId}`);
         } catch (error) {
             console.error("Error in quiz generation:", error);
+            toast({
+                title: "Quiz Generation Failed",
+                description: error instanceof Error ? error.message : "An unexpected error occurred",
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -81,7 +125,6 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                 </Button>
-
                 <Card className="bg-gray-900 border-gray-800 shadow-lg">
                     <CardContent className="p-8 space-y-8">
                         <div className="space-y-4">
@@ -91,15 +134,20 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                                 icon={File}
                             />
                         </div>
-
                         <Button
                             onClick={handleQuizGeneration}
-                            disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90"
+                            disabled={loading || !lecture.transcription}
+                            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loading ? "Generating Quiz..." : "Generate Quiz"}
+                            {loading ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Generating Quiz...
+                                </div>
+                            ) : (
+                                "Generate Quiz"
+                            )}
                         </Button>
-
                         <div className="space-y-4">
                             <h2 className="text-lg font-semibold text-gray-200">Transcription</h2>
                             <div className="bg-gray-800 rounded-lg p-6 max-h-[400px] overflow-y-auto border border-gray-700 shadow-inner">
