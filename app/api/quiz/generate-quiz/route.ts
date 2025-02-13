@@ -20,20 +20,20 @@ interface QuizResult {
 
 export async function POST(req: NextRequest) {
     try {
-        // Log the start of the request
-        console.log('[Quiz Generation] Starting quiz generation');
-        
         const { text } = await req.json();
-        console.log('[Quiz Generation] Input length:', text?.length || 0);
 
         if (!text) {
-            console.error('[Quiz Generation] No input text provided');
-            throw new Error("Text input is required");
+            return NextResponse.json(
+                { error: "No text provided for quiz generation" },
+                { status: 400 }
+            );
         }
 
         if (!process.env.OPENAI_API_KEY) {
-            console.error('[Quiz Generation] Missing OpenAI API key in environment');
-            throw new Error("OpenAI API key not configured");
+            return NextResponse.json(
+                { error: "OpenAI configuration error" },
+                { status: 500 }
+            );
         }
 
         const model = new ChatOpenAI({
@@ -78,7 +78,6 @@ export async function POST(req: NextRequest) {
             }
         };
 
-        console.log('[Quiz Generation] Making OpenAI request');
         const runnable = model
             .bind({
                 functions: [extractionFunctionSchema],
@@ -99,38 +98,37 @@ export async function POST(req: NextRequest) {
         });
 
         const result = await runnable.invoke([message]) as QuizResult;
-        
-        // Log the shape of the result without sensitive data
-        console.log('[Quiz Generation] Result structure:', {
-            hasQuizz: !!result?.quizz,
-            questionCount: result?.quizz?.questions?.length,
-            hasName: !!result?.quizz?.name,
-            hasDescription: !!result?.quizz?.description
-        });
 
-        if (!result?.quizz) {
-            console.error('[Quiz Generation] Invalid result structure:', JSON.stringify(result));
-            throw new Error("Quiz generation failed: Invalid response structure");
+        if (!result || !result.quizz) {
+            return NextResponse.json(
+                { error: "OpenAI returned invalid quiz structure" },
+                { status: 500 }
+            );
         }
 
-        console.log('[Quiz Generation] Saving to database');
-        const { quizzId } = await saveQuizz(result.quizz);
-        console.log('[Quiz Generation] Successfully saved quiz:', quizzId);
-
-        return NextResponse.json({ quizzId }, { status: 200 });
+        try {
+            const { quizzId } = await saveQuizz(result.quizz);
+            return NextResponse.json({ quizzId }, { status: 200 });
+        } catch (dbError) {
+            return NextResponse.json(
+                { error: "Failed to save quiz to database" },
+                { status: 500 }
+            );
+        }
 
     } catch (error: unknown) {
-        // Log full error details to Vercel logs
-        console.error('[Quiz Generation] Error:', {
-            type: error instanceof Error ? error.constructor.name : typeof error,
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : 'No stack trace',
-            timestamp: new Date().toISOString()
-        });
+        let errorMessage = "Failed to generate quiz: ";
+        
+        if (error instanceof Error) {
+            errorMessage += error.message;
+        } else if (typeof error === 'string') {
+            errorMessage += error;
+        } else {
+            errorMessage += "Unexpected error occurred";
+        }
 
-        // Return a clean error to the client
         return NextResponse.json(
-            { error: "Quiz generation failed", id: new Date().toISOString() },
+            { error: errorMessage },
             { status: 500 }
         );
     }
