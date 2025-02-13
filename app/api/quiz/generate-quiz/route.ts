@@ -20,23 +20,20 @@ interface QuizResult {
 
 export async function POST(req: NextRequest) {
     try {
+        // Log the start of the request
+        console.log('[Quiz Generation] Starting quiz generation');
+        
         const { text } = await req.json();
+        console.log('[Quiz Generation] Input length:', text?.length || 0);
 
         if (!text) {
-            return NextResponse.json(
-                { error: "Text input is required" },
-                { status: 400 }
-            );
+            console.error('[Quiz Generation] No input text provided');
+            throw new Error("Text input is required");
         }
 
-        const textContent = Array.isArray(text) ? text.join("\n") : text;
-
         if (!process.env.OPENAI_API_KEY) {
-            console.error("OpenAI API key not provided");
-            return NextResponse.json(
-                { error: "OpenAI API key not provided" },
-                { status: 500 }
-            );
+            console.error('[Quiz Generation] Missing OpenAI API key in environment');
+            throw new Error("OpenAI API key not configured");
         }
 
         const model = new ChatOpenAI({
@@ -81,6 +78,7 @@ export async function POST(req: NextRequest) {
             }
         };
 
+        console.log('[Quiz Generation] Making OpenAI request');
         const runnable = model
             .bind({
                 functions: [extractionFunctionSchema],
@@ -95,54 +93,44 @@ export async function POST(req: NextRequest) {
             content: [
                 {
                     type: "text",  
-                    text: `${prompt}\n${textContent}`,
+                    text: `${prompt}\n${text}`,
                 },
             ],
         });
 
         const result = await runnable.invoke([message]) as QuizResult;
-
-        console.log('Generated quiz result:', JSON.stringify(result, null, 2));  // Log the full result
-
-        // Check if the result has the 'quizz' property
-        if (!result || !result.quizz) {
-            console.error('Invalid quiz result:', result);  // Log the invalid result
-            return NextResponse.json(
-                { error: "Failed to generate quiz data", details: "Missing quiz structure" },
-                { status: 500 }
-            );
-        }
-
-        const { quizzId } = await saveQuizz(result.quizz);
-
-        return NextResponse.json(
-            { quizzId },
-            { status: 200 }
-        );
-    } catch (error: unknown) {
-        // Log the full error details
-        console.error('Full error object:', error);
         
-        if (error instanceof Error) {
-            console.error("Error message:", error.message);
-            console.error("Error stack:", error.stack);
+        // Log the shape of the result without sensitive data
+        console.log('[Quiz Generation] Result structure:', {
+            hasQuizz: !!result?.quizz,
+            questionCount: result?.quizz?.questions?.length,
+            hasName: !!result?.quizz?.name,
+            hasDescription: !!result?.quizz?.description
+        });
 
-            return NextResponse.json(
-                { 
-                    error: "Quiz generation failed",
-                    message: error.message,
-                    stack: error.stack 
-                },
-                { status: 500 }
-            );
+        if (!result?.quizz) {
+            console.error('[Quiz Generation] Invalid result structure:', JSON.stringify(result));
+            throw new Error("Quiz generation failed: Invalid response structure");
         }
 
+        console.log('[Quiz Generation] Saving to database');
+        const { quizzId } = await saveQuizz(result.quizz);
+        console.log('[Quiz Generation] Successfully saved quiz:', quizzId);
+
+        return NextResponse.json({ quizzId }, { status: 200 });
+
+    } catch (error: unknown) {
+        // Log full error details to Vercel logs
+        console.error('[Quiz Generation] Error:', {
+            type: error instanceof Error ? error.constructor.name : typeof error,
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : 'No stack trace',
+            timestamp: new Date().toISOString()
+        });
+
+        // Return a clean error to the client
         return NextResponse.json(
-            { 
-                error: "Quiz generation failed",
-                details: "An unknown error occurred",
-                errorObject: JSON.stringify(error)
-            },
+            { error: "Quiz generation failed", id: new Date().toISOString() },
             { status: 500 }
         );
     }
