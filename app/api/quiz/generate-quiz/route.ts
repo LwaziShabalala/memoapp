@@ -4,6 +4,7 @@ import { HumanMessage } from "@langchain/core/messages";
 import { JsonOutputFunctionsParser } from "langchain/output_parsers";
 import saveQuizz from "./saveToDb";
 
+// Define a custom type for the expected result
 interface QuizResult {
     quizz: {
         name: string;
@@ -24,14 +25,17 @@ export async function POST(req: NextRequest) {
 
         if (!text) {
             return NextResponse.json(
-                { error: "No text provided for quiz generation" },
+                { error: "Text input is required" },
                 { status: 400 }
             );
         }
 
+        const textContent = Array.isArray(text) ? text.join("\n") : text;
+
         if (!process.env.OPENAI_API_KEY) {
+            console.error("OpenAI API key not provided");
             return NextResponse.json(
-                { error: "OpenAI configuration error" },
+                { error: "OpenAI API key not provided" },
                 { status: 500 }
             );
         }
@@ -92,43 +96,43 @@ export async function POST(req: NextRequest) {
             content: [
                 {
                     type: "text",  
-                    text: `${prompt}\n${text}`,
+                    text: `${prompt}\n${textContent}`,
                 },
             ],
         });
 
-        const result = await runnable.invoke([message]) as QuizResult;
+        const result = await runnable.invoke([message]) as QuizResult; // Type assertion
 
+        console.log(result);
+
+        // Check if the result has the 'quizz' property
         if (!result || !result.quizz) {
             return NextResponse.json(
-                { error: "OpenAI returned invalid quiz structure" },
+                { error: "Failed to generate quiz data" },
                 { status: 500 }
             );
         }
 
-        try {
-            const { quizzId } = await saveQuizz(result.quizz);
-            return NextResponse.json({ quizzId }, { status: 200 });
-        } catch (dbError) {
-            return NextResponse.json(
-                { error: "Failed to save quiz to database" },
-                { status: 500 }
-            );
-        }
-
-    } catch (error: unknown) {
-        let errorMessage = "Failed to generate quiz: ";
-        
-        if (error instanceof Error) {
-            errorMessage += error.message;
-        } else if (typeof error === 'string') {
-            errorMessage += error;
-        } else {
-            errorMessage += "Unexpected error occurred";
-        }
+        const { quizzId } = await saveQuizz(result.quizz);
 
         return NextResponse.json(
-            { error: errorMessage },
+            { quizzId },
+            { status: 200 }
+        );
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            console.error("An error occurred:", error.message);
+            console.error("Error stack trace:", error.stack);
+
+            return NextResponse.json(
+                { error: "Internal Server Error", details: error.message, stack: error.stack },
+                { status: 500 }
+            );
+        }
+
+        console.error("An unknown error occurred:", error);
+        return NextResponse.json(
+            { error: "Internal Server Error", details: "An unknown error occurred" },
             { status: 500 }
         );
     }
