@@ -115,13 +115,21 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
+        // Simplified prompt that lets the AI decide the number of questions
         const prompt = `
-            Given the text which is a summary of a document, generate a quiz based on the text. 
+            Given the text which is a summary of a document, generate a comprehensive quiz based on the text. 
             Return JSON only that contains a quiz object with fields: name, description, and questions. 
-            The questions should be an array of objects with fields: questionText, answers. 
+            
+            Generate as many questions as you think are appropriate to thoroughly test understanding of the key concepts in the content.
+            
+            Requirements for each question:
+            - Each question should have exactly 4 answer options
+            - Only one answer should be correct
+            - Questions should test understanding rather than just memorization
+            - Questions should cover different aspects of the content
+            
+            The questions array should contain objects with fields: questionText, answers. 
             The answers should be an array of objects with fields: answerText, isCorrect.
-            Each question should have 4 answer options with only one correct answer.
-            Make questions that test understanding rather than just memorization.
         `;
 
         console.log("🧠 [DEBUG] Sending request to OpenAI...");
