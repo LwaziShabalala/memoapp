@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { Heading } from "../../../../../components/heading";
-import { useToast } from "@/components/ui/use-toast";
 
 interface Lecture {
     id: string;
@@ -22,7 +21,7 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
     const router = useRouter();
     const [lecture, setLecture] = useState<Lecture | null>(null);
     const [loading, setLoading] = useState(false);
-    const { toast } = useToast();
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         try {
@@ -35,34 +34,24 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
             }
         } catch (error) {
             console.error("Error loading lecture:", error);
-            toast({
-                title: "Error",
-                description: "Failed to load lecture details",
-                variant: "destructive",
-            });
+            setError("Failed to load lecture details");
         }
-    }, [id, toast]);
+    }, [id]);
 
     const handleQuizGeneration = async () => {
         if (!lecture?.transcription) {
-            toast({
-                title: "Error",
-                description: "No transcription available to generate quiz",
-                variant: "destructive",
-            });
+            setError("No transcription available to generate quiz");
             return;
         }
 
         if (lecture.transcription.length < 50) {
-            toast({
-                title: "Error",
-                description: "Transcription is too short to generate a meaningful quiz",
-                variant: "destructive",
-            });
+            setError("Transcription is too short to generate a meaningful quiz");
             return;
         }
 
         setLoading(true);
+        setError(null);
+        
         try {
             const response = await fetch("/api/quiz/generate-quiz", {
                 method: "POST",
@@ -85,19 +74,10 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                 throw new Error("No quiz ID returned from server");
             }
 
-            toast({
-                title: "Success",
-                description: "Quiz generated successfully!",
-            });
-
             router.push(`/quiz/${quizzId}`);
         } catch (error) {
             console.error("Error in quiz generation:", error);
-            toast({
-                title: "Quiz Generation Failed",
-                description: error instanceof Error ? error.message : "An unexpected error occurred",
-                variant: "destructive",
-            });
+            setError(error instanceof Error ? error.message : "An unexpected error occurred");
         } finally {
             setLoading(false);
         }
@@ -133,6 +113,11 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                                 description="Detailed view of your lecture transcription and options for quiz generation."
                                 icon={File}
                             />
+                            {error && (
+                                <div className="bg-red-900/20 border border-red-900 text-red-300 px-4 py-2 rounded-md">
+                                    {error}
+                                </div>
+                            )}
                         </div>
                         <Button
                             onClick={handleQuizGeneration}
