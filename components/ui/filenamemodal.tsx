@@ -12,8 +12,15 @@ const FilenameModal = ({ open, onClose, onSave }: FilenameModalProps) => {
     const [filename, setFilename] = useState("");
 
     const handleSave = () => {
+        if (filename.trim() === "") return; // Prevent saving empty filenames
         onSave(filename);
         onClose();
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            handleSave();
+        }
     };
 
     if (!open) return null;
@@ -39,6 +46,7 @@ const FilenameModal = ({ open, onClose, onSave }: FilenameModalProps) => {
                         type="text"
                         value={filename}
                         onChange={(e) => setFilename(e.target.value)}
+                        onKeyDown={handleKeyDown} // Listen for "Enter" key
                         className="w-full p-2 border rounded-md mb-4"
                         placeholder="Enter file name"
                     />
