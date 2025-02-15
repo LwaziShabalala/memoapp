@@ -4,14 +4,10 @@ import { Mic, Loader2 } from "lucide-react";
 import WavEncoder from "wav-encoder";
 import FilenameModal from "./ui/filenamemodal";
 import { useTranscription } from "../app/transcriptioncontext";
+import { useLoading } from "../app/loadingcontext"; // Import useLoading
 
-interface RecordButtonProps {
-  onProcessingChange: (isProcessing: boolean) => void;
-}
-
-const RecordButton: React.FC<RecordButtonProps> = ({ onProcessingChange }) => {
+const RecordButton = () => {
     const [isRecording, setIsRecording] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
     const [showFilenameModal, setShowFilenameModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -19,11 +15,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onProcessingChange }) => {
     const audioContextRef = useRef<AudioContext | null>(null);
 
     const { setFilename, setTranscription } = useTranscription();
-
-    // Update parent component when processing state changes
-    useEffect(() => {
-        onProcessingChange(isProcessing);
-    }, [isProcessing, onProcessingChange]);
+    const { isProcessing, setIsProcessing } = useLoading(); // Use global processing state
 
     useEffect(() => {
         if (isRecording) {
@@ -111,7 +103,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onProcessingChange }) => {
             mediaRecorderRef.current.stop();
             mediaRecorderRef.current = null;
         }
-    }, [isRecording, setTranscription]);
+    }, [isRecording, setTranscription, setIsProcessing]);
 
     const handleSave = (filename: string) => {
         setFilename(filename);
