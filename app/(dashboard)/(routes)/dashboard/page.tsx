@@ -23,7 +23,7 @@ const DashboardPage: React.FC = () => {
           Transcribe Audio and PDFs Seamlessly
         </h2>
         <p className="text-zinc-400 font-light text-sm md:text-lg">
-          Whether it's a lecture recording or a PDF, our AI delivers fast, accurate transcriptions so you can focus on what matters.
+          Whether it&apos;s a lecture recording or a PDF, our AI delivers fast, accurate transcriptions so you can focus on what matters.
         </p>
       </div>
       {/* Buttons Section */}
