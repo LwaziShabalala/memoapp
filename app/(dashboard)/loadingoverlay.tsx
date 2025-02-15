@@ -1,3 +1,4 @@
+"use client";
 import React from 'react';
 import { Loader2 } from "lucide-react";
 
@@ -10,7 +11,7 @@ const LoadingOverlay = () => {
           Processing Your Audio
         </h3>
         <p className="text-zinc-400 text-center">
-          It's taking a while to ensure accuracy. Please don't close this window.
+          It&apos;s taking a while to ensure accuracy. Please don&apos;t close this window.
         </p>
       </div>
     </div>
