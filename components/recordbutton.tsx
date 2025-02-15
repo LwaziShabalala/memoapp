@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Mic } from "lucide-react";
 import WavEncoder from "wav-encoder";
 import FilenameModal from "./ui/filenamemodal";
-import { useTranscription } from "../app/transcriptioncontext";
+import { useTranscription } from "../app/(dashboard)/transcriptioncontext";
+import { useLoading } from "../app/(dashboard)/loadingcontext";
 
 const RecordButton: React.FC = () => {
     const [isRecording, setIsRecording] = useState(false);
@@ -15,11 +16,12 @@ const RecordButton: React.FC = () => {
     const audioContextRef = useRef<AudioContext | null>(null);
 
     const { setFilename, setTranscription } = useTranscription();
+    const { setIsProcessing } = useLoading();
 
     useEffect(() => {
         if (isRecording) {
             console.log("🔴 Recording started...");
-            setError(null); // Clear any previous errors
+            setError(null);
             audioContextRef.current = new (window.AudioContext || window.AudioContext)();
 
             navigator.mediaDevices.getUserMedia({ audio: true })
@@ -38,6 +40,8 @@ const RecordButton: React.FC = () => {
                     mediaRecorder.onstop = async () => {
                         try {
                             console.log("🛑 Recording stopped. Processing audio...");
+                            setIsProcessing(true); // Start loading state
+                            
                             const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
                             console.log("📁 Audio blob created:", audioBlob.size, "bytes");
 
@@ -65,7 +69,7 @@ const RecordButton: React.FC = () => {
                             console.log("📡 Sending audio file to backend...");
 
                             const controller = new AbortController();
-                            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
                             const response = await fetch("https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai/predict", {
                                 method: "POST",
@@ -98,6 +102,7 @@ const RecordButton: React.FC = () => {
                             
                             setError(errorMessage);
                         } finally {
+                            setIsProcessing(false); // End loading state
                             audioChunksRef.current = [];
                         }
                     };
@@ -114,7 +119,7 @@ const RecordButton: React.FC = () => {
             mediaRecorderRef.current.stop();
             mediaRecorderRef.current = null;
         }
-    }, [isRecording, setTranscription]);
+    }, [isRecording, setTranscription, setIsProcessing]);
 
     const handleSave = (filename: string) => {
         console.log("💾 Saving filename:", filename);
