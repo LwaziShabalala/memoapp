@@ -1,5 +1,4 @@
 "use client";
-
 import React, { createContext, useContext, useState } from 'react';
 
 type LoadingContextType = {
@@ -21,6 +20,13 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
 
 export function useLoading() {
   const context = useContext(LoadingContext);
+  if (typeof window === 'undefined') {
+    // Return a dummy context during server-side rendering
+    return {
+      isProcessing: false,
+      setIsProcessing: () => {},
+    };
+  }
   if (context === undefined) {
     throw new Error('useLoading must be used within a LoadingProvider');
   }
