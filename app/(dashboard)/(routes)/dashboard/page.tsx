@@ -3,7 +3,7 @@ import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import RecordButton from "@/components/recordbutton";
 import UploadButton from "@/components/uploadbutton";
-import { LoadingProvider, useLoading } from "@/app/loadingcontext";
+import { LoadingProvider, useLoading } from "@/app/(dashboard)/loadingcontext";
 
 // Separate component for the dashboard content to use the loading context
 const DashboardContent = () => {
