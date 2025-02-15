@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
-import { Loader2 } from "lucide-react";
 import RecordButton from "@/components/recordbutton";
 import UploadButton from "@/components/uploadbutton";
 
