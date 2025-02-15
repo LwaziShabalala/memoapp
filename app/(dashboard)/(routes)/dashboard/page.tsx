@@ -1,11 +1,12 @@
-"use client"
+"use client";
+
 import { useState } from "react";
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import RecordButton from "@/components/recordbutton";
 import UploadButton from "@/components/uploadbutton";
 
-const DashboardPage: React.FC = () => {
+const DashboardPage = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -38,7 +39,7 @@ const DashboardPage: React.FC = () => {
           Transcribe Audio and PDFs Seamlessly
         </h2>
         <p className="text-zinc-400 font-light text-sm md:text-lg">
-          Whether it's a lecture recording or a PDF, our AI delivers fast, accurate transcriptions so you can focus on what matters.
+          Whether it&apos;s a lecture recording or a PDF, our AI delivers fast, accurate transcriptions so you can focus on what matters.
         </p>
       </div>
 
