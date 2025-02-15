@@ -1,21 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import RecordButton from "@/components/recordbutton";
 import UploadButton from "@/components/uploadbutton";
 
 const DashboardPage = () => {
   const { isLoaded, isSignedIn } = useAuth();
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Wait for Clerk to load and check if user is signed in
   if (!isLoaded) return null;
-
-  // If the user is not signed in, redirect to the sign-in page
-  if (!isSignedIn) {
-    return <RedirectToSignUp />;
-  }
+  if (!isSignedIn) return <RedirectToSignUp />;
 
   return (
     <div className="bg-gray-950 flex flex-col items-center justify-start min-h-screen pt-16 relative">
@@ -31,7 +24,7 @@ const DashboardPage = () => {
 
       {/* Buttons Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        <RecordButton onProcessingChange={setIsProcessing} />
+        <RecordButton />
         <UploadButton />
       </div>
     </div>
