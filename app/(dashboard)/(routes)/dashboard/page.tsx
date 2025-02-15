@@ -1,28 +1,29 @@
 "use client";
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
+import dynamic from 'next/dynamic';
 import { Loader2 } from "lucide-react";
-import RecordButton from "@/components/recordbutton";
-import UploadButton from "@/components/uploadbutton";
-import { LoadingProvider, useLoading } from "@/app/(dashboard)/loadingcontext";
+import { LoadingProvider } from "@/app/(dashboard)/loadingcontext";
 
-// Separate component for the dashboard content to use the loading context
+// Dynamically import components that use the loading context
+const RecordButton = dynamic(() => import("@/components/recordbutton"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col items-center">
+      <div className="p-6 border-black/5 flex flex-col items-center justify-center transition w-40 h-40">
+        <Loader2 className="w-10 h-10 text-violet-500 animate-spin" />
+      </div>
+    </div>
+  ),
+});
+
+const UploadButton = dynamic(() => import("@/components/uploadbutton"), {
+  ssr: false,
+});
+
+// Separate component for the dashboard content
 const DashboardContent = () => {
-  const { isProcessing } = useLoading();
-  
   return (
     <div className="bg-gray-950 flex flex-col items-center justify-start min-h-screen pt-16 relative">
-      {/* Loading Overlay */}
-      {isProcessing && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-xl flex flex-col items-center space-y-4">
-            <Loader2 className="w-12 h-12 text-violet-500 animate-spin" />
-            <p className="text-lg font-medium text-gray-900">Processing your audio...</p>
-            <p className="text-sm text-gray-500 text-center">
-              This may take a while to ensure accurate transcription
-            </p>
-          </div>
-        </div>
-      )}
       {/* Heading Section */}
       <div className="mb-8 space-y-4 text-center">
         <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
