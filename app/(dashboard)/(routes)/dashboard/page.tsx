@@ -1,3 +1,4 @@
+"use client"
 import { useState } from "react";
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
