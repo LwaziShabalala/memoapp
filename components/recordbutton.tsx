@@ -4,7 +4,7 @@ import { Mic, Loader2 } from "lucide-react";
 import WavEncoder from "wav-encoder";
 import FilenameModal from "./ui/filenamemodal";
 import { useTranscription } from "../app/transcriptioncontext";
-import { useLoading } from "@/app/loadingcontext";
+import { useLoading } from "@/app/(dashboard)/loadingcontext";
 
 const RecordButton = () => {
     const [isRecording, setIsRecording] = useState(false);
@@ -17,6 +17,7 @@ const RecordButton = () => {
     const { setFilename, setTranscription } = useTranscription();
     const { isProcessing, setIsProcessing } = useLoading();
 
+    // Rest of the component remains the same
     useEffect(() => {
         if (isRecording) {
             console.log("🔴 Recording started...");
