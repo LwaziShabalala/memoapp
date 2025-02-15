@@ -4,13 +4,9 @@ import { Mic, Loader2 } from "lucide-react";
 import WavEncoder from "wav-encoder";
 import FilenameModal from "./ui/filenamemodal";
 import { useTranscription } from "../app/transcriptioncontext";
-import { useLoading } from "../app/loadingcontext"; // Import the global loading context
+import { useLoading } from "@/app/loadingcontext";
 
-interface RecordButtonProps {
-  // Removed onProcessingChange since we are now using global loading state
-}
-
-const RecordButton: React.FC<RecordButtonProps> = () => {
+const RecordButton = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [showFilenameModal, setShowFilenameModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -19,7 +15,7 @@ const RecordButton: React.FC<RecordButtonProps> = () => {
     const audioContextRef = useRef<AudioContext | null>(null);
 
     const { setFilename, setTranscription } = useTranscription();
-    const { isProcessing, setIsProcessing } = useLoading(); // Access global loading state
+    const { isProcessing, setIsProcessing } = useLoading();
 
     useEffect(() => {
         if (isRecording) {
