@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Mic } from "lucide-react";
 import WavEncoder from "wav-encoder";
 import FilenameModal from "./ui/filenamemodal";
-import { useTranscription } from "../app/(dashboard)/transcriptioncontext";
+import { useTranscription } from "@/app/transcriptioncontext";
 import { useLoading } from "../app/(dashboard)/loadingcontext";
 
 const RecordButton: React.FC = () => {
