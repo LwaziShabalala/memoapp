@@ -1,14 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import RecordButton from "@/components/recordbutton";
 import UploadButton from "@/components/uploadbutton";
-import { useLoading } from "@/app/loadingcontext";
 
 const DashboardPage = () => {
   const { isLoaded, isSignedIn } = useAuth();
-  const { isProcessing } = useLoading();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Wait for Clerk to load and check if user is signed in
   if (!isLoaded) return null;
@@ -45,7 +45,7 @@ const DashboardPage = () => {
 
       {/* Buttons Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        <RecordButton />
+        <RecordButton onProcessingChange={setIsProcessing} />
         <UploadButton />
       </div>
     </div>
