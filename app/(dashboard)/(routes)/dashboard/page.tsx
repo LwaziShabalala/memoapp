@@ -1,23 +1,14 @@
 "use client";
-
-import { useState } from "react";
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import RecordButton from "@/components/recordbutton";
 import UploadButton from "@/components/uploadbutton";
+import { LoadingProvider, useLoading } from "@/app/loadingcontext";
 
-const DashboardPage = () => {
-  const { isLoaded, isSignedIn } = useAuth();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // Wait for Clerk to load and check if user is signed in
-  if (!isLoaded) return null;
-
-  // If the user is not signed in, redirect to the sign-in page
-  if (!isSignedIn) {
-    return <RedirectToSignUp />;
-  }
-
+// Separate component for the dashboard content to use the loading context
+const DashboardContent = () => {
+  const { isProcessing } = useLoading();
+  
   return (
     <div className="bg-gray-950 flex flex-col items-center justify-start min-h-screen pt-16 relative">
       {/* Loading Overlay */}
@@ -32,7 +23,6 @@ const DashboardPage = () => {
           </div>
         </div>
       )}
-
       {/* Heading Section */}
       <div className="mb-8 space-y-4 text-center">
         <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
@@ -42,13 +32,27 @@ const DashboardPage = () => {
           Whether it&apos;s a lecture recording or a PDF, our AI delivers fast, accurate transcriptions so you can focus on what matters.
         </p>
       </div>
-
       {/* Buttons Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        <RecordButton onProcessingChange={setIsProcessing} />
+        <RecordButton />
         <UploadButton />
       </div>
     </div>
+  );
+};
+
+const DashboardPage = () => {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) return null;
+  if (!isSignedIn) {
+    return <RedirectToSignUp />;
+  }
+
+  return (
+    <LoadingProvider>
+      <DashboardContent />
+    </LoadingProvider>
   );
 };
 
