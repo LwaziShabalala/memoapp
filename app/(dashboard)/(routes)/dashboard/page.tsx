@@ -4,12 +4,13 @@ import RecordButton from "@/components/recordbutton";
 import UploadButton, { handlePdfFile } from "@/components/uploadbutton";
 import React, { useCallback, useState } from "react";
 import { useTranscription } from "@/app/transcriptioncontext";
+import FilenameModal from "@/components/ui/filenamemodal";
 
 const DashboardPage: React.FC = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [showFilenameModal, setShowFilenameModal] = useState(false);
-  const { setTranscription } = useTranscription();
+  const { setTranscription, setFilename } = useTranscription();
 
   // Handle drag events
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -37,8 +38,13 @@ const DashboardPage: React.FC = () => {
     }
   }, [setTranscription]);
 
+  const handleSave = (filename: string) => {
+    setFilename(filename);
+    setShowFilenameModal(false);
+  };
+
   if (!isLoaded) return null;
-  if (!isSignedIn) return <RedirectToSignUp />;
+  if (!isSignedIn) return <RedirectToSignIn />;
 
   return (
     <div
@@ -71,6 +77,12 @@ const DashboardPage: React.FC = () => {
         <RecordButton />
         <UploadButton />
       </div>
+
+      <FilenameModal
+        open={showFilenameModal}
+        onClose={() => setShowFilenameModal(false)}
+        onSave={handleSave}
+      />
     </div>
   );
 };
