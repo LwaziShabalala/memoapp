@@ -1,5 +1,5 @@
 "use client";
-import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
+import { useAuth, RedirectToSignIn } from "@clerk/nextjs";
 import RecordButton from "@/components/recordbutton";
 import UploadButton, { handlePdfFile } from "@/components/uploadbutton";
 import React, { useCallback, useState } from "react";
