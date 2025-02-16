@@ -2,11 +2,19 @@
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import RecordButton from "@/components/recordbutton";
 import UploadButton from "@/components/uploadbutton";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useRef } from "react";
 
 const DashboardPage: React.FC = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
+  const uploadButtonRef = useRef<HTMLInputElement | null>(null);
+
+  // Store reference to the file input on component mount
+  const setUploadButtonRef = useCallback((node: HTMLInputElement | null) => {
+    if (node) {
+      uploadButtonRef.current = node;
+    }
+  }, []);
 
   // Handle drag events
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -31,19 +39,25 @@ const DashboardPage: React.FC = () => {
     
     if (pdfFile) {
       // Create a new event that UploadButton can process
-      const input = document.createElement('input');
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(pdfFile);
-      input.files = dataTransfer.files;
 
-      // Dispatch the change event
-      const event = new Event('change', { bubbles: true });
-      Object.defineProperty(event, 'target', { value: input });
-      
-      // Find the UploadButton's input element and simulate the change
+      // Find the UploadButton's input element
       const uploadInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (uploadInput) {
+        // Set the files
         uploadInput.files = dataTransfer.files;
+        
+        // Create and dispatch the change event
+        const event = new Event('change', { bubbles: true });
+        Object.defineProperty(event, 'target', { 
+          writable: false,
+          value: { 
+            files: dataTransfer.files,
+            value: uploadInput.value
+          }
+        });
+        
         uploadInput.dispatchEvent(event);
       }
     }
