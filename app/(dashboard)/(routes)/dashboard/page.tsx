@@ -1,12 +1,15 @@
 "use client";
 import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import RecordButton from "@/components/recordbutton";
-import UploadButton from "@/components/uploadbutton";
+import UploadButton, { handlePdfFile } from "@/components/uploadbutton";
 import React, { useCallback, useState } from "react";
+import { useTranscription } from "../app/transcriptioncontext";
 
 const DashboardPage: React.FC = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
+  const [showFilenameModal, setShowFilenameModal] = useState(false);
+  const { setTranscription } = useTranscription();
 
   // Handle drag events
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -21,7 +24,7 @@ const DashboardPage: React.FC = () => {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -30,30 +33,9 @@ const DashboardPage: React.FC = () => {
     const pdfFile = files.find(file => file.type === 'application/pdf');
     
     if (pdfFile) {
-      // Create a new event that UploadButton can process
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(pdfFile);
-
-      // Find the UploadButton's input element
-      const uploadInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (uploadInput) {
-        // Set the files
-        uploadInput.files = dataTransfer.files;
-        
-        // Create and dispatch the change event
-        const event = new Event('change', { bubbles: true });
-        Object.defineProperty(event, 'target', { 
-          writable: false,
-          value: { 
-            files: dataTransfer.files,
-            value: uploadInput.value
-          }
-        });
-        
-        uploadInput.dispatchEvent(event);
-      }
+      await handlePdfFile(pdfFile, setTranscription, setShowFilenameModal);
     }
-  }, []);
+  }, [setTranscription]);
 
   if (!isLoaded) return null;
   if (!isSignedIn) return <RedirectToSignUp />;
