@@ -7,6 +7,17 @@ import { useTranscription } from "../app/transcriptioncontext";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
 
+export const handlePdfFile = async (file: File, setTranscription: (text: string) => void, setShowFilenameModal: (show: boolean) => void) => {
+    try {
+        const fileData = await file.arrayBuffer();
+        const pdfText = await extractPdfText(fileData);
+        setTranscription(pdfText);
+        setShowFilenameModal(true);
+    } catch (error) {
+        console.error("Error extracting text from PDF:", error);
+    }
+};
+
 const UploadButton: React.FC = () => {
     const [showFilenameModal, setShowFilenameModal] = React.useState(false);
     const { setFilename, setTranscription } = useTranscription();
@@ -16,14 +27,7 @@ const UploadButton: React.FC = () => {
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            try {
-                const fileData = await file.arrayBuffer();
-                const pdfText = await extractPdfText(fileData);
-                setTranscription(pdfText);
-                setShowFilenameModal(true);
-            } catch (error) {
-                console.error("Error extracting text from PDF:", error);
-            }
+            await handlePdfFile(file, setTranscription, setShowFilenameModal);
         }
     };
 
@@ -50,7 +54,6 @@ const UploadButton: React.FC = () => {
                 <div className="font-semibold mt-4 text-center">Upload PDF</div>
                 <ArrowRight className="w-5 h-5 mt-2" />
             </Card>
-
             <input
                 ref={fileInputRef}
                 type="file"
@@ -58,7 +61,6 @@ const UploadButton: React.FC = () => {
                 onChange={handleFileUpload}
                 className="hidden"
             />
-
             <FilenameModal
                 open={showFilenameModal}
                 onClose={() => setShowFilenameModal(false)}
@@ -71,25 +73,20 @@ const UploadButton: React.FC = () => {
 // Helper function to extract text from a PDF
 const extractPdfText = async (fileData: ArrayBuffer): Promise<string> => {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
     const pdf = await pdfjsLib.getDocument({ data: fileData }).promise;
     let extractedText = "";
-
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-
-        // Safely map textContent items
         extractedText += textContent.items
             .map((item) => {
                 if ("str" in item) {
-                    return (item as { str: string }).str; // Type assertion for 'str'
+                    return (item as { str: string }).str;
                 }
-                return ""; // Ignore non-TextItem items
+                return "";
             })
             .join(" ");
     }
-
     return extractedText;
 };
 
