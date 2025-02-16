@@ -41,7 +41,7 @@ const DashboardPage: React.FC = () => {
       Object.defineProperty(event, 'target', { value: input });
       
       // Find the UploadButton's input element and simulate the change
-      const uploadInput = document.querySelector('input[type="file"]');
+      const uploadInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       if (uploadInput) {
         uploadInput.files = dataTransfer.files;
         uploadInput.dispatchEvent(event);
