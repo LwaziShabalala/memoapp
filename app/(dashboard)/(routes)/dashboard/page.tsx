@@ -3,7 +3,7 @@ import { useAuth, RedirectToSignUp } from "@clerk/nextjs";
 import RecordButton from "@/components/recordbutton";
 import UploadButton, { handlePdfFile } from "@/components/uploadbutton";
 import React, { useCallback, useState } from "react";
-import { useTranscription } from "../app/transcriptioncontext";
+import { useTranscription } from "@/app/transcriptioncontext";
 
 const DashboardPage: React.FC = () => {
   const { isLoaded, isSignedIn } = useAuth();
