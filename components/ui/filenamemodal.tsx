@@ -38,7 +38,7 @@ const FilenameModal = ({ open, onClose, onSave }: FilenameModalProps) => {
 
                 <div className="text-center w-64">
                     <h3 className="text-xl font-semibold text-white mb-4">
-                        Name Your Recording
+                        Name Your File
                     </h3>
 
                     <input
