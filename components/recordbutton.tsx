@@ -40,7 +40,7 @@ const RecordButton: React.FC = () => {
                     mediaRecorder.onstop = async () => {
                         try {
                             console.log("🛑 Recording stopped. Processing audio...");
-                            setIsProcessing(true); // Start loading state
+                            setIsProcessing(true);
                             
                             const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
                             console.log("📁 Audio blob created:", audioBlob.size, "bytes");
@@ -102,7 +102,7 @@ const RecordButton: React.FC = () => {
                             
                             setError(errorMessage);
                         } finally {
-                            setIsProcessing(false); // End loading state
+                            setIsProcessing(false);
                             audioChunksRef.current = [];
                         }
                     };
@@ -134,7 +134,7 @@ const RecordButton: React.FC = () => {
                     console.log("🎤 Toggling recording:", !isRecording);
                     setIsRecording((prev) => !prev);
                 }}
-                className="p-6 border-black/5 flex flex-col items-center justify-center hover:shadow-md transition cursor-pointer w-40 h-40"
+                className="p-6 border-black/5 flex flex-col items-center justify-center hover:shadow-md transition cursor-pointer w-40 h-40 bg-gray-50"
             >
                 <div className="p-4 w-fit h-fit rounded-full bg-violet-500/10">
                     <Mic className="w-10 h-10 text-violet-500" />
