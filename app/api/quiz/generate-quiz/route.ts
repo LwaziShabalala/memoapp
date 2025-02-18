@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         const model = new ChatOpenAI({
             apiKey,
             modelName: "gpt-3.5-turbo",
-            temperature: 0.7,
+            temperature: 1.0, // Increased to allow more creativity
         });
 
         const parser = new JsonOutputFunctionsParser();
@@ -93,13 +93,12 @@ export async function POST(req: NextRequest) {
                                                 },
                                                 required: ["answerText", "isCorrect"]
                                             },
-                                            minItems: 2,
-                                            maxItems: 4
+                                            minItems: 4,
+                                            maxItems: 4 // Keep exactly 4 answers per question
                                         }
                                     },
                                     required: ["questionText", "answers"]
-                                },
-                                minItems: 1
+                                }
                             }
                         },
                         required: ["name", "description", "questions"]
@@ -116,29 +115,18 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
-        // Updated prompt for truly dynamic question count
+        // Updated prompt to remove any constraints on the number of questions
         const prompt = `
-            Generate a quiz from the provided text. Return JSON with a quiz object containing name, description, and questions.
-            
-            IMPORTANT - NUMBER OF QUESTIONS:
-            The number of questions MUST VARY based on the content length:
-            - For short texts (1-2 paragraphs): Generate 2-3 questions
-            - For medium texts (3-4 paragraphs): Generate 4-6 questions
-            - For long texts (5+ paragraphs): Generate 7-10 questions
-            
-            DO NOT generate a fixed number of questions. The exact count should be determined by:
-            1. Text length (follow the above guidelines)
-            2. Number of distinct concepts in the text
-            3. Complexity of the material
-            4. Importance of different topics
-            
-            REQUIREMENTS FOR EACH QUESTION:
-            1. Must have EXACTLY 4 answer options
-            2. Only ONE answer can be correct
-            3. Focus on testing understanding, not memorization
-            4. Each question should cover a different concept
-            5. No redundant questions
-            
+            Generate a quiz from the provided text. Extract as many questions as you see fit, depending on:
+            1. The depth and richness of the content
+            2. The number of key concepts present
+            3. The complexity of the material
+
+            IMPORTANT:
+            - Do NOT limit the number of questions. Generate as many or as few as necessary.
+            - Each question must test a unique idea from the text.
+            - The number of questions should be **purely content-driven**.
+
             The output structure should be:
             {
               "quizz": {
@@ -157,8 +145,8 @@ export async function POST(req: NextRequest) {
                 ]
               }
             }
-            
-            Remember: The number of questions MUST VARY based on content length - DO NOT use a fixed number!
+
+            Remember: The number of questions should **naturally vary** based on content. Do NOT use a fixed number.
         `;
 
         console.log("🧠 [DEBUG] Sending request to OpenAI...");
@@ -173,6 +161,9 @@ export async function POST(req: NextRequest) {
                 ],
             });
             result = await runnable.invoke([message]) as QuizResult;
+
+            // Log raw OpenAI response for debugging
+            console.log("🔍 [DEBUG] RAW RESPONSE:", JSON.stringify(result, null, 2));
         } catch (error) {
             console.error("❌ OpenAI API Error:", error);
             return NextResponse.json(
