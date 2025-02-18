@@ -93,7 +93,8 @@ export async function POST(req: NextRequest) {
                                                 },
                                                 required: ["answerText", "isCorrect"]
                                             },
-                                            minItems: 2
+                                            minItems: 2,
+                                            maxItems: 4
                                         }
                                     },
                                     required: ["questionText", "answers"]
@@ -115,26 +116,49 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
-        // Updated prompt to encourage dynamic question count
+        // Updated prompt for truly dynamic question count
         const prompt = `
-            Given the text which is a summary of a document, generate a comprehensive quiz based on the text. 
-            Return JSON only that contains a quiz object with fields: name, description, and questions. 
+            Generate a quiz from the provided text. Return JSON with a quiz object containing name, description, and questions.
             
-            Analyze the content and generate an appropriate number of questions based on:
-            - The complexity and depth of the material
-            - The number of distinct concepts covered
-            - The length of the text
-            - The importance of different topics discussed
+            IMPORTANT - NUMBER OF QUESTIONS:
+            The number of questions MUST VARY based on the content length:
+            - For short texts (1-2 paragraphs): Generate 2-3 questions
+            - For medium texts (3-4 paragraphs): Generate 4-6 questions
+            - For long texts (5+ paragraphs): Generate 7-10 questions
             
-            Requirements for each question:
-            - Each question must have exactly 4 answer options
-            - Only one answer should be correct
-            - Questions should test understanding rather than just memorization
-            - Questions should cover different aspects of the content
-            - Avoid redundant questions that test the same concept
+            DO NOT generate a fixed number of questions. The exact count should be determined by:
+            1. Text length (follow the above guidelines)
+            2. Number of distinct concepts in the text
+            3. Complexity of the material
+            4. Importance of different topics
             
-            The questions array should contain objects with fields: questionText, answers. 
-            The answers should be an array of objects with fields: answerText, isCorrect.
+            REQUIREMENTS FOR EACH QUESTION:
+            1. Must have EXACTLY 4 answer options
+            2. Only ONE answer can be correct
+            3. Focus on testing understanding, not memorization
+            4. Each question should cover a different concept
+            5. No redundant questions
+            
+            The output structure should be:
+            {
+              "quizz": {
+                "name": "Quiz Title",
+                "description": "Brief description",
+                "questions": [
+                  {
+                    "questionText": "Question here",
+                    "answers": [
+                      {"answerText": "Option 1", "isCorrect": true},
+                      {"answerText": "Option 2", "isCorrect": false},
+                      {"answerText": "Option 3", "isCorrect": false},
+                      {"answerText": "Option 4", "isCorrect": false}
+                    ]
+                  }
+                ]
+              }
+            }
+            
+            Remember: The number of questions MUST VARY based on content length - DO NOT use a fixed number!
         `;
 
         console.log("🧠 [DEBUG] Sending request to OpenAI...");
