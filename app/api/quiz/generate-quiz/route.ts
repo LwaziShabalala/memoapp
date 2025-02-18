@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Validate API key
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
             console.error("❌ Error: OpenAI API key not found in environment variables");
@@ -54,21 +53,20 @@ export async function POST(req: NextRequest) {
                 { status: 500 }
             );
         }
-        console.log("✅ OpenAI API Key is available");
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
 
-        // Initialize OpenAI with error handling
+        // Initialize OpenAI with higher temperature for more variety
         const model = new ChatOpenAI({
             apiKey,
-            modelName: "gpt-3.5-turbo",
-            temperature: 1.0, // Increased to allow more creativity
+            modelName: "gpt-3.5-turbo-16k", // Using 16k model for longer context
+            temperature: 1.0,
         });
 
         const parser = new JsonOutputFunctionsParser();
         const extractionFunctionSchema = {
             name: "extractor",
-            description: "Extracts quiz data from the provided text",
+            description: "Extracts comprehensive quiz data from the provided text",
             parameters: {
                 type: "object",
                 properties: {
@@ -94,11 +92,12 @@ export async function POST(req: NextRequest) {
                                                 required: ["answerText", "isCorrect"]
                                             },
                                             minItems: 4,
-                                            maxItems: 4 // Keep exactly 4 answers per question
+                                            maxItems: 4
                                         }
                                     },
                                     required: ["questionText", "answers"]
-                                }
+                                },
+                                // Removed any maxItems constraint to allow unlimited questions
                             }
                         },
                         required: ["name", "description", "questions"]
@@ -115,38 +114,31 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
-        // Updated prompt to remove any constraints on the number of questions
+        // Enhanced prompt to encourage more comprehensive question generation
         const prompt = `
-            Generate a quiz from the provided text. Extract as many questions as you see fit, depending on:
-            1. The depth and richness of the content
-            2. The number of key concepts present
-            3. The complexity of the material
+            Generate a comprehensive quiz from the provided text. You should generate many questions to thoroughly test understanding of the material.
 
-            IMPORTANT:
-            - Do NOT limit the number of questions. Generate as many or as few as necessary.
-            - Each question must test a unique idea from the text.
-            - The number of questions should be **purely content-driven**.
+            CRITICAL REQUIREMENTS:
+            1. Generate AT LEAST 10 questions, but preferably more based on content density
+            2. Cover ALL major topics and subtopics in the text
+            3. Include a mix of question types:
+               - Factual recall
+               - Concept understanding
+               - Application of knowledge
+               - Technical details
+            4. Each question must test a unique concept
+            5. Avoid redundant or overlapping questions
+            6. Questions should vary in difficulty
 
-            The output structure should be:
-            {
-              "quizz": {
-                "name": "Quiz Title",
-                "description": "Brief description",
-                "questions": [
-                  {
-                    "questionText": "Question here",
-                    "answers": [
-                      {"answerText": "Option 1", "isCorrect": true},
-                      {"answerText": "Option 2", "isCorrect": false},
-                      {"answerText": "Option 3", "isCorrect": false},
-                      {"answerText": "Option 4", "isCorrect": false}
-                    ]
-                  }
-                ]
-              }
-            }
+            The number of questions should be based on:
+            - The depth and breadth of the content
+            - The number of distinct concepts
+            - The complexity of the material
+            - The amount of technical detail
 
-            Remember: The number of questions should **naturally vary** based on content. Do NOT use a fixed number.
+            DO NOT artificially limit the number of questions. Generate as many as needed to properly test the material.
+
+            Format each question with exactly 4 answer choices, where only one is correct.
         `;
 
         console.log("🧠 [DEBUG] Sending request to OpenAI...");
@@ -161,9 +153,6 @@ export async function POST(req: NextRequest) {
                 ],
             });
             result = await runnable.invoke([message]) as QuizResult;
-
-            // Log raw OpenAI response for debugging
-            console.log("🔍 [DEBUG] RAW RESPONSE:", JSON.stringify(result, null, 2));
         } catch (error) {
             console.error("❌ OpenAI API Error:", error);
             return NextResponse.json(
@@ -172,9 +161,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        console.log("✅ OpenAI Response received");
-
-        // Validate quiz structure
         if (!result?.quizz?.questions?.length) {
             console.error("❌ Error: Invalid quiz structure returned from OpenAI");
             return NextResponse.json(
@@ -183,13 +169,24 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Save to database with error handling
+        // Add validation for minimum number of questions
+        if (result.quizz.questions.length < 10) {
+            console.error("❌ Error: Insufficient number of questions generated");
+            return NextResponse.json(
+                { error: "Generated quiz does not meet minimum question requirement" },
+                { status: 500 }
+            );
+        }
+
         try {
             console.log("📝 [DEBUG] Saving quiz to database...");
             const { quizzId } = await saveQuizz(result.quizz);
             console.log("✅ Quiz saved with ID:", quizzId);
             
-            return NextResponse.json({ quizzId }, { status: 200 });
+            return NextResponse.json({ 
+                quizzId,
+                questionCount: result.quizz.questions.length // Added for monitoring
+            }, { status: 200 });
         } catch (error) {
             console.error("❌ Database Error:", error);
             return NextResponse.json(
@@ -200,10 +197,7 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error("❌ Unexpected Error:", error);
         return NextResponse.json(
-            { 
-                error: "Internal Server Error", 
-                details: error instanceof Error ? error.message : 'Unknown error'
-            },
+            { error: "Internal Server Error", details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }
