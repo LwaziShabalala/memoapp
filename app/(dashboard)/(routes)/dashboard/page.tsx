@@ -62,15 +62,14 @@ const DashboardPage: React.FC = () => {
         </div>
       )}
       
-      {/* Heading Section */}
       <div className="mb-8 space-y-4 text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-          Transcribe Audio and PDFs Seamlessly
-        </h2>
-        <p className="text-zinc-400 font-light text-sm md:text-lg">
-          Whether it&apos;s a lecture recording or a PDF, our AI delivers fast, accurate transcriptions so you can focus on what matters.
-        </p>
-      </div>
+  <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+    Quick Text from Audio & PDFs
+  </h2>
+  <p className="text-zinc-400 font-light text-sm md:text-lg">
+    Fast, accurate transcription when you need it
+  </p>
+</div>
       
       {/* Buttons Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
