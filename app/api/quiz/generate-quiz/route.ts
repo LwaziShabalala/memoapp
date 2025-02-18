@@ -18,11 +18,27 @@ interface QuizResult {
     };
 }
 
+// Helper function to chunk text by sections
+function chunkTextBySection(text: string): string[] {
+    // Split by "QUESTION" marker and filter out empty chunks
+    return text.split(/QUESTION \d+/).filter(chunk => chunk.trim().length > 0);
+}
+
+// Helper function to merge quiz results
+function mergeQuizResults(results: QuizResult[]): QuizResult {
+    return {
+        quizz: {
+            name: results[0].quizz.name,
+            description: "Comprehensive assessment covering multiple topics",
+            questions: results.flatMap(result => result.quizz.questions)
+        }
+    };
+}
+
 export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
 
-        // Parse and validate request body
         let body;
         try {
             body = await req.json();
@@ -35,8 +51,6 @@ export async function POST(req: NextRequest) {
         }
 
         const { text } = body;
-        console.log("📥 Received text input length:", text?.length || 0);
-
         if (!text) {
             console.error("❌ Error: No text input provided.");
             return NextResponse.json(
@@ -47,26 +61,23 @@ export async function POST(req: NextRequest) {
 
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
-            console.error("❌ Error: OpenAI API key not found in environment variables");
+            console.error("❌ Error: OpenAI API key not found");
             return NextResponse.json(
                 { error: "Server configuration error" },
                 { status: 500 }
             );
         }
 
-        const textContent = Array.isArray(text) ? text.join("\n") : text;
-
-        // Initialize OpenAI with higher temperature for more variety
         const model = new ChatOpenAI({
             apiKey,
-            modelName: "gpt-3.5-turbo-16k", // Using 16k model for longer context
-            temperature: 1.0,
+            modelName: "gpt-3.5-turbo-16k",
+            temperature: 0.8,
         });
 
         const parser = new JsonOutputFunctionsParser();
         const extractionFunctionSchema = {
             name: "extractor",
-            description: "Extracts comprehensive quiz data from the provided text",
+            description: "Extracts quiz questions from the provided text section",
             parameters: {
                 type: "object",
                 properties: {
@@ -96,8 +107,7 @@ export async function POST(req: NextRequest) {
                                         }
                                     },
                                     required: ["questionText", "answers"]
-                                },
-                                // Removed any maxItems constraint to allow unlimited questions
+                                }
                             }
                         },
                         required: ["name", "description", "questions"]
@@ -114,78 +124,75 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
-        // Enhanced prompt to encourage more comprehensive question generation
-        const prompt = `
-            Generate a comprehensive quiz from the provided text. You should generate many questions to thoroughly test understanding of the material.
-
-            CRITICAL REQUIREMENTS:
-            1. Generate AT LEAST 10 questions, but preferably more based on content density
-            2. Cover ALL major topics and subtopics in the text
-            3. Include a mix of question types:
-               - Factual recall
-               - Concept understanding
-               - Application of knowledge
-               - Technical details
-            4. Each question must test a unique concept
-            5. Avoid redundant or overlapping questions
-            6. Questions should vary in difficulty
-
-            The number of questions should be based on:
-            - The depth and breadth of the content
-            - The number of distinct concepts
-            - The complexity of the material
-            - The amount of technical detail
-
-            DO NOT artificially limit the number of questions. Generate as many as needed to properly test the material.
-
-            Format each question with exactly 4 answer choices, where only one is correct.
+        const basePrompt = `
+            Generate EXACTLY 3-4 questions from this section of text. 
+            
+            Requirements for EACH section:
+            1. Create detailed, specific questions that test deep understanding
+            2. Include technical details and terminology from the text
+            3. Mix both factual and conceptual questions
+            4. Ensure questions are non-overlapping and test different concepts
+            5. Make answers specific and unambiguous
+            
+            IMPORTANT:
+            - You MUST generate at least 3 questions for this section
+            - Each question MUST have exactly 4 answer choices
+            - Only ONE answer should be correct
+            - All answers should be plausible but clearly distinguishable
+            - Questions should require actual understanding, not just memorization
         `;
 
-        console.log("🧠 [DEBUG] Sending request to OpenAI...");
-        let result: QuizResult;
+        // Split the content into sections and process each separately
+        const textContent = Array.isArray(text) ? text.join("\n") : text;
+        const sections = chunkTextBySection(textContent);
+        console.log(`📑 Processing ${sections.length} sections`);
+
+        const quizResults: QuizResult[] = [];
+        
+        // Process each section
+        for (let i = 0; i < sections.length; i++) {
+            const section = sections[i];
+            console.log(`🔄 Processing section ${i + 1}/${sections.length}`);
+
+            const sectionPrompt = `
+                ${basePrompt}
+                
+                SECTION ${i + 1}/${sections.length}:
+                ${section}
+            `;
+
+            try {
+                const message = new HumanMessage({
+                    content: [{ type: "text", text: sectionPrompt }],
+                });
+                const result = await runnable.invoke([message]) as QuizResult;
+                if (result?.quizz?.questions?.length >= 3) {
+                    quizResults.push(result);
+                }
+            } catch (error) {
+                console.error(`❌ Error processing section ${i + 1}:`, error);
+                // Continue with other sections even if one fails
+                continue;
+            }
+        }
+
+        if (quizResults.length === 0) {
+            return NextResponse.json(
+                { error: "Failed to generate valid questions" },
+                { status: 500 }
+            );
+        }
+
+        // Merge all results
+        const finalResult = mergeQuizResults(quizResults);
+        
+        console.log(`✅ Generated ${finalResult.quizz.questions.length} total questions`);
+
         try {
-            const message = new HumanMessage({
-                content: [
-                    {
-                        type: "text",
-                        text: `${prompt}\n${textContent}`,
-                    },
-                ],
-            });
-            result = await runnable.invoke([message]) as QuizResult;
-        } catch (error) {
-            console.error("❌ OpenAI API Error:", error);
-            return NextResponse.json(
-                { error: "Failed to generate quiz content", details: error instanceof Error ? error.message : 'Unknown error' },
-                { status: 500 }
-            );
-        }
-
-        if (!result?.quizz?.questions?.length) {
-            console.error("❌ Error: Invalid quiz structure returned from OpenAI");
-            return NextResponse.json(
-                { error: "Invalid quiz structure generated" },
-                { status: 500 }
-            );
-        }
-
-        // Add validation for minimum number of questions
-        if (result.quizz.questions.length < 10) {
-            console.error("❌ Error: Insufficient number of questions generated");
-            return NextResponse.json(
-                { error: "Generated quiz does not meet minimum question requirement" },
-                { status: 500 }
-            );
-        }
-
-        try {
-            console.log("📝 [DEBUG] Saving quiz to database...");
-            const { quizzId } = await saveQuizz(result.quizz);
-            console.log("✅ Quiz saved with ID:", quizzId);
-            
+            const { quizzId } = await saveQuizz(finalResult.quizz);
             return NextResponse.json({ 
                 quizzId,
-                questionCount: result.quizz.questions.length // Added for monitoring
+                questionCount: finalResult.quizz.questions.length
             }, { status: 200 });
         } catch (error) {
             console.error("❌ Database Error:", error);
