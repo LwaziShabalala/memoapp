@@ -4,29 +4,38 @@ import { HumanMessage } from "@langchain/core/messages";
 import { JsonOutputFunctionsParser } from "langchain/output_parsers";
 import saveQuizz from "./saveToDb";
 
-interface QuizResult {
-    quizz: {
-        name: string;
-        description: string;
-        questions: {
-            questionText: string;
-            answers: {
-                answerText: string;
-                isCorrect: boolean;
-            }[];
-        }[];
-    };
+interface Answer {
+    answerText: string;
+    isCorrect: boolean;
 }
 
-function validateQuizResult(result: any): result is QuizResult {
+interface Question {
+    questionText: string;
+    answers: Answer[];
+}
+
+interface Quiz {
+    name: string;
+    description: string;
+    questions: Question[];
+}
+
+interface QuizResult {
+    quizz: Quiz;
+}
+
+function validateQuizResult(result: unknown): result is QuizResult {
     try {
         if (!result || typeof result !== 'object') return false;
-        if (!result.quizz || typeof result.quizz !== 'object') return false;
-        if (typeof result.quizz.name !== 'string') return false;
-        if (typeof result.quizz.description !== 'string') return false;
-        if (!Array.isArray(result.quizz.questions)) return false;
         
-        for (const question of result.quizz.questions) {
+        const quiz = (result as QuizResult).quizz;
+        if (!quiz || typeof quiz !== 'object') return false;
+        
+        if (typeof quiz.name !== 'string') return false;
+        if (typeof quiz.description !== 'string') return false;
+        if (!Array.isArray(quiz.questions)) return false;
+        
+        for (const question of quiz.questions) {
             if (typeof question.questionText !== 'string') return false;
             if (!Array.isArray(question.answers)) return false;
             if (question.answers.length !== 4) return false;
@@ -48,7 +57,7 @@ export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
 
-        let body;
+        let body: { text?: string };
         try {
             body = await req.json();
         } catch (e) {
@@ -80,7 +89,7 @@ export async function POST(req: NextRequest) {
             modelName: "gpt-3.5-turbo-16k",
             temperature: 0.7,
             maxRetries: 3,
-            timeout: 60000, // 60 second timeout
+            timeout: 60000,
         });
 
         const parser = new JsonOutputFunctionsParser();
@@ -166,7 +175,7 @@ export async function POST(req: NextRequest) {
         const textContent = Array.isArray(text) ? text.join("\n") : text;
 
         console.log("🧠 Sending request to OpenAI...");
-        let result;
+        let result: unknown;
         try {
             const message = new HumanMessage({
                 content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${textContent}` }],
