@@ -18,21 +18,30 @@ interface QuizResult {
     };
 }
 
-// Helper function to chunk text by sections
-function chunkTextBySection(text: string): string[] {
-    // Split by "QUESTION" marker and filter out empty chunks
-    return text.split(/QUESTION \d+/).filter(chunk => chunk.trim().length > 0);
-}
-
-// Helper function to merge quiz results
-function mergeQuizResults(results: QuizResult[]): QuizResult {
-    return {
-        quizz: {
-            name: results[0].quizz.name,
-            description: "Comprehensive assessment covering multiple topics",
-            questions: results.flatMap(result => result.quizz.questions)
+function validateQuizResult(result: any): result is QuizResult {
+    try {
+        if (!result || typeof result !== 'object') return false;
+        if (!result.quizz || typeof result.quizz !== 'object') return false;
+        if (typeof result.quizz.name !== 'string') return false;
+        if (typeof result.quizz.description !== 'string') return false;
+        if (!Array.isArray(result.quizz.questions)) return false;
+        
+        for (const question of result.quizz.questions) {
+            if (typeof question.questionText !== 'string') return false;
+            if (!Array.isArray(question.answers)) return false;
+            if (question.answers.length !== 4) return false;
+            
+            for (const answer of question.answers) {
+                if (typeof answer.answerText !== 'string') return false;
+                if (typeof answer.isCorrect !== 'boolean') return false;
+            }
         }
-    };
+        
+        return true;
+    } catch (error) {
+        console.error('Validation error:', error);
+        return false;
+    }
 }
 
 export async function POST(req: NextRequest) {
@@ -52,7 +61,6 @@ export async function POST(req: NextRequest) {
 
         const { text } = body;
         if (!text) {
-            console.error("❌ Error: No text input provided.");
             return NextResponse.json(
                 { error: "Text input is required" },
                 { status: 400 }
@@ -61,7 +69,6 @@ export async function POST(req: NextRequest) {
 
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
-            console.error("❌ Error: OpenAI API key not found");
             return NextResponse.json(
                 { error: "Server configuration error" },
                 { status: 500 }
@@ -71,13 +78,15 @@ export async function POST(req: NextRequest) {
         const model = new ChatOpenAI({
             apiKey,
             modelName: "gpt-3.5-turbo-16k",
-            temperature: 0.8,
+            temperature: 0.7,
+            maxRetries: 3,
+            timeout: 60000, // 60 second timeout
         });
 
         const parser = new JsonOutputFunctionsParser();
         const extractionFunctionSchema = {
             name: "extractor",
-            description: "Extracts quiz questions from the provided text section",
+            description: "Extracts quiz questions from the provided text",
             parameters: {
                 type: "object",
                 properties: {
@@ -124,87 +133,81 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
-        const basePrompt = `
-            Generate EXACTLY 3-4 questions from this section of text. 
-            
-            Requirements for EACH section:
-            1. Create detailed, specific questions that test deep understanding
-            2. Include technical details and terminology from the text
-            3. Mix both factual and conceptual questions
-            4. Ensure questions are non-overlapping and test different concepts
-            5. Make answers specific and unambiguous
-            
-            IMPORTANT:
-            - You MUST generate at least 3 questions for this section
-            - Each question MUST have exactly 4 answer choices
-            - Only ONE answer should be correct
-            - All answers should be plausible but clearly distinguishable
-            - Questions should require actual understanding, not just memorization
+        const prompt = `
+            Create a quiz based on the following text. Follow these rules strictly:
+
+            1. Generate multiple comprehensive questions that cover the main topics
+            2. Each question must:
+               - Be clear and specific
+               - Have exactly 4 answer choices
+               - Have exactly one correct answer
+            3. Ensure proper JSON structure with all required fields
+
+            Important: Your response must be valid JSON matching this exact structure:
+            {
+              "quizz": {
+                "name": "string",
+                "description": "string",
+                "questions": [
+                  {
+                    "questionText": "string",
+                    "answers": [
+                      {"answerText": "string", "isCorrect": boolean},
+                      {"answerText": "string", "isCorrect": boolean},
+                      {"answerText": "string", "isCorrect": boolean},
+                      {"answerText": "string", "isCorrect": boolean}
+                    ]
+                  }
+                ]
+              }
+            }
         `;
 
-        // Split the content into sections and process each separately
         const textContent = Array.isArray(text) ? text.join("\n") : text;
-        const sections = chunkTextBySection(textContent);
-        console.log(`📑 Processing ${sections.length} sections`);
 
-        const quizResults: QuizResult[] = [];
-        
-        // Process each section
-        for (let i = 0; i < sections.length; i++) {
-            const section = sections[i];
-            console.log(`🔄 Processing section ${i + 1}/${sections.length}`);
-
-            const sectionPrompt = `
-                ${basePrompt}
-                
-                SECTION ${i + 1}/${sections.length}:
-                ${section}
-            `;
-
-            try {
-                const message = new HumanMessage({
-                    content: [{ type: "text", text: sectionPrompt }],
-                });
-                const result = await runnable.invoke([message]) as QuizResult;
-                if (result?.quizz?.questions?.length >= 3) {
-                    quizResults.push(result);
-                }
-            } catch (error) {
-                console.error(`❌ Error processing section ${i + 1}:`, error);
-                // Continue with other sections even if one fails
-                continue;
+        console.log("🧠 Sending request to OpenAI...");
+        let result;
+        try {
+            const message = new HumanMessage({
+                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${textContent}` }],
+            });
+            
+            result = await runnable.invoke([message]);
+            console.log("📝 Raw response:", JSON.stringify(result, null, 2));
+            
+            if (!validateQuizResult(result)) {
+                throw new Error("Invalid quiz structure in response");
             }
-        }
-
-        if (quizResults.length === 0) {
+        } catch (error) {
+            console.error("❌ OpenAI API or validation error:", error);
             return NextResponse.json(
-                { error: "Failed to generate valid questions" },
+                { 
+                    error: "Failed to generate valid quiz content",
+                    details: error instanceof Error ? error.message : 'Unknown error'
+                },
                 { status: 500 }
             );
         }
 
-        // Merge all results
-        const finalResult = mergeQuizResults(quizResults);
-        
-        console.log(`✅ Generated ${finalResult.quizz.questions.length} total questions`);
-
         try {
-            const { quizzId } = await saveQuizz(finalResult.quizz);
+            console.log("💾 Saving quiz to database...");
+            const { quizzId } = await saveQuizz(result.quizz);
+            
             return NextResponse.json({ 
                 quizzId,
-                questionCount: finalResult.quizz.questions.length
+                questionCount: result.quizz.questions.length
             }, { status: 200 });
         } catch (error) {
-            console.error("❌ Database Error:", error);
+            console.error("❌ Database error:", error);
             return NextResponse.json(
                 { error: "Failed to save quiz", details: error instanceof Error ? error.message : 'Unknown error' },
                 { status: 500 }
             );
         }
     } catch (error) {
-        console.error("❌ Unexpected Error:", error);
+        console.error("❌ Unexpected error:", error);
         return NextResponse.json(
-            { error: "Internal Server Error", details: error instanceof Error ? error.message : 'Unknown error' },
+            { error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }
