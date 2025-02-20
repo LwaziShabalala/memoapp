@@ -1,11 +1,15 @@
-'use client'
+'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, ReactNode } from 'react';
 
-const VirtualizedWrapper = ({ children }) => {
-  const [visibleItems, setVisibleItems] = useState([]);
+interface VirtualizedWrapperProps {
+  children: ReactNode;
+}
+
+const VirtualizedWrapper = ({ children }: VirtualizedWrapperProps) => {
+  const [visibleItems, setVisibleItems] = useState<ReactNode[]>([]);
   const [scrollTop, setScrollTop] = useState(0);
-  const containerRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const itemHeight = 100; // Adjust based on your content
   const bufferItems = 3; // Number of items to render above/below viewport
   
