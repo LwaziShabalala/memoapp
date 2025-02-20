@@ -95,7 +95,7 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
     }
 
     return (
-        <div className="absolute inset-0 bg-gray-950 p-4">
+        <div className="absolute inset-0 bg-gray-950 p-4 min-h-screen">
             <div className="max-w-3xl mx-auto">
                 <Button
                     variant="ghost"
