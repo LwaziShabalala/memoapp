@@ -85,7 +85,7 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
 
     if (!lecture) {
         return (
-            <div className="absolute inset-0 bg-gray-950 flex items-center justify-center">
+            <div className="fixed inset-0 bg-gray-950 flex items-center justify-center">
                 <div className="flex flex-col items-center">
                     <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
                     <p className="text-gray-400 mt-2">Loading...</p>
@@ -95,54 +95,56 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
     }
 
     return (
-        <div className="absolute inset-0 bg-gray-950 p-4 min-h-screen">
-            <div className="max-w-3xl mx-auto">
-                <Button
-                    variant="ghost"
-                    className="mb-4 text-gray-300 hover:text-white hover:bg-gray-800"
-                    onClick={() => router.back()}
-                >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                </Button>
-                <Card className="bg-gray-900 border-gray-800 shadow-lg">
-                    <CardContent className="p-8 space-y-8">
-                        <div className="space-y-4">
-                            <Heading
-                                title={lecture.name}
-                                description="Detailed view of your lecture transcription and options for quiz generation."
-                                icon={File}
-                            />
-                            {error && (
-                                <div className="bg-red-900/20 border border-red-900 text-red-300 px-4 py-2 rounded-md">
-                                    {error}
-                                </div>
-                            )}
-                        </div>
-                        <Button
-                            onClick={handleQuizGeneration}
-                            disabled={loading || !lecture.transcription}
-                            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? (
-                                <div className="flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Generating Quiz...
-                                </div>
-                            ) : (
-                                "Generate Quiz"
-                            )}
-                        </Button>
-                        <div className="space-y-4">
-                            <h2 className="text-lg font-semibold text-gray-200">Transcription</h2>
-                            <div className="bg-gray-800 rounded-lg p-6 max-h-[400px] overflow-y-auto border border-gray-700 shadow-inner">
-                                <p className="text-sm leading-relaxed text-gray-300 whitespace-pre-line">
-                                    {lecture.transcription}
-                                </p>
+        <div className="fixed inset-0 overflow-y-auto bg-gray-950">
+            <div className="min-h-screen p-4">
+                <div className="max-w-3xl mx-auto">
+                    <Button
+                        variant="ghost"
+                        className="mb-4 text-gray-300 hover:text-white hover:bg-gray-800"
+                        onClick={() => router.back()}
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                    </Button>
+                    <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                        <CardContent className="p-8 space-y-8">
+                            <div className="space-y-4">
+                                <Heading
+                                    title={lecture.name}
+                                    description="Detailed view of your lecture transcription and options for quiz generation."
+                                    icon={File}
+                                />
+                                {error && (
+                                    <div className="bg-red-900/20 border border-red-900 text-red-300 px-4 py-2 rounded-md">
+                                        {error}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                            <Button
+                                onClick={handleQuizGeneration}
+                                disabled={loading || !lecture.transcription}
+                                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? (
+                                    <div className="flex items-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Generating Quiz...
+                                    </div>
+                                ) : (
+                                    "Generate Quiz"
+                                )}
+                            </Button>
+                            <div className="space-y-4">
+                                <h2 className="text-lg font-semibold text-gray-200">Transcription</h2>
+                                <div className="bg-gray-800 rounded-lg p-6 max-h-[400px] overflow-y-auto border border-gray-700 shadow-inner">
+                                    <p className="text-sm leading-relaxed text-gray-300 whitespace-pre-line">
+                                        {lecture.transcription}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );
