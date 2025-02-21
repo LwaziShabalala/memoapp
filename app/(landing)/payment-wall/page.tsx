@@ -1,10 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import PricingCard from "../../../components/ui/pricingcard";
 
 const PaymentWall = () => {
-    const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-
     const handleSuccess = (reference: string) => {
         console.log("Payment successful, reference:", reference);
         // Handle post-payment logic
