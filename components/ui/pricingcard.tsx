@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; // Import useRouter from Next.js
+import "../../app/styles/styles.css";
 
 interface PricingCardProps {
     title: string;
-    priceUSD: number; // Base price in USD
-    originalPriceUSD?: number;
+    price: string;
+    originalPrice?: string;
     storage: string;
     users: string;
     sendUp: boolean;
@@ -15,24 +16,10 @@ interface PricingCardProps {
     onCancel?: () => void;
 }
 
-interface CurrencyInfo {
-    code: string;
-    symbol: string;
-    rate: number;
-}
-
-const CURRENCY_MAP: Record<string, CurrencyInfo> = {
-    ZA: { code: 'ZAR', symbol: 'R', rate: 19.22 }, // South African Rand
-    US: { code: 'USD', symbol: '$', rate: 1 },
-    GB: { code: 'GBP', symbol: '£', rate: 0.80 },
-    EU: { code: 'EUR', symbol: '€', rate: 0.93 },
-    // Add more currencies as needed
-};
-
 export const PricingCard: React.FC<PricingCardProps> = ({
     title,
-    priceUSD,
-    originalPriceUSD,
+    price,
+    originalPrice,
     storage,
     users,
     sendUp,
@@ -41,29 +28,18 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     onCancel
 }) => {
     const [isPaystackReady, setIsPaystackReady] = useState(false);
-    const [currencyInfo, setCurrencyInfo] = useState<CurrencyInfo>(CURRENCY_MAP.ZA);
-    const router = useRouter();
+    const router = useRouter(); // Initialize useRouter
 
     useEffect(() => {
-        // Load Paystack script
         const script = document.createElement("script");
         script.src = "https://js.paystack.co/v1/inline.js";
         script.async = true;
-        script.onload = () => setIsPaystackReady(true);
-        document.body.appendChild(script);
 
-        // Detect user's location
-        fetch('https://ipapi.co/json/')
-            .then(response => response.json())
-            .then(data => {
-                const countryCode = data.country_code;
-                const defaultCurrency = CURRENCY_MAP[countryCode] || CURRENCY_MAP.ZA;
-                setCurrencyInfo(defaultCurrency);
-            })
-            .catch(error => {
-                console.error('Error detecting location:', error);
-                setCurrencyInfo(CURRENCY_MAP.ZA); // Default to ZAR if detection fails
-            });
+        script.onload = () => {
+            setIsPaystackReady(true);
+        };
+
+        document.body.appendChild(script);
 
         return () => {
             if (script) {
@@ -72,22 +48,17 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         };
     }, []);
 
-    const formatPrice = (amount: number): string => {
-        const convertedAmount = amount * currencyInfo.rate;
-        return `${currencyInfo.symbol}${convertedAmount.toFixed(2)}`;
-    };
-
     const handlePayment = () => {
         if (!isPaystackReady) return;
 
-        const convertedAmount = priceUSD * currencyInfo.rate;
         const reference = `ref-${title.replace(/[^a-zA-Z0-9]/g, "")}-${Date.now()}`;
+        const amount = parseFloat(price.replace(/[^0-9.-]+/g, "")) * 100;
 
         const handler = window.PaystackPop.setup({
             key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_xxxxxxxxxxxxxxx",
             email,
-            amount: convertedAmount * 100,
-            currency: currencyInfo.code,
+            amount,
+            currency: "ZAR",
             ref: reference,
             metadata: {
                 plan: title,
@@ -101,7 +72,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             },
             callback: (response: { reference: string }) => {
                 console.log("Transaction successful", response.reference);
+
+                // Trigger the onSuccess callback, if any
                 onSuccess?.(response.reference);
+
+                // Redirect to the dashboard page
                 router.push("/sign-up");
             },
         });
@@ -111,25 +86,27 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
     return (
         <div className="relative group">
+            {/* Glow effect */}
             <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
 
+            {/* Card container with minimum height for consistency */}
             <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
+                {/* Header */}
                 <header className="text-center space-y-4">
                     <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
                         {title}
                     </h2>
                     <div className="flex items-center justify-center gap-4">
-                        {originalPriceUSD && (
+                        {originalPrice && (
                             <span className="text-xl text-gray-400 line-through">
-                                {formatPrice(originalPriceUSD)}
+                                {originalPrice}
                             </span>
                         )}
-                        <p className="text-4xl font-extrabold text-white">
-                            {formatPrice(priceUSD)}
-                        </p>
+                        <p className="text-4xl font-extrabold text-white">{price}</p>
                     </div>
                 </header>
 
+                {/* Features */}
                 <div className="space-y-4 text-base text-gray-300">
                     <p className="leading-relaxed">{storage}</p>
                     {sendUp && title !== "1 Year Access" && (
@@ -139,6 +116,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     )}
                 </div>
 
+                {/* Action button */}
                 <button
                     onClick={handlePayment}
                     disabled={!isPaystackReady}
