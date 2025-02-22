@@ -23,7 +23,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     storage,
     users,
     sendUp,
-    email,  // Remove the default value here
+    email: string,
     onSuccess,
     onCancel
 }) => {
