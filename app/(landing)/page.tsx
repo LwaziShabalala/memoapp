@@ -9,7 +9,7 @@ const LandingPage = () => {
         <VirtualizedWrapper>
             <div className="min-h-screen bg-gray-950">
                 <LandingNavbar />
-                {/* Hero Section /}
+                {/Hero Section /}
                 <section className="py-16">
                     <LandingHero />
                 </section>
@@ -23,7 +23,7 @@ const LandingPage = () => {
                     </div>
                 </section>
                 <FeaturesSection />
-                {/ Pricing Section */}
+                {/ Pricing Section /}
                 <section className="max-w-4xl mx-auto px-4 py-20">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <PricingCard
