@@ -6,6 +6,14 @@ import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from '@/components/virtualized-wrapper';
 
 const LandingPage = () => {
+    const handleSuccess = (reference: string) => {
+        console.log("Payment successful, reference:", reference);
+    };
+
+    const handleCancel = () => {
+        console.log("Payment was canceled");
+    };
+
     return (
         <VirtualizedWrapper>
             <div className="min-h-screen bg-gray-950">
@@ -29,19 +37,23 @@ const LandingPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <PricingCard
                             title="1-year access"
-                            originalPrice="R500"
-                            price="R250"
+                            originalPriceUSD={26.01}
+                            priceUSD={13.01}
                             storage="Join now and get early access to exclusive updates and features."
                             users="Be among the first to experience advanced transcription tools and AI-powered features!"
                             sendUp={true}
+                            onSuccess={handleSuccess}
+                            onCancel={handleCancel}
                         />
                         <PricingCard
                             title="Lifetime Access"
-                            originalPrice="R1000"
-                            price="R500"
+                            originalPriceUSD={52.03}
+                            priceUSD={26.01}
                             storage="Secure lifetime access with exclusive perks and continuous updates."
                             users="Enjoy permanent access to new features, including priority support and more!"
                             sendUp={true}
+                            onSuccess={handleSuccess}
+                            onCancel={handleCancel}
                         />
                     </div>
                 </section>
