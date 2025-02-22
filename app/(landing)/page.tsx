@@ -1,9 +1,19 @@
+'use client';
+
+import dynamic from 'next/dynamic';
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
-import PricingCard from "@/components/ui/pricingcard";
 import VideoComponent from "@/components/landing-video";
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from '@/components/virtualized-wrapper';
+
+// Dynamically import PricingCard with no SSR
+const PricingCard = dynamic(() => import("@/components/ui/pricingcard"), {
+    ssr: false,
+    loading: () => (
+        <div className="h-[400px] bg-gray-900 rounded-xl animate-pulse"></div>
+    )
+});
 
 const LandingPage = () => {
     const handleSuccess = (reference: string) => {
@@ -18,11 +28,11 @@ const LandingPage = () => {
         <VirtualizedWrapper>
             <div className="min-h-screen bg-gray-950">
                 <LandingNavbar />
-                {/* Hero Section */}
+                
                 <section className="py-16">
                     <LandingHero />
                 </section>
-                {/* Video Section */}
+                
                 <section className="-mt-8 w-full py-12">
                     <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
                         See how it works
@@ -31,8 +41,9 @@ const LandingPage = () => {
                         <VideoComponent />
                     </div>
                 </section>
+
                 <FeaturesSection />
-                {/* Pricing Section */}
+                
                 <section className="max-w-4xl mx-auto px-4 py-20">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <PricingCard
