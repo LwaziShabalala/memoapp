@@ -4,16 +4,15 @@ import PricingCard from "@/components/ui/pricingcard";
 import VideoComponent from "@/components/landing-video";
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from '@/components/virtualized-wrapper';
+
 const LandingPage = () => {
     return (
         <VirtualizedWrapper>
             <div className="min-h-screen bg-gray-950">
                 <LandingNavbar />
-                {/Hero Section /}
                 <section className="py-16">
                     <LandingHero />
                 </section>
-                {/ Video Section /}
                 <section className="-mt-8 w-full py-12">
                     <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
                         See how it works
@@ -23,7 +22,6 @@ const LandingPage = () => {
                     </div>
                 </section>
                 <FeaturesSection />
-                {/ Pricing Section /}
                 <section className="max-w-4xl mx-auto px-4 py-20">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <PricingCard
@@ -48,5 +46,5 @@ const LandingPage = () => {
         </VirtualizedWrapper>
     );
 };
-export default LandingPage;
 
+export default LandingPage;
