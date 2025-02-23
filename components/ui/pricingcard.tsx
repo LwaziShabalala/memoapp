@@ -23,6 +23,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     storage,
     users,
     sendUp,
+    email,
     onSuccess,
     onCancel
 }) => {
