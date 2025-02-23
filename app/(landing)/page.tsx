@@ -31,6 +31,7 @@ const LandingPage = () => {
                             storage="Join now and get early access to exclusive updates and features."
                             users="Be among the first to experience advanced transcription tools and AI-powered features!"
                             sendUp={true}
+                            email={userEmail}
                         />
                         <PricingCard
                             title="Lifetime Access"
@@ -39,6 +40,7 @@ const LandingPage = () => {
                             storage="Secure lifetime access with exclusive perks and continuous updates."
                             users="Enjoy permanent access to new features, including priority support and more!"
                             sendUp={true}
+                            email={userEmail}
                         />
                     </div>
                 </section>
