@@ -11,7 +11,7 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    email?: string;
+    email: string;
     onSuccess?: (reference: string) => void;
     onCancel?: () => void;
 }
