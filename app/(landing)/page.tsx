@@ -1,3 +1,7 @@
+"use client";
+
+import { useUser } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
 import PricingCard from "@/components/ui/pricingcard";
@@ -6,6 +10,16 @@ import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from '@/components/virtualized-wrapper';
 
 const LandingPage = () => {
+    const { user, isLoaded } = useUser();
+    const [userEmail, setUserEmail] = useState("");
+    
+    useEffect(() => {
+        if (isLoaded && user) {
+            // Get email from Clerk user
+            setUserEmail(user.primaryEmailAddress?.emailAddress || "");
+        }
+    }, [isLoaded, user]);
+
     return (
         <VirtualizedWrapper>
             <div className="min-h-screen bg-gray-950">
