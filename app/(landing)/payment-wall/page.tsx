@@ -6,7 +6,6 @@ import PricingCard from "../../../components/ui/pricingcard";
 const PaymentWall = () => {
     const { user, isLoaded } = useUser();
     const [userEmail, setUserEmail] = useState("");
-    const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     
     useEffect(() => {
         if (isLoaded && user) {
