@@ -12,7 +12,7 @@ import VirtualizedWrapper from '@/components/virtualized-wrapper';
 const LandingPage = () => {
     const { user, isLoaded } = useUser();
     const [userEmail, setUserEmail] = useState("");
-    
+
     useEffect(() => {
         if (isLoaded && user) {
             // Get email from Clerk user
@@ -36,7 +36,28 @@ const LandingPage = () => {
                     </div>
                 </section>
                 <FeaturesSection />
+                
+                {/* Pricing Section with Optional Email Input */}
                 <section className="max-w-4xl mx-auto px-4 py-20">
+                    <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
+                        Choose Your Plan
+                    </h2>
+                    
+                    {!user && (
+                        <div className="max-w-md mx-auto mb-6 text-center">
+                            <p className="text-sm text-gray-400">
+                                Enter your email to receive exclusive updates and a smoother checkout experience.
+                            </p>
+                            <input
+                                type="email"
+                                placeholder="Enter your email"
+                                value={userEmail}
+                                onChange={(e) => setUserEmail(e.target.value)}
+                                className="w-full mt-2 p-3 border border-gray-600 rounded-md bg-gray-900 text-white focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <PricingCard
                             title="1-year access"
