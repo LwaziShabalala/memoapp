@@ -40,8 +40,8 @@ const LandingPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <PricingCard
                             title="1-year access"
-                            originalPrice="ZAR1000"
-                            price="ZAR500"
+                            originalPrice="R1000"
+                            price="R500"
                             storage="Join now and get early access to exclusive updates and features."
                             users="Be among the first to experience advanced transcription tools and AI-powered features!"
                             sendUp={true}
@@ -49,8 +49,8 @@ const LandingPage = () => {
                         />
                         <PricingCard
                             title="Lifetime Access"
-                            originalPrice="ZAR500"
-                            price="ZAR250"
+                            originalPrice="R500"
+                            price="R250"
                             storage="Secure lifetime access with exclusive perks and continuous updates."
                             users="Enjoy permanent access to new features, including priority support and more!"
                             sendUp={true}
