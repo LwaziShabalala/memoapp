@@ -58,7 +58,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_xxxxxxxxxxxxxxx",
             email,
             amount,
-            currency: "$",
+            currency: "ZAR",
             ref: reference,
             metadata: {
                 plan: title,
