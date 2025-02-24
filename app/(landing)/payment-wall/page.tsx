@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import PricingCard from "../../../components/ui/pricingcard";
@@ -6,32 +7,52 @@ import PricingCard from "../../../components/ui/pricingcard";
 const PaymentWall = () => {
     const { user, isLoaded } = useUser();
     const [userEmail, setUserEmail] = useState("");
-    
+    const [emailError, setEmailError] = useState("");
+
     useEffect(() => {
         if (isLoaded && user) {
             setUserEmail(user.primaryEmailAddress?.emailAddress || "");
         }
     }, [isLoaded, user]);
 
+    // Function to validate email format
+    const validateEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    // Handle email input change
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const email = e.target.value;
+        setUserEmail(email);
+
+        // Validate email and show error if invalid
+        if (!validateEmail(email) && email.length > 0) {
+            setEmailError("Please enter a valid email address.");
+        } else {
+            setEmailError("");
+        }
+    };
+
     const handleSuccess = (reference: string) => {
         console.log("Payment successful, reference:", reference);
         // Handle post-payment logic
     };
-    
+
     const handleCancel = () => {
         console.log("Payment was canceled");
         // Handle cancellation
     };
-    
+
     return (
         <div className="text-center py-20 space-y-8">
             <h1 className="text-4xl font-bold text-gray-800">Choose Your Payment Option</h1>
             <p className="text-xl text-gray-600">
                 Please choose one of the following payment options to proceed.
             </p>
-            
+
             {/* Email input if user is not logged in */}
-            {!userEmail && (
+            {!user && (
                 <div className="max-w-md mx-auto">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 text-left mb-1">
                         Email address
@@ -40,13 +61,16 @@ const PaymentWall = () => {
                         type="email"
                         id="email"
                         value={userEmail}
-                        onChange={(e) => setUserEmail(e.target.value)}
+                        onChange={handleEmailChange}
                         placeholder="Enter your email address"
-                        className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className={`w-full p-3 border ${
+                            emailError ? "border-red-500" : "border-gray-300"
+                        } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                     />
+                    {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
                 </div>
             )}
-            
+
             <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 <div className="flex flex-col h-full">
                     <PricingCard
@@ -56,7 +80,7 @@ const PaymentWall = () => {
                         storage="Join now and get early access to exclusive updates and features."
                         users="Be among the first to experience advanced transcription tools and AI-powered features!"
                         sendUp={true}
-                        email={userEmail}
+                        email={emailError ? "" : userEmail} // Prevent sending an invalid email
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
                     />
@@ -69,7 +93,7 @@ const PaymentWall = () => {
                         storage="Secure lifetime access with exclusive perks and continuous updates."
                         users="Enjoy permanent access to new features, including priority support and more!"
                         sendUp={true}
-                        email={userEmail}
+                        email={emailError ? "" : userEmail} // Prevent sending an invalid email
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
                     />
