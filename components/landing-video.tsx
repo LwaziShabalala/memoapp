@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import YouTubePlayer from "@components/ui/YouTubePlayer.jsx"; // Import the new component
+import YouTubePlayer from "@/components/ui/YouTubePlayer"; // Import the new component
 
 const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
