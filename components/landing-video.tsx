@@ -6,10 +6,6 @@ const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const videoId = "oZXRsxB3hdY"; // Your YouTube video ID
 
-  const handleIframeLoad = () => {
-    setIsLoading(false);
-  };
-
   return (
     <div className="relative group">
       {/* Gradient overlay */}
