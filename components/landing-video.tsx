@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from 'react';
-import Video from 'next-video';
-import landingvideo from '/videos/public_landingvideo.webm';
 
 const VideoComponent = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -26,10 +24,10 @@ const VideoComponent = () => {
                         </div>
                     )}
                     
-                    {/* Next-video component with landingvideo */}
+                    {/* Direct video element */}
                     <div className="aspect-video w-full rounded-lg overflow-hidden">
-                        <Video 
-                            src={landingvideo}
+                        <video 
+                            src="/public_landingvideo.webm"
                             className="w-full h-full"
                             onLoadedData={handleVideoLoad}
                             controls={false}
