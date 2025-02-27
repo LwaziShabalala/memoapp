@@ -8,6 +8,9 @@ const VideoComponent = () => {
     // Your YouTube video ID
     const videoId = "oZXRsxB3hdY";
     
+    // Add cache-busting query string
+    const videoSrc = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&controls=0&autohide=1&disablekb=1&fs=0&vq=hd1080&playsinline=1&t=${new Date().getTime()}`;
+
     const handleIframeLoad = () => {
         setIsLoading(false);
     };
@@ -30,7 +33,7 @@ const VideoComponent = () => {
                     {/* YouTube iframe with enhanced settings */}
                     <div className="aspect-video w-full rounded-lg overflow-hidden">
                         <iframe
-                            src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&controls=0&autohide=1&disablekb=1&fs=0&vq=hd1080&playsinline=1`}
+                            src={videoSrc}
                             title="Video player"
                             frameBorder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
