@@ -1,17 +1,16 @@
 "use client";
-
 import { useState } from 'react';
 
 const VideoComponent = () => {
     const [isLoading, setIsLoading] = useState(true);
-
+    
     // Your YouTube video ID
     const videoId = "oZXRsxB3hdY";
-
+    
     const handleIframeLoad = () => {
         setIsLoading(false);
     };
-
+    
     return (
         <div className="relative group">
             {/* Gradient overlay */}
@@ -19,7 +18,7 @@ const VideoComponent = () => {
             
             {/* Video container */}
             <div className="relative">
-                <div className="rounded-xl bg-gray-900/50 p-1 ring-1 ring-gray-800/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] md:shadow-[0,0_30px_rgba(0,0,0,0.5)]">
+                <div className="rounded-xl bg-gray-900/50 p-1 ring-1 ring-gray-800/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] md:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
                     {/* Loading state */}
                     {isLoading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg z-10">
@@ -27,10 +26,10 @@ const VideoComponent = () => {
                         </div>
                     )}
                     
-                    {/* YouTube iframe */}
+                    {/* YouTube iframe - with cleaner UI and highest quality */}
                     <div className="aspect-video w-full rounded-lg overflow-hidden">
                         <iframe
-                            src={`https://www.youtube.com/embed/${videoId}?controls=0&modestbranding=1&rel=0&showinfo=0&playsinline=1`}
+                            src={`https://www.youtube.com/embed/${videoId}?vq=hd1080&controls=1&modestbranding=1&rel=0&showinfo=0&fs=0&iv_load_policy=3&disablekb=1&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
                             title="Video player"
                             frameBorder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
