@@ -1,11 +1,17 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const VideoComponent = () => {
     const [isLoading, setIsLoading] = useState(true);
+    const [origin, setOrigin] = useState('');
     
     // Your YouTube video ID
     const videoId = "oZXRsxB3hdY";
+    
+    // Use useEffect to access window after component mounts (client-side only)
+    useEffect(() => {
+        setOrigin(window.location.origin);
+    }, []);
     
     const handleIframeLoad = () => {
         setIsLoading(false);
@@ -28,15 +34,17 @@ const VideoComponent = () => {
                     
                     {/* YouTube iframe - with cleaner UI and highest quality */}
                     <div className="aspect-video w-full rounded-lg overflow-hidden">
-                        <iframe
-                            src={`https://www.youtube.com/embed/${videoId}?vq=hd1080&controls=1&modestbranding=1&rel=0&showinfo=0&fs=0&iv_load_policy=3&disablekb=1&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
-                            title="Video player"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full h-full"
-                            onLoad={handleIframeLoad}
-                        ></iframe>
+                        {origin && (
+                            <iframe
+                                src={`https://www.youtube.com/embed/${videoId}?vq=hd1080&controls=1&modestbranding=1&rel=0&showinfo=0&fs=0&iv_load_policy=3&disablekb=1&playsinline=1&origin=${encodeURIComponent(origin)}`}
+                                title="Video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="w-full h-full"
+                                onLoad={handleIframeLoad}
+                            ></iframe>
+                        )}
                     </div>
                 </div>
                 
