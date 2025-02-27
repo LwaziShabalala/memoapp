@@ -27,10 +27,10 @@ const VideoComponent = () => {
                         </div>
                     )}
                     
-                    {/* YouTube iframe */}
+                    {/* YouTube iframe - now using the videoId variable */}
                     <div className="aspect-video w-full rounded-lg overflow-hidden">
                         <iframe
-                            src={`https://www.youtube.com/embed/oZXRsxB3hdY?rel=0&modestbranding=1&playsinline=1`}
+                            src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1`}
                             title="Video player"
                             frameBorder="0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
