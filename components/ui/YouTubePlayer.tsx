@@ -7,7 +7,7 @@ interface YouTubePlayerProps {
 
 const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YT.Player | null>(null); // Type the ref as YT.Player
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
           },
           events: {
             onReady: () => setIsLoading(false),
-            onStateChange: () => {},
+            onStateChange: () => {} // Remove or define if needed
           },
         });
       }
