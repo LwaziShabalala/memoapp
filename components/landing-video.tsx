@@ -1,9 +1,7 @@
 "use client";
-import { useState } from "react";
 import YouTubePlayer from "@/components/ui/YouTubePlayer"; // Import the new component
 
 const VideoComponent = () => {
-  const [isLoading, setIsLoading] = useState(true);
   const videoId = "oZXRsxB3hdY"; // Your YouTube video ID
 
   return (
@@ -14,13 +12,6 @@ const VideoComponent = () => {
       {/* Video container */}
       <div className="relative">
         <div className="rounded-xl bg-gray-900/50 p-1 ring-1 ring-gray-800/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] md:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-          {/* Loading state */}
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg z-10">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-            </div>
-          )}
-
           {/* Use the YouTubePlayer component */}
           <YouTubePlayer videoId={videoId} />
         </div>
