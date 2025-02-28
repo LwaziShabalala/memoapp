@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Video from 'next-video';
-import landingvideo from '/videos/public_landingvideo.webm';
 
 const VideoComponent = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -29,7 +28,7 @@ const VideoComponent = () => {
                     {/* Next-video component with landingvideo */}
                     <div className="aspect-video w-full rounded-lg overflow-hidden">
                         <Video 
-                            src={landingvideo}
+                            src="/videos/landingvideo.webm"  // No need for import
                             className="w-full h-full"
                             onLoadedData={handleVideoLoad}
                             controls={false}
