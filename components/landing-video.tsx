@@ -1,14 +1,36 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Video from 'next-video';
 import landingvideo from '@/videos/memoappvideo.mp4';
 
 const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const containerRef = useRef(null);
   
   const handleVideoLoad = () => {
     setIsLoading(false);
   };
+
+  // Apply styles to the next-video rendered elements
+  useEffect(() => {
+    if (!isLoading && containerRef.current) {
+      // Target all video elements inside the container
+      const videoElements = containerRef.current.querySelectorAll('video');
+      const containerElements = containerRef.current.querySelectorAll('div');
+      
+      videoElements.forEach(video => {
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'fill';
+      });
+      
+      // Target all container divs that next-video might add
+      containerElements.forEach(div => {
+        div.style.width = '100%';
+        div.style.height = '100%';
+      });
+    }
+  }, [isLoading]);
 
   return (
     <div className="relative group">
@@ -25,21 +47,18 @@ const VideoComponent = () => {
             </div>
           )}
           
-          {/* Video container that maintains aspect ratio */}
-          <div className="aspect-video w-full relative">
-            {/* This will force the video to fill the container while maintaining aspect ratio */}
-            <div className="absolute inset-0">
-              <Video 
-                src={landingvideo}
-                className="w-full h-full object-fill"
-                onLoadedData={handleVideoLoad}
-                controls={false}
-                autoPlay
-                muted
-                loop
-                playsInline
-              />
-            </div>
+          {/* Video container with ref for direct DOM manipulation */}
+          <div ref={containerRef} className="aspect-video w-full">
+            <Video 
+              src={landingvideo}
+              className="w-full h-full"
+              onLoadedData={handleVideoLoad}
+              controls={false}
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
           </div>
         </div>
         
