@@ -17,7 +17,7 @@ const VideoComponent = () => {
       
       {/* Video container */}
       <div className="relative">
-        <div className="rounded-xl bg-gray-900/50 p-1 ring-1 ring-gray-800/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] md:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+        <div className="rounded-xl bg-gray-900/50 overflow-hidden ring-1 ring-gray-800/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] md:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
           {/* Loading state */}
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg z-10">
@@ -25,18 +25,20 @@ const VideoComponent = () => {
             </div>
           )}
           
-          {/* Video container with proper sizing */}
-          <div className="aspect-video w-full rounded-lg overflow-hidden">
-            <Video 
-              src={landingvideo}
-              className="w-full h-full object-cover" 
-              onLoadedData={handleVideoLoad}
-              controls={false}
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
+          {/* Direct video container without extra padding/margins */}
+          <div className="aspect-video w-full">
+            <div className="absolute inset-0 w-full h-full">
+              <Video 
+                src={landingvideo}
+                className="absolute inset-0 w-full h-full object-cover" 
+                onLoadedData={handleVideoLoad}
+                controls={false}
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+            </div>
           </div>
         </div>
         
