@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import Video from 'next-video';
-import landingvideo from '@/videos/public_landingvid.webm';  // Standard import path for next-video
+import landingvideo from '@/videos/pretzelvideo.mp4';  // Standard import path for next-video
 
 const VideoComponent = () => {
     const [isLoading, setIsLoading] = useState(true);
