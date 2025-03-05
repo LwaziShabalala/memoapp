@@ -1,200 +1,109 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import "../../app/styles/styles.css";
+import React, { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import PricingCard from "../../../components/ui/pricingcard";
 
-// Detailed type definition for PayPal
-interface PayPalButtonConfig {
-    createOrder: (data: unknown, actions: {
-        order: {
-            create: (details: {
-                purchase_units: Array<{
-                    amount: {
-                        value: string;
-                        currency_code: string;
-                    };
-                    description?: string;
-                    custom_id?: string;
-                }>
-            }) => Promise<string>
-        }
-    }) => Promise<string>;
-    onApprove: (data: unknown, actions: {
-        order: {
-            capture: () => Promise<{
-                payer: {
-                    name: {
-                        given_name: string;
-                    }
-                }
-                id: string;
-            }>
-        }
-    }) => Promise<void>;
-    onCancel: () => void;
-    onError: (err: Error) => void;
-}
-
-interface PayPalButtons {
-    (config: PayPalButtonConfig): {
-        render: (selector: string) => Promise<void>
-    }
-}
-
-// Declare global interface augmentation for window
-declare global {
-    interface Window {
-        paypal?: {
-            Buttons: PayPalButtons
-        }
-    }
-}
-
-interface PricingCardProps {
-    title: string;
-    price: string;
-    originalPrice?: string;
-    storage: string;
-    users: string;
-    sendUp: boolean;
-    email: string;
-    onSuccess?: (paymentId: string) => void;
-    onCancel?: () => void;
-}
-
-export const PricingCard: React.FC<PricingCardProps> = ({
-    title,
-    price,
-    originalPrice,
-    storage,
-    users, 
-    sendUp,
-    email,
-    onSuccess,
-    onCancel
-}) => {
-    const [isPayPalReady, setIsPayPalReady] = useState(false);
-    const router = useRouter();
-
-    // Generate a unique ID for each card's PayPal button container
-    const paypalContainerId = `paypal-button-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
+const PaymentWall = () => {
+    const { user, isLoaded } = useUser();
+    const [userEmail, setUserEmail] = useState("");
+    const [emailError, setEmailError] = useState("");
 
     useEffect(() => {
-        // Dynamically load PayPal script (only once)
-        if (!window.paypal) {
-            const script = document.createElement("script");
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
-            script.async = true;
-
-            script.onload = () => {
-                if (window.paypal?.Buttons) {
-                    setIsPayPalReady(true);
-                }
-            };
-
-            document.body.appendChild(script);
-
-            return () => {
-                if (script) {
-                    document.body.removeChild(script);
-                }
-            };
-        } else {
-            // If PayPal script is already loaded
-            setIsPayPalReady(true);
+        if (isLoaded && user) {
+            setUserEmail(user.primaryEmailAddress?.emailAddress || "");
         }
-    }, []);
+    }, [isLoaded, user]);
 
-    const payWithPayPal = () => {
-        if (!isPayPalReady || !window.paypal?.Buttons) return;
+    // Function to validate email format
+    const validateEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
 
-        const amount = parseFloat(price.replace(/[^0-9.-]+/g, ""));
+    // Handle email input change
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const email = e.target.value;
+        setUserEmail(email);
 
-        window.paypal.Buttons({
-            createOrder: (_, actions) => {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            value: amount.toFixed(2),
-                            currency_code: "USD"
-                        },
-                        description: `${title} - ${storage}`,
-                        custom_id: email
-                    }]
-                });
-            },
-            onApprove: (_, actions) => {
-                return actions.order.capture().then((details) => {
-                    console.log("Transaction completed by " + details.payer.name.given_name);
-                    
-                    onSuccess?.(details.id);
-                    router.push("/sign-up");
-                });
-            },
-            onCancel: () => {
-                console.log("Transaction was canceled");
-                onCancel?.();
-            },
-            onError: (err) => {
-                console.error("PayPal Error:", err);
-                onCancel?.();
-            }
-        }).render(`#${paypalContainerId}`);
+        // Validate email and show error if invalid
+        if (!validateEmail(email) && email.length > 0) {
+            setEmailError("Please enter a valid email address.");
+        } else {
+            setEmailError("");
+        }
+    };
+
+    const handleSuccess = (reference: string) => {
+        console.log("Payment successful, reference:", reference);
+        // Handle post-payment logic
+    };
+
+    const handleCancel = () => {
+        console.log("Payment was canceled");
+        // Handle cancellation
     };
 
     return (
-        <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
+        <div className="text-center py-20 space-y-8">
+            <h1 className="text-4xl font-bold text-gray-800">Choose Your Payment Option</h1>
+            <p className="text-xl text-gray-600">
+                Please choose one of the following payment options to proceed.
+            </p>
 
-            <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
-                <header className="text-center space-y-4">
-                    <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                        {title}
-                    </h2>
-                    <div className="flex items-center justify-center gap-4">
-                        {originalPrice && (
-                            <span className="text-xl text-gray-400 line-through">
-                                {originalPrice}
-                            </span>
-                        )}
-                        <p className="text-4xl font-extrabold text-white">{price}</p>
-                    </div>
-                </header>
-
-                <div className="space-y-4 text-base text-gray-300">
-                    <p className="leading-relaxed">{storage}</p>
-                    <p className="leading-relaxed text-sm text-gray-400">{users}</p>
-                    {sendUp && title !== "1 Year Access" && (
-                        <p className="leading-relaxed">
-                            Exclusive features and priority updates coming soon!
-                        </p>
-                    )}
+            {/* Email input if user is not logged in */}
+            {!user && (
+                <div className="max-w-md mx-auto">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 text-left mb-1">
+                        Email address
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        value={userEmail}
+                        onChange={handleEmailChange}
+                        placeholder="Enter your email address"
+                        className={`w-full p-3 border ${
+                            emailError ? "border-red-500" : "border-gray-300"
+                        } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    />
+                    {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
                 </div>
+            )}
 
-                <div 
-                    id={paypalContainerId} 
-                    className="w-full"
-                    onClick={payWithPayPal}
-                >
-                    {!isPayPalReady ? (
-                        <button 
-                            disabled 
-                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
-                        >
-                            Loading...
-                        </button>
-                    ) : (
-                        <button 
-                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
-                        >
-                            Pay with PayPal
-                        </button>
-                    )}
+            <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div className="flex flex-col h-full">
+                    <PricingCard
+                        title="1-year access"
+                        originalPrice="R500"
+                        price="R250"
+                        storage="Join now and get early access to exclusive updates and features."
+                        users="Be among the first to experience advanced transcription tools and AI-powered features!"
+                        sendUp={true}
+                        email={emailError ? "" : userEmail} // Prevent sending an invalid email
+                        onSuccess={handleSuccess}
+                        onCancel={handleCancel}
+                    />
+                </div>
+                <div className="flex flex-col h-full">
+                    <PricingCard
+                        title="Lifetime Access"
+                        originalPrice="R1000"
+                        price="R500"
+                        storage="Secure lifetime access with exclusive perks and continuous updates."
+                        users="Enjoy permanent access to new features, including priority support and more!"
+                        sendUp={true}
+                        email={emailError ? "" : userEmail} // Prevent sending an invalid email
+                        onSuccess={handleSuccess}
+                        onCancel={handleCancel}
+                    />
                 </div>
             </div>
+            <p className="text-sm text-gray-400 mt-8">
+                By selecting a plan, you agree to our terms of service and privacy policy.
+            </p>
         </div>
     );
 };
 
-export default PricingCard;
+export default PaymentWall;
