@@ -74,6 +74,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     onCancel
 }) => {
     const [isPayPalReady, setIsPayPalReady] = useState(false);
+    const [showPayPalButtons, setShowPayPalButtons] = useState(false);
     const router = useRouter();
     const paypalButtonRef = useRef<boolean>(false);
 
@@ -84,7 +85,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         // Dynamically load PayPal script (only once)
         if (!window.paypal) {
             const script = document.createElement("script");
-            // Updated PayPal script URL with additional parameters
             script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
             script.async = true;
             script.id = "paypal-script"; // Add an ID for easier reference
@@ -92,7 +92,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             script.onload = () => {
                 if (window.paypal?.Buttons) {
                     setIsPayPalReady(true);
-                    renderPayPalButtons();
                 }
             };
 
@@ -103,13 +102,19 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         } else {
             // If PayPal script is already loaded
             setIsPayPalReady(true);
-            renderPayPalButtons();
         }
     }, []);
 
+    useEffect(() => {
+        // Only render PayPal buttons when they should be shown
+        if (isPayPalReady && showPayPalButtons) {
+            renderPayPalButtons();
+        }
+    }, [isPayPalReady, showPayPalButtons]);
+
     const renderPayPalButtons = () => {
         // Prevent multiple button renders
-        if (!isPayPalReady || !window.paypal?.Buttons || paypalButtonRef.current) return;
+        if (!window.paypal?.Buttons || paypalButtonRef.current) return;
 
         // Parse the price - handle both $ and R currency symbols
         const numericPrice = price.replace(/[^0-9.-]+/g, "");
@@ -124,47 +129,55 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         const container = document.getElementById(paypalContainerId);
         if (container) {
             container.innerHTML = '';
-        }
 
-        try {
-            window.paypal.Buttons({
-                createOrder: (_, actions) => {
-                    return actions.order.create({
-                        purchase_units: [{
-                            amount: {
-                                value: amount.toFixed(2),
-                                currency_code: "USD"
-                            },
-                            description: `${title} - ${storage}`
-                        }]
-                    });
-                },
-                onApprove: (_, actions) => {
-                    return actions.order.capture().then((details) => {
-                        console.log("Transaction completed by " + details.payer.name.given_name);
-                        
-                        onSuccess?.(details.id);
-                        router.push("/sign-up");
-                    });
-                },
-                onCancel: () => {
-                    console.log("Transaction was canceled");
-                    paypalButtonRef.current = false;
-                    onCancel?.();
-                },
-                onError: (err) => {
-                    console.error("PayPal Error:", err);
-                    paypalButtonRef.current = false;
-                    onCancel?.();
-                }
-            }).render(`#${paypalContainerId}`);
+            try {
+                window.paypal.Buttons({
+                    createOrder: (_, actions) => {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: {
+                                    value: amount.toFixed(2),
+                                    currency_code: "USD"
+                                },
+                                description: `${title} - ${storage}`
+                            }]
+                        });
+                    },
+                    onApprove: (_, actions) => {
+                        return actions.order.capture().then((details) => {
+                            console.log("Transaction completed by " + details.payer.name.given_name);
+                            
+                            onSuccess?.(details.id);
+                            router.push("/sign-up");
+                        });
+                    },
+                    onCancel: () => {
+                        console.log("Transaction was canceled");
+                        paypalButtonRef.current = false;
+                        setShowPayPalButtons(false);
+                        onCancel?.();
+                    },
+                    onError: (err) => {
+                        console.error("PayPal Error:", err);
+                        paypalButtonRef.current = false;
+                        setShowPayPalButtons(false);
+                        onCancel?.();
+                    }
+                }).render(`#${paypalContainerId}`);
 
-            // Mark as rendered
-            paypalButtonRef.current = true;
-        } catch (error) {
-            console.error("Error setting up PayPal buttons:", error);
-            paypalButtonRef.current = false;
+                // Mark as rendered
+                paypalButtonRef.current = true;
+            } catch (error) {
+                console.error("Error setting up PayPal buttons:", error);
+                paypalButtonRef.current = false;
+                setShowPayPalButtons(false);
+            }
         }
+    };
+
+    const handleGetStarted = () => {
+        setShowPayPalButtons(true);
+        paypalButtonRef.current = false; // Reset to allow re-rendering
     };
 
     return (
@@ -196,14 +209,21 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     )}
                 </div>
 
-                {/* Updated PayPal button container - no custom button */}
-                <div id={paypalContainerId} className="w-full">
-                    {!isPayPalReady && (
-                        <div className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg text-center">
+                {showPayPalButtons ? (
+                    <div id={paypalContainerId} className="w-full">
+                        <div className="w-full py-4 text-center text-white">
                             Loading payment options...
                         </div>
-                    )}
-                </div>
+                    </div>
+                ) : (
+                    <button 
+                        onClick={handleGetStarted}
+                        disabled={!isPayPalReady}
+                        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
+                    >
+                        {isPayPalReady ? "Get Started Now" : "Loading..."}
+                    </button>
+                )}
             </div>
         </div>
     );
