@@ -1,7 +1,6 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
 import PricingCard from "@/components/ui/pricingcard";
@@ -10,7 +9,9 @@ import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from '@/components/virtualized-wrapper';
 
 const LandingPage = () => {
-    const { user, isLoaded } = useUser();
+    // We're keeping useUser() for now in case it's needed for auth checking elsewhere
+    // If you don't need user or isLoaded at all, you can remove this line completely
+    useUser();
 
     return (
         <VirtualizedWrapper>
@@ -29,7 +30,7 @@ const LandingPage = () => {
                 </section>
                 <FeaturesSection />
                 
-                {/* Pricing Section - Email Collection Removed */}
+                {/* Pricing Section */}
                 <section className="max-w-4xl mx-auto px-4 py-20">
                     <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
                         Choose Your Plan
