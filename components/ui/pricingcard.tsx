@@ -4,7 +4,65 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// [Previous interfaces remain the same]
+// Detailed type definition for PayPal
+interface PayPalButtonConfig {
+    createOrder: (data: unknown, actions: {
+        order: {
+            create: (details: {
+                purchase_units: Array<{
+                    amount: {
+                        value: string;
+                        currency_code: string;
+                    };
+                    description?: string;
+                    custom_id?: string;
+                }>
+            }) => Promise<string>
+        }
+    }) => Promise<string>;
+    onApprove: (data: unknown, actions: {
+        order: {
+            capture: () => Promise<{
+                payer: {
+                    name: {
+                        given_name: string;
+                    }
+                }
+                id: string;
+            }>
+        }
+    }) => Promise<void>;
+    onCancel: () => void;
+    onError: (err: Error) => void;
+}
+
+interface PayPalButtons {
+    (config: PayPalButtonConfig): {
+        render: (selector: string) => Promise<void>
+    }
+}
+
+// Declare global interface augmentation for window
+declare global {
+    interface Window {
+        paypal?: {
+            Buttons: PayPalButtons
+        }
+    }
+}
+
+// PricingCard Props Interface
+interface PricingCardProps {
+    title: string;
+    price: string;
+    originalPrice?: string;
+    storage: string;
+    users: string;
+    sendUp: boolean;
+    email: string;
+    onSuccess?: (paymentId: string) => void;
+    onCancel?: () => void;
+}
 
 export const PricingCard: React.FC<PricingCardProps> = ({
     title,
