@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import PricingCard from "../../../components/ui/pricingcard";
 
 const PaymentWall = () => {
-    const { user, isLoaded } = useUser();
+    const { isLoaded } = useUser();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
