@@ -51,7 +51,7 @@ declare global {
     }
 }
 
-// PricingCard Props Interface
+// PricingCard Props Interface - email removed
 interface PricingCardProps {
     title: string;
     price: string;
@@ -59,7 +59,6 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    email: string;
     onSuccess?: (paymentId: string) => void;
     onCancel?: () => void;
 }
@@ -71,7 +70,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     storage,
     users, 
     sendUp,
-    email,
     onSuccess,
     onCancel
 }) => {
@@ -134,8 +132,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                                 value: amount.toFixed(2),
                                 currency_code: "USD"
                             },
-                            description: `${title} - ${storage}`,
-                            custom_id: email || "guest@example.com" // Fallback for empty email
+                            description: `${title} - ${storage}`
                         }]
                     });
                 },
