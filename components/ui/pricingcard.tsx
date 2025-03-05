@@ -9,9 +9,9 @@ interface PricingCardProps {
     price: string;
     originalPrice?: string;
     storage: string;
-    users?: string; // Make users optional
+    users?: string;
     sendUp: boolean;
-    email?: string; // Make email optional
+    email?: string;
     onSuccess?: (paymentId: string) => void;
     onCancel?: () => void;
 }
@@ -21,9 +21,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     price,
     originalPrice,
     storage,
-    users, // Keep for potential future use
+    users, // Add a comment to suppress unused variable warning
     sendUp,
-    email, // Keep for potential future use
+    email, // Add a comment to suppress unused variable warning
     onSuccess,
     onCancel
 }) => {
@@ -51,7 +51,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         };
     }, []);
 
-    const handlePayment = () => {
+    const payWithPayPal = () => {
         if (!isPayPalReady || !window.paypal) return;
 
         const amount = parseFloat(price.replace(/[^0-9.-]+/g, ""));
@@ -121,6 +121,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 <div 
                     id="paypal-button-container" 
                     className="w-full"
+                    onClick={payWithPayPal}
                 >
                     {!isPayPalReady ? (
                         <button 
@@ -129,7 +130,13 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         >
                             Loading...
                         </button>
-                    ) : null}
+                    ) : (
+                        <button 
+                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
+                        >
+                            Pay with PayPal
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
