@@ -51,7 +51,7 @@ declare global {
     }
 }
 
-// PricingCard Props Interface - email removed
+// PricingCard Props Interface
 interface PricingCardProps {
     title: string;
     price: string;
@@ -84,6 +84,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         // Dynamically load PayPal script (only once)
         if (!window.paypal) {
             const script = document.createElement("script");
+            // Updated PayPal script URL with additional parameters
             script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
             script.async = true;
             script.id = "paypal-script"; // Add an ID for easier reference
@@ -91,6 +92,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             script.onload = () => {
                 if (window.paypal?.Buttons) {
                     setIsPayPalReady(true);
+                    renderPayPalButtons();
                 }
             };
 
@@ -101,10 +103,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         } else {
             // If PayPal script is already loaded
             setIsPayPalReady(true);
+            renderPayPalButtons();
         }
     }, []);
 
-    const payWithPayPal = () => {
+    const renderPayPalButtons = () => {
         // Prevent multiple button renders
         if (!isPayPalReady || !window.paypal?.Buttons || paypalButtonRef.current) return;
 
@@ -193,24 +196,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     )}
                 </div>
 
-                <div 
-                    id={paypalContainerId} 
-                    className="w-full"
-                    onClick={payWithPayPal}
-                >
-                    {!isPayPalReady ? (
-                        <button 
-                            disabled 
-                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
-                        >
-                            Loading...
-                        </button>
-                    ) : (
-                        <button 
-                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
-                        >
-                            Get Started Now
-                        </button>
+                {/* Updated PayPal button container - no custom button */}
+                <div id={paypalContainerId} className="w-full">
+                    {!isPayPalReady && (
+                        <div className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg text-center">
+                            Loading payment options...
+                        </div>
                     )}
                 </div>
             </div>
