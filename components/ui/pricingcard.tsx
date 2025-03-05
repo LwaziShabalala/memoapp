@@ -4,6 +4,17 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
+// Extend the Window interface to include PayPal
+declare global {
+    interface Window {
+        paypal?: {
+            Buttons: (config: any) => {
+                render: (selector: string) => Promise<void>
+            }
+        }
+    }
+}
+
 interface PricingCardProps {
     title: string;
     price: string;
@@ -37,7 +48,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         script.async = true;
 
         script.onload = () => {
-            if (window.paypal) {
+            // Use optional chaining to safely check PayPal
+            if ((window as any).paypal) {
                 setIsPayPalReady(true);
             }
         };
@@ -52,11 +64,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }, []);
 
     const payWithPayPal = () => {
-        if (!isPayPalReady || !window.paypal) return;
+        // Use type assertion or optional chaining
+        if (!isPayPalReady || !(window as any).paypal) return;
 
         const amount = parseFloat(price.replace(/[^0-9.-]+/g, ""));
 
-        window.paypal.Buttons({
+        (window as any).paypal.Buttons({
             createOrder: (_, actions) => {
                 return actions.order.create({
                     purchase_units: [{
