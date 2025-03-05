@@ -9,9 +9,9 @@ interface PricingCardProps {
     price: string;
     originalPrice?: string;
     storage: string;
-    users?: string;
+    users: string;
     sendUp: boolean;
-    email?: string;
+    email: string;
     onSuccess?: (paymentId: string) => void;
     onCancel?: () => void;
 }
@@ -21,9 +21,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     price,
     originalPrice,
     storage,
-    users, // Add a comment to suppress unused variable warning
+    users, 
     sendUp,
-    email, // Add a comment to suppress unused variable warning
+    email,
     onSuccess,
     onCancel
 }) => {
@@ -64,7 +64,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                             value: amount.toFixed(2),
                             currency_code: "USD"
                         },
-                        description: `${title} - ${storage}`
+                        description: `${title} - ${storage}`,
+                        custom_id: email // Use email as custom identifier
                     }]
                 });
             },
@@ -111,6 +112,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
                 <div className="space-y-4 text-base text-gray-300">
                     <p className="leading-relaxed">{storage}</p>
+                    <p className="leading-relaxed text-sm text-gray-400">{users}</p>
                     {sendUp && title !== "1 Year Access" && (
                         <p className="leading-relaxed">
                             Exclusive features and priority updates coming soon!
