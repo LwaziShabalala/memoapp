@@ -8,11 +8,13 @@ const PaymentWall = () => {
     const { user, isLoaded } = useUser();
     const [userEmail, setUserEmail] = useState("");
     const [emailError, setEmailError] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         if (isLoaded && user) {
             setUserEmail(user.primaryEmailAddress?.emailAddress || "");
         }
+        setIsLoading(false);
     }, [isLoaded, user]);
 
     // Function to validate email format
@@ -36,13 +38,24 @@ const PaymentWall = () => {
 
     const handleSuccess = (reference: string) => {
         console.log("Payment successful, reference:", reference);
-        // Handle post-payment logic
+        // Here you can implement additional logic like:
+        // - Storing the payment information in your database
+        // - Redirecting to a thank you page
+        // - Updating user permissions/access
     };
 
     const handleCancel = () => {
         console.log("Payment was canceled");
-        // Handle cancellation
+        // Handle cancellation logic if needed
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="text-center py-20 space-y-8">
@@ -66,6 +79,7 @@ const PaymentWall = () => {
                         className={`w-full p-3 border ${
                             emailError ? "border-red-500" : "border-gray-300"
                         } rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                        required
                     />
                     {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
                 </div>
