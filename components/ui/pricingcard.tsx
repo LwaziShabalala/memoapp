@@ -209,7 +209,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         <button 
                             className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
                         >
-                            Pay with PayPal
+                            Get Started Now
                         </button>
                     )}
                 </div>
