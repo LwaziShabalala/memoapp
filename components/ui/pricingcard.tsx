@@ -4,16 +4,52 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// Extend the Window interface to include PayPal
-declare global {
-    interface Window {
-        paypal?: {
-            Buttons: (config: any) => {
-                render: (selector: string) => Promise<void>
-            }
+// Detailed type definition for PayPal
+interface PayPalButtonConfig {
+    createOrder: (data: unknown, actions: {
+        order: {
+            create: (details: {
+                purchase_units: Array<{
+                    amount: {
+                        value: string;
+                        currency_code: string;
+                    };
+                    description?: string;
+                    custom_id?: string;
+                }>
+            }) => Promise<string>
         }
+    }) => Promise<string>;
+    onApprove: (data: unknown, actions: {
+        order: {
+            capture: () => Promise<{
+                payer: {
+                    name: {
+                        given_name: string;
+                    }
+                }
+                id: string;
+            }>
+        }
+    }) => Promise<void>;
+    onCancel: () => void;
+    onError: (err: Error) => void;
+}
+
+interface PayPalButtons {
+    (config: PayPalButtonConfig): {
+        render: (selector: string) => Promise<void>
     }
 }
+
+// Extend Window interface with PayPal
+interface ExtendedWindow extends Window {
+    paypal?: {
+        Buttons: PayPalButtons
+    }
+}
+
+declare let window: ExtendedWindow;
 
 interface PricingCardProps {
     title: string;
@@ -48,8 +84,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         script.async = true;
 
         script.onload = () => {
-            // Use optional chaining to safely check PayPal
-            if ((window as any).paypal) {
+            if (window.paypal?.Buttons) {
                 setIsPayPalReady(true);
             }
         };
@@ -64,12 +99,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }, []);
 
     const payWithPayPal = () => {
-        // Use type assertion or optional chaining
-        if (!isPayPalReady || !(window as any).paypal) return;
+        if (!isPayPalReady || !window.paypal?.Buttons) return;
 
         const amount = parseFloat(price.replace(/[^0-9.-]+/g, ""));
 
-        (window as any).paypal.Buttons({
+        window.paypal.Buttons({
             createOrder: (_, actions) => {
                 return actions.order.create({
                     purchase_units: [{
@@ -78,7 +112,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                             currency_code: "USD"
                         },
                         description: `${title} - ${storage}`,
-                        custom_id: email // Use email as custom identifier
+                        custom_id: email
                     }]
                 });
             },
@@ -86,10 +120,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 return actions.order.capture().then((details) => {
                     console.log("Transaction completed by " + details.payer.name.given_name);
                     
-                    // Trigger success callback with payment ID
                     onSuccess?.(details.id);
-
-                    // Redirect to sign-up page
                     router.push("/sign-up");
                 });
             },
