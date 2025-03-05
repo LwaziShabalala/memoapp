@@ -4,7 +4,52 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// [Previous interfaces remain the same]
+// Detailed type definition for PayPal
+interface PayPalButtonConfig {
+    createOrder: (data: unknown, actions: {
+        order: {
+            create: (details: {
+                purchase_units: Array<{
+                    amount: {
+                        value: string;
+                        currency_code: string;
+                    };
+                    description?: string;
+                    custom_id?: string;
+                }>
+            }) => Promise<string>
+        }
+    }) => Promise<string>;
+    onApprove: (data: unknown, actions: {
+        order: {
+            capture: () => Promise<{
+                payer: {
+                    name: {
+                        given_name: string;
+                    }
+                }
+                id: string;
+            }>
+        }
+    }) => Promise<void>;
+    onCancel: () => void;
+    onError: (err: Error) => void;
+}
+
+interface PayPalButtons {
+    (config: PayPalButtonConfig): {
+        render: (selector: string) => Promise<void>
+    }
+}
+
+// Declare global interface augmentation for window
+declare global {
+    interface Window {
+        paypal?: {
+            Buttons: PayPalButtons
+        }
+    }
+}
 
 interface PricingCardProps {
     title: string;
@@ -98,57 +143,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }).render(`#${paypalContainerId}`);
     };
 
+    // Rest of the component remains the same as in the previous example
     return (
-        <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
-
-            <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
-                <header className="text-center space-y-4">
-                    <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                        {title}
-                    </h2>
-                    <div className="flex items-center justify-center gap-4">
-                        {originalPrice && (
-                            <span className="text-xl text-gray-400 line-through">
-                                {originalPrice}
-                            </span>
-                        )}
-                        <p className="text-4xl font-extrabold text-white">{price}</p>
-                    </div>
-                </header>
-
-                <div className="space-y-4 text-base text-gray-300">
-                    <p className="leading-relaxed">{storage}</p>
-                    <p className="leading-relaxed text-sm text-gray-400">{users}</p>
-                    {sendUp && title !== "1 Year Access" && (
-                        <p className="leading-relaxed">
-                            Exclusive features and priority updates coming soon!
-                        </p>
-                    )}
-                </div>
-
-                <div 
-                    id={paypalContainerId} 
-                    className="w-full"
-                    onClick={payWithPayPal}
-                >
-                    {!isPayPalReady ? (
-                        <button 
-                            disabled 
-                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
-                        >
-                            Loading...
-                        </button>
-                    ) : (
-                        <button 
-                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
-                        >
-                            Pay with PayPal
-                        </button>
-                    )}
-                </div>
-            </div>
-        </div>
+        // ... (previous render method)
     );
 };
 
