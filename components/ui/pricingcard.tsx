@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // Import useRouter from Next.js
+import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
 interface PricingCardProps {
@@ -27,16 +27,19 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     onSuccess,
     onCancel
 }) => {
-    const [isPaystackReady, setIsPaystackReady] = useState(false);
-    const router = useRouter(); // Initialize useRouter
+    const [isPayPalReady, setIsPayPalReady] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
+        // Dynamically load PayPal script
         const script = document.createElement("script");
-        script.src = "https://js.paystack.co/v1/inline.js";
+        script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
         script.async = true;
 
         script.onload = () => {
-            setIsPaystackReady(true);
+            if (window.paypal) {
+                setIsPayPalReady(true);
+            }
         };
 
         document.body.appendChild(script);
@@ -49,49 +52,50 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }, []);
 
     const handlePayment = () => {
-        if (!isPaystackReady) return;
+        if (!isPayPalReady || !window.paypal) return;
 
+        const amount = parseFloat(price.replace(/[^0-9.-]+/g, ""));
         const reference = `ref-${title.replace(/[^a-zA-Z0-9]/g, "")}-${Date.now()}`;
-        const amount = parseFloat(price.replace(/[^0-9.-]+/g, "")) * 100;
 
-        const handler = window.PaystackPop.setup({
-            key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_xxxxxxxxxxxxxxx",
-            email,
-            amount,
-            currency: "ZAR",
-            ref: reference,
-            metadata: {
-                plan: title,
-                storage,
-                users,
-                priority_support: sendUp,
+        window.paypal.Buttons({
+            createOrder: (data, actions) => {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: amount.toFixed(2),
+                            currency_code: "USD"
+                        },
+                        description: `${title} - ${storage}`
+                    }]
+                });
             },
-            onClose: () => {
+            onApprove: (data, actions) => {
+                return actions.order.capture().then((details) => {
+                    console.log("Transaction completed by " + details.payer.name.given_name);
+                    
+                    // Trigger success callback
+                    onSuccess?.(details.id);
+
+                    // Redirect to sign-up page
+                    router.push("/sign-up");
+                });
+            },
+            onCancel: (data) => {
                 console.log("Transaction was canceled");
                 onCancel?.();
             },
-            callback: (response: { reference: string }) => {
-                console.log("Transaction successful", response.reference);
-
-                // Trigger the onSuccess callback, if any
-                onSuccess?.(response.reference);
-
-                // Redirect to the dashboard page
-                router.push("/sign-up");
-            },
-        });
-
-        handler.openIframe();
+            onError: (err) => {
+                console.error("PayPal Error:", err);
+                onCancel?.();
+            }
+        }).render('#paypal-button-container');
     };
 
     return (
         <div className="relative group">
-            {/* Glow effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
-
-            {/* Card container with minimum height for consistency */}
+            {/* Existing card design */}
             <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
-                {/* Header */}
+                {/* Header section remains the same */}
                 <header className="text-center space-y-4">
                     <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
                         {title}
@@ -106,7 +110,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     </div>
                 </header>
 
-                {/* Features */}
+                {/* Features section remains the same */}
                 <div className="space-y-4 text-base text-gray-300">
                     <p className="leading-relaxed">{storage}</p>
                     {sendUp && title !== "1 Year Access" && (
@@ -116,14 +120,21 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     )}
                 </div>
 
-                {/* Action button */}
-                <button
+                {/* PayPal Button Container */}
+                <div 
+                    id="paypal-button-container" 
+                    className="w-full"
                     onClick={handlePayment}
-                    disabled={!isPaystackReady}
-                    className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100"
                 >
-                    {isPaystackReady ? "Buy Now" : "Loading..."}
-                </button>
+                    {!isPayPalReady && (
+                        <button 
+                            disabled 
+                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
+                        >
+                            Loading...
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
