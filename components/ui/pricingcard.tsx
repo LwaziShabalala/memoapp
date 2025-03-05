@@ -4,52 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// Detailed type definition for PayPal
-interface PayPalButtonConfig {
-    createOrder: (data: unknown, actions: {
-        order: {
-            create: (details: {
-                purchase_units: Array<{
-                    amount: {
-                        value: string;
-                        currency_code: string;
-                    };
-                    description?: string;
-                    custom_id?: string;
-                }>
-            }) => Promise<string>
-        }
-    }) => Promise<string>;
-    onApprove: (data: unknown, actions: {
-        order: {
-            capture: () => Promise<{
-                payer: {
-                    name: {
-                        given_name: string;
-                    }
-                }
-                id: string;
-            }>
-        }
-    }) => Promise<void>;
-    onCancel: () => void;
-    onError: (err: Error) => void;
-}
-
-interface PayPalButtons {
-    (config: PayPalButtonConfig): {
-        render: (selector: string) => Promise<void>
-    }
-}
-
-// Extend Window interface with PayPal
-interface ExtendedWindow extends Window {
-    paypal?: {
-        Buttons: PayPalButtons
-    }
-}
-
-declare let window: ExtendedWindow;
+// [Previous interfaces remain the same]
 
 interface PricingCardProps {
     title: string;
@@ -77,25 +32,33 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const [isPayPalReady, setIsPayPalReady] = useState(false);
     const router = useRouter();
 
+    // Generate a unique ID for each card's PayPal button container
+    const paypalContainerId = `paypal-button-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
+
     useEffect(() => {
-        // Dynamically load PayPal script
-        const script = document.createElement("script");
-        script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
-        script.async = true;
+        // Dynamically load PayPal script (only once)
+        if (!window.paypal) {
+            const script = document.createElement("script");
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+            script.async = true;
 
-        script.onload = () => {
-            if (window.paypal?.Buttons) {
-                setIsPayPalReady(true);
-            }
-        };
+            script.onload = () => {
+                if (window.paypal?.Buttons) {
+                    setIsPayPalReady(true);
+                }
+            };
 
-        document.body.appendChild(script);
+            document.body.appendChild(script);
 
-        return () => {
-            if (script) {
-                document.body.removeChild(script);
-            }
-        };
+            return () => {
+                if (script) {
+                    document.body.removeChild(script);
+                }
+            };
+        } else {
+            // If PayPal script is already loaded
+            setIsPayPalReady(true);
+        }
     }, []);
 
     const payWithPayPal = () => {
@@ -132,7 +95,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 console.error("PayPal Error:", err);
                 onCancel?.();
             }
-        }).render('#paypal-button-container');
+        }).render(`#${paypalContainerId}`);
     };
 
     return (
@@ -165,7 +128,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 </div>
 
                 <div 
-                    id="paypal-button-container" 
+                    id={paypalContainerId} 
                     className="w-full"
                     onClick={payWithPayPal}
                 >
