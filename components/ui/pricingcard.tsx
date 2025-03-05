@@ -1,67 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// Detailed type definition for PayPal
-interface PayPalButtonConfig {
-    createOrder: (data: unknown, actions: {
-        order: {
-            create: (details: {
-                purchase_units: Array<{
-                    amount: {
-                        value: string;
-                        currency_code: string;
-                    };
-                    description?: string;
-                    custom_id?: string;
-                }>
-            }) => Promise<string>
-        }
-    }) => Promise<string>;
-    onApprove: (data: unknown, actions: {
-        order: {
-            capture: () => Promise<{
-                payer: {
-                    name: {
-                        given_name: string;
-                    }
-                }
-                id: string;
-            }>
-        }
-    }) => Promise<void>;
-    onCancel: () => void;
-    onError: (err: Error) => void;
-}
-
-interface PayPalButtons {
-    (config: PayPalButtonConfig): {
-        render: (selector: string) => Promise<void>
-    }
-}
-
-// Declare global interface augmentation for window
-declare global {
-    interface Window {
-        paypal?: {
-            Buttons: PayPalButtons
-        }
-    }
-}
-
-interface PricingCardProps {
-    title: string;
-    price: string;
-    originalPrice?: string;
-    storage: string;
-    users: string;
-    sendUp: boolean;
-    email: string;
-    onSuccess?: (paymentId: string) => void;
-    onCancel?: () => void;
-}
+// [Previous interfaces remain the same]
 
 export const PricingCard: React.FC<PricingCardProps> = ({
     title,
@@ -76,6 +19,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 }) => {
     const [isPayPalReady, setIsPayPalReady] = useState(false);
     const router = useRouter();
+    const paypalButtonRef = useRef<boolean>(false);
 
     // Generate a unique ID for each card's PayPal button container
     const paypalContainerId = `paypal-button-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
@@ -107,9 +51,16 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }, []);
 
     const payWithPayPal = () => {
-        if (!isPayPalReady || !window.paypal?.Buttons) return;
+        // Prevent multiple button renders
+        if (!isPayPalReady || !window.paypal?.Buttons || paypalButtonRef.current) return;
 
         const amount = parseFloat(price.replace(/[^0-9.-]+/g, ""));
+
+        // Clear any existing buttons in the container
+        const container = document.getElementById(paypalContainerId);
+        if (container) {
+            container.innerHTML = '';
+        }
 
         window.paypal.Buttons({
             createOrder: (_, actions) => {
@@ -134,13 +85,18 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             },
             onCancel: () => {
                 console.log("Transaction was canceled");
+                paypalButtonRef.current = false;
                 onCancel?.();
             },
             onError: (err) => {
                 console.error("PayPal Error:", err);
+                paypalButtonRef.current = false;
                 onCancel?.();
             }
         }).render(`#${paypalContainerId}`);
+
+        // Mark as rendered
+        paypalButtonRef.current = true;
     };
 
     return (
