@@ -88,6 +88,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             const script = document.createElement("script");
             script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
             script.async = true;
+            script.id = "paypal-script"; // Add an ID for easier reference
 
             script.onload = () => {
                 if (window.paypal?.Buttons) {
@@ -97,11 +98,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
             document.body.appendChild(script);
 
-            return () => {
-                if (script) {
-                    document.body.removeChild(script);
-                }
-            };
+            // No cleanup function - we want PayPal to stay loaded
+            // This avoids the "removeChild" error
         } else {
             // If PayPal script is already loaded
             setIsPayPalReady(true);
@@ -112,7 +110,14 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         // Prevent multiple button renders
         if (!isPayPalReady || !window.paypal?.Buttons || paypalButtonRef.current) return;
 
-        const amount = parseFloat(price.replace(/[^0-9.-]+/g, ""));
+        // Parse the price - handle both $ and R currency symbols
+        const numericPrice = price.replace(/[^0-9.-]+/g, "");
+        const amount = parseFloat(numericPrice);
+
+        if (isNaN(amount)) {
+            console.error("Invalid price format:", price);
+            return;
+        }
 
         // Clear any existing buttons in the container
         const container = document.getElementById(paypalContainerId);
@@ -120,41 +125,46 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             container.innerHTML = '';
         }
 
-        window.paypal.Buttons({
-            createOrder: (_, actions) => {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            value: amount.toFixed(2),
-                            currency_code: "USD"
-                        },
-                        description: `${title} - ${storage}`,
-                        custom_id: email
-                    }]
-                });
-            },
-            onApprove: (_, actions) => {
-                return actions.order.capture().then((details) => {
-                    console.log("Transaction completed by " + details.payer.name.given_name);
-                    
-                    onSuccess?.(details.id);
-                    router.push("/sign-up");
-                });
-            },
-            onCancel: () => {
-                console.log("Transaction was canceled");
-                paypalButtonRef.current = false;
-                onCancel?.();
-            },
-            onError: (err) => {
-                console.error("PayPal Error:", err);
-                paypalButtonRef.current = false;
-                onCancel?.();
-            }
-        }).render(`#${paypalContainerId}`);
+        try {
+            window.paypal.Buttons({
+                createOrder: (_, actions) => {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: amount.toFixed(2),
+                                currency_code: "USD"
+                            },
+                            description: `${title} - ${storage}`,
+                            custom_id: email || "guest@example.com" // Fallback for empty email
+                        }]
+                    });
+                },
+                onApprove: (_, actions) => {
+                    return actions.order.capture().then((details) => {
+                        console.log("Transaction completed by " + details.payer.name.given_name);
+                        
+                        onSuccess?.(details.id);
+                        router.push("/sign-up");
+                    });
+                },
+                onCancel: () => {
+                    console.log("Transaction was canceled");
+                    paypalButtonRef.current = false;
+                    onCancel?.();
+                },
+                onError: (err) => {
+                    console.error("PayPal Error:", err);
+                    paypalButtonRef.current = false;
+                    onCancel?.();
+                }
+            }).render(`#${paypalContainerId}`);
 
-        // Mark as rendered
-        paypalButtonRef.current = true;
+            // Mark as rendered
+            paypalButtonRef.current = true;
+        } catch (error) {
+            console.error("Error setting up PayPal buttons:", error);
+            paypalButtonRef.current = false;
+        }
     };
 
     return (
