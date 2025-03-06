@@ -46,8 +46,8 @@ const PaymentWall = () => {
                 <div className="flex flex-col h-full">
                     <PricingCard
                         title="1-year access"
-                        originalPrice="$28"
-                        price="$14"
+                        originalPrice="$50"
+                        price="$25"
                         storage="Join now and get early access to exclusive updates and features."
                         users="Be among the first to experience advanced transcription tools and AI-powered features!"
                         sendUp={true}
@@ -58,8 +58,8 @@ const PaymentWall = () => {
                 <div className="flex flex-col h-full">
                     <PricingCard
                         title="Lifetime Access"
-                        originalPrice="$450"
-                        price="$100"
+                        originalPrice="$150"
+                        price="$50"
                         storage="Secure lifetime access with exclusive perks and continuous updates."
                         users="Enjoy permanent access to new features, including priority support and more!"
                         sendUp={true}
