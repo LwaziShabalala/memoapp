@@ -1,26 +1,43 @@
+"use client";
+
 import React, { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface PricingCardProps {
-  amount: number;
+  amount?: number;
   title?: string;
   description?: string;
+  // Additional properties from landing page
+  originalPrice?: string;
+  price?: string;
+  storage?: string;
+  users?: string;
+  sendUp?: boolean;
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({ 
-  amount, 
+  amount,
   title = "Pricing Plan", 
-  description = "Access to all premium features" 
+  description,
+  // Handle additional properties
+  originalPrice,
+  price,
+  storage,
+  users,
+  sendUp
 }) => {
   const [isPending, setIsPending] = useState(false);
+  
+  // Display price from either amount or price prop
+  const displayPrice = price || (amount ? `$${amount}` : null);
 
-  // Load PayPal script dynamically
-  useEffect(() => {
+  // Load PayPal script dynamically - only when needed for payment
+  const loadPayPalScript = useCallback(() => {
     if (!document.querySelector('script[src*="paypal.com/sdk"]')) {
       setIsPending(true);
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test'}&currency=USD`;
       script.async = true;
       script.onload = () => {
         setIsPending(false);
@@ -30,15 +47,12 @@ const PricingCard: React.FC<PricingCardProps> = ({
   }, []);
 
   const handlePayment = useCallback(async () => {
-    if (!window.paypal) return;
+    // Only load PayPal when user clicks payment button
+    loadPayPalScript();
     
     try {
       setIsPending(true);
       // Implement your payment logic here
-      // This would typically be a call to your backend
-      // which then creates a PayPal order
-      
-      // Example mock implementation:
       await new Promise(resolve => setTimeout(resolve, 1000));
       alert("Payment process would start here!");
       setIsPending(false);
@@ -46,28 +60,46 @@ const PricingCard: React.FC<PricingCardProps> = ({
       console.error("Payment Error:", error);
       setIsPending(false);
     }
-  }, []);
+  }, [loadPayPalScript]);
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className={`w-full max-w-sm ${sendUp ? "-mt-8" : ""}`}>
       <CardHeader>
         <CardTitle className="text-xl font-bold">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-center">
-          <p className="text-3xl font-bold">${amount}</p>
-          <p className="mt-2 text-sm text-gray-500">{description}</p>
+          {originalPrice && (
+            <p className="text-sm line-through text-gray-400">{originalPrice}</p>
+          )}
+          <p className="text-3xl font-bold">{displayPrice}</p>
+          
+          {description && (
+            <p className="mt-2 text-sm text-gray-500">{description}</p>
+          )}
+          
+          {storage && (
+            <div className="mt-4 text-sm">
+              <p>{storage}</p>
+            </div>
+          )}
+          
+          {users && (
+            <div className="mt-2 text-sm">
+              <p>{users}</p>
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter>
         {isPending ? (
-          <Button disabled className="w-full">Loading Payment Options...</Button>
+          <Button disabled className="w-full">Processing...</Button>
         ) : (
           <Button 
             onClick={handlePayment} 
             className="w-full bg-blue-600 hover:bg-blue-700"
           >
-            Pay with PayPal
+            Get Started
           </Button>
         )}
       </CardFooter>
