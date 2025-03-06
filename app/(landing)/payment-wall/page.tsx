@@ -59,7 +59,7 @@ const PaymentWall = () => {
                     <PricingCard
                         title="Lifetime Access"
                         originalPrice="$55"
-                        price="$0.10"
+                        price="$28"
                         storage="Secure lifetime access with exclusive perks and continuous updates."
                         users="Enjoy permanent access to new features, including priority support and more!"
                         sendUp={true}
