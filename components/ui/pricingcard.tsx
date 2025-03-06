@@ -1,158 +1,221 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import "../../app/styles/styles.css";
 
-interface PricingCardProps {
-  amount?: number;
-  title?: string;
-  description?: string;
-  // Additional properties from landing page
-  originalPrice?: string;
-  price?: string;
-  storage?: string;
-  users?: string;
-  sendUp?: boolean;
-  // Payment callbacks
-  onSuccess?: (reference: string) => void;
-  onCancel?: () => void;
-  onError?: (error: unknown) => void;
+// Detailed type definition for PayPal
+interface PayPalButtonConfig {
+    createOrder: (data: unknown, actions: {
+        order: {
+            create: (details: {
+                purchase_units: Array<{
+                    amount: {
+                        value: string;
+                        currency_code: string;
+                    };
+                    description?: string;
+                    custom_id?: string;
+                }>
+            }) => Promise<string>
+        }
+    }) => Promise<string>;
+    onApprove: (data: unknown, actions: {
+        order: {
+            capture: () => Promise<{
+                payer: {
+                    name: {
+                        given_name: string;
+                    }
+                }
+                id: string;
+            }>
+        }
+    }) => Promise<void>;
+    onCancel: () => void;
+    onError: (err: Error) => void;
 }
 
-const PricingCard: React.FC<PricingCardProps> = ({ 
-  amount,
-  title = "Pricing Plan", 
-  description,
-  // Handle additional properties
-  originalPrice,
-  price,
-  storage,
-  users,
-  sendUp,
-  // Callback handlers
-  onSuccess,
-  onCancel,
-  onError
+interface PayPalButtons {
+    (config: PayPalButtonConfig): {
+        render: (selector: string) => Promise<void>
+    }
+}
+
+// Declare global interface augmentation for window
+declare global {
+    interface Window {
+        paypal?: {
+            Buttons: PayPalButtons
+        }
+    }
+}
+
+// PricingCard Props Interface - email removed
+interface PricingCardProps {
+    title: string;
+    price: string;
+    originalPrice?: string;
+    storage: string;
+    users: string;
+    sendUp: boolean;
+    onSuccess?: (paymentId: string) => void;
+    onCancel?: () => void;
+}
+
+export const PricingCard: React.FC<PricingCardProps> = ({
+    title,
+    price,
+    originalPrice,
+    storage,
+    users, 
+    sendUp,
+    onSuccess,
+    onCancel
 }) => {
-  const [isPending, setIsPending] = useState(false);
-  
-  // Display price from either amount or price prop
-  const displayPrice = price || (amount ? `$${amount}` : null);
+    const [isPayPalReady, setIsPayPalReady] = useState(false);
+    const router = useRouter();
+    const paypalButtonRef = useRef<boolean>(false);
 
-  // Load PayPal script dynamically - only when needed for payment
-  const loadPayPalScript = useCallback(() => {
-    if (!document.querySelector('script[src*="paypal.com/sdk"]')) {
-      setIsPending(true);
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test'}&currency=USD`;
-      script.async = true;
-      script.onload = () => {
-        setIsPending(false);
-      };
-      script.onerror = (err) => {
-        setIsPending(false);
-        if (onError) onError(err);
-      };
-      document.body.appendChild(script);
-    }
-  }, [onError]);
+    // Generate a unique ID for each card's PayPal button container
+    const paypalContainerId = `paypal-button-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
-  const handlePayment = useCallback(async () => {
-    // Only load PayPal when user clicks payment button
-    loadPayPalScript();
-    
-    try {
-      setIsPending(true);
-      
-      // Mock successful payment for demo purposes
-      // In a real implementation, this would be your PayPal order creation and processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate a mock reference number
-      const reference = `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      
-      // Call success callback if provided
-      if (onSuccess) {
-        onSuccess(reference);
-      } else {
-        alert(`Payment successful! Reference: ${reference}`);
-      }
-      
-      setIsPending(false);
-    } catch (error) {
-      setIsPending(false);
-      if (onError) {
-        onError(error);
-      } else {
-        console.error("Payment Error:", error);
-      }
-    }
-  }, [loadPayPalScript, onSuccess, onError]);
+    useEffect(() => {
+        // Dynamically load PayPal script (only once)
+        if (!window.paypal) {
+            const script = document.createElement("script");
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+            script.async = true;
+            script.id = "paypal-script"; // Add an ID for easier reference
 
-  const handleCancel = useCallback(() => {
-    setIsPending(false);
-    if (onCancel) {
-      onCancel();
-    } else {
-      alert("Payment cancelled");
-    }
-  }, [onCancel]);
+            script.onload = () => {
+                if (window.paypal?.Buttons) {
+                    setIsPayPalReady(true);
+                }
+            };
 
-  return (
-    <Card className={`w-full max-w-sm ${sendUp ? "-mt-8" : ""}`}>
-      <CardHeader>
-        <CardTitle className="text-xl font-bold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-center">
-          {originalPrice && (
-            <p className="text-sm line-through text-gray-400">{originalPrice}</p>
-          )}
-          <p className="text-3xl font-bold">{displayPrice}</p>
-          
-          {description && (
-            <p className="mt-2 text-sm text-gray-500">{description}</p>
-          )}
-          
-          {storage && (
-            <div className="mt-4 text-sm">
-              <p>{storage}</p>
+            document.body.appendChild(script);
+
+            // No cleanup function - we want PayPal to stay loaded
+            // This avoids the "removeChild" error
+        } else {
+            // If PayPal script is already loaded
+            setIsPayPalReady(true);
+        }
+    }, []);
+
+    const payWithPayPal = () => {
+        // Prevent multiple button renders
+        if (!isPayPalReady || !window.paypal?.Buttons || paypalButtonRef.current) return;
+
+        // Parse the price - handle both $ and R currency symbols
+        const numericPrice = price.replace(/[^0-9.-]+/g, "");
+        const amount = parseFloat(numericPrice);
+
+        if (isNaN(amount)) {
+            console.error("Invalid price format:", price);
+            return;
+        }
+
+        // Clear any existing buttons in the container
+        const container = document.getElementById(paypalContainerId);
+        if (container) {
+            container.innerHTML = '';
+        }
+
+        try {
+            window.paypal.Buttons({
+                createOrder: (_, actions) => {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: amount.toFixed(2),
+                                currency_code: "USD"
+                            },
+                            description: `${title} - ${storage}`
+                        }]
+                    });
+                },
+                onApprove: (_, actions) => {
+                    return actions.order.capture().then((details) => {
+                        console.log("Transaction completed by " + details.payer.name.given_name);
+                        
+                        onSuccess?.(details.id);
+                        router.push("/sign-up");
+                    });
+                },
+                onCancel: () => {
+                    console.log("Transaction was canceled");
+                    paypalButtonRef.current = false;
+                    onCancel?.();
+                },
+                onError: (err) => {
+                    console.error("PayPal Error:", err);
+                    paypalButtonRef.current = false;
+                    onCancel?.();
+                }
+            }).render(`#${paypalContainerId}`);
+
+            // Mark as rendered
+            paypalButtonRef.current = true;
+        } catch (error) {
+            console.error("Error setting up PayPal buttons:", error);
+            paypalButtonRef.current = false;
+        }
+    };
+
+    return (
+        <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
+
+            <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
+                <header className="text-center space-y-4">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                        {title}
+                    </h2>
+                    <div className="flex items-center justify-center gap-4">
+                        {originalPrice && (
+                            <span className="text-xl text-gray-400 line-through">
+                                {originalPrice}
+                            </span>
+                        )}
+                        <p className="text-4xl font-extrabold text-white">{price}</p>
+                    </div>
+                </header>
+
+                <div className="space-y-4 text-base text-gray-300">
+                    <p className="leading-relaxed">{storage}</p>
+                    <p className="leading-relaxed text-sm text-gray-400">{users}</p>
+                    {sendUp && title !== "1 Year Access" && (
+                        <p className="leading-relaxed">
+                            Exclusive features and priority updates coming soon!
+                        </p>
+                    )}
+                </div>
+
+                <div 
+                    id={paypalContainerId} 
+                    className="w-full"
+                    onClick={payWithPayPal}
+                >
+                    {!isPayPalReady ? (
+                        <button 
+                            disabled 
+                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
+                        >
+                            Loading...
+                        </button>
+                    ) : (
+                        <button 
+                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
+                        >
+                            Get Started Now
+                        </button>
+                    )}
+                </div>
             </div>
-          )}
-          
-          {users && (
-            <div className="mt-2 text-sm">
-              <p>{users}</p>
-            </div>
-          )}
         </div>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-2">
-        {isPending ? (
-          <Button disabled className="w-full">Processing...</Button>
-        ) : (
-          <>
-            <Button 
-              onClick={handlePayment} 
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              Get Started
-            </Button>
-            {onCancel && (
-              <Button 
-                onClick={handleCancel}
-                variant="outline" 
-                className="w-full text-gray-400"
-              >
-                Cancel
-              </Button>
-            )}
-          </>
-        )}
-      </CardFooter>
-    </Card>
-  );
+    );
 };
 
 export default PricingCard;
