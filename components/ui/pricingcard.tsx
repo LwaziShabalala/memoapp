@@ -13,7 +13,6 @@ const PricingCard: React.FC<PricingCardProps> = ({
   title = "Pricing Plan", 
   description = "Access to all premium features" 
 }) => {
-  const [isPayPalScriptLoaded, setIsPayPalScriptLoaded] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
   // Load PayPal script dynamically
@@ -24,12 +23,9 @@ const PricingCard: React.FC<PricingCardProps> = ({
       script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
       script.async = true;
       script.onload = () => {
-        setIsPayPalScriptLoaded(true);
         setIsPending(false);
       };
       document.body.appendChild(script);
-    } else {
-      setIsPayPalScriptLoaded(true);
     }
   }, []);
 
