@@ -58,8 +58,8 @@ const PaymentWall = () => {
                 <div className="flex flex-col h-full">
                     <PricingCard
                         title="Lifetime Access"
-                        originalPrice="$55"
-                        price="$28"
+                        originalPrice="$450"
+                        price="$100"
                         storage="Secure lifetime access with exclusive perks and continuous updates."
                         users="Enjoy permanent access to new features, including priority support and more!"
                         sendUp={true}
