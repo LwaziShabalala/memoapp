@@ -14,6 +14,10 @@ interface PricingCardProps {
   storage?: string;
   users?: string;
   sendUp?: boolean;
+  // Payment callbacks
+  onSuccess?: (reference: string) => void;
+  onCancel?: () => void;
+  onError?: (error: unknown) => void;
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({ 
@@ -25,7 +29,11 @@ const PricingCard: React.FC<PricingCardProps> = ({
   price,
   storage,
   users,
-  sendUp
+  sendUp,
+  // Callback handlers
+  onSuccess,
+  onCancel,
+  onError
 }) => {
   const [isPending, setIsPending] = useState(false);
   
@@ -42,9 +50,13 @@ const PricingCard: React.FC<PricingCardProps> = ({
       script.onload = () => {
         setIsPending(false);
       };
+      script.onerror = (err) => {
+        setIsPending(false);
+        if (onError) onError(err);
+      };
       document.body.appendChild(script);
     }
-  }, []);
+  }, [onError]);
 
   const handlePayment = useCallback(async () => {
     // Only load PayPal when user clicks payment button
@@ -52,15 +64,40 @@ const PricingCard: React.FC<PricingCardProps> = ({
     
     try {
       setIsPending(true);
-      // Implement your payment logic here
+      
+      // Mock successful payment for demo purposes
+      // In a real implementation, this would be your PayPal order creation and processing
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert("Payment process would start here!");
+      
+      // Generate a mock reference number
+      const reference = `PAY-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess(reference);
+      } else {
+        alert(`Payment successful! Reference: ${reference}`);
+      }
+      
       setIsPending(false);
     } catch (error) {
-      console.error("Payment Error:", error);
       setIsPending(false);
+      if (onError) {
+        onError(error);
+      } else {
+        console.error("Payment Error:", error);
+      }
     }
-  }, [loadPayPalScript]);
+  }, [loadPayPalScript, onSuccess, onError]);
+
+  const handleCancel = useCallback(() => {
+    setIsPending(false);
+    if (onCancel) {
+      onCancel();
+    } else {
+      alert("Payment cancelled");
+    }
+  }, [onCancel]);
 
   return (
     <Card className={`w-full max-w-sm ${sendUp ? "-mt-8" : ""}`}>
@@ -91,16 +128,27 @@ const PricingCard: React.FC<PricingCardProps> = ({
           )}
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
         {isPending ? (
           <Button disabled className="w-full">Processing...</Button>
         ) : (
-          <Button 
-            onClick={handlePayment} 
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            Get Started
-          </Button>
+          <>
+            <Button 
+              onClick={handlePayment} 
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              Get Started
+            </Button>
+            {onCancel && (
+              <Button 
+                onClick={handleCancel}
+                variant="outline" 
+                className="w-full text-gray-400"
+              >
+                Cancel
+              </Button>
+            )}
+          </>
         )}
       </CardFooter>
     </Card>
