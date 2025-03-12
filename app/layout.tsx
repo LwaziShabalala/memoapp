@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: "memo",
   description: "AI platform",
   icons: {
-    icon: '/icon.png',
+    icon: 'favicon.ico',
   }
 };
 
