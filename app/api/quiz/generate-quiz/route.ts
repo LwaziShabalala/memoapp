@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         }
 
         const { text } = body;
-        if (!text) {  // Only check if text exists, no length limit
+        if (!text) {
             return NextResponse.json(
                 { error: "Text input is required" },
                 { status: 400 }
@@ -135,6 +135,26 @@ export async function POST(req: NextRequest) {
             }
         };
 
+        // Create a function to safely handle API calls
+        async function safeApiCall(apiCall: () => Promise<any>) {
+            try {
+                return await apiCall();
+            } catch (error) {
+                // Capture the full error message
+                const fullError = String(error);
+                console.error("API Call Error:", fullError);
+                
+                // Check for timeout errors
+                if (fullError.includes("FUNCTION_INVOCATION_TIMEOUT") || 
+                    fullError.includes("timeout") || 
+                    fullError.includes("timed out")) {
+                    throw new Error("TIMEOUT");
+                }
+                
+                throw error;
+            }
+        }
+
         const runnable = model
             .bind({
                 functions: [extractionFunctionSchema],
@@ -142,19 +162,16 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
+        // Set a more compact prompt to reduce token usage
         const prompt = `
-            Create a quiz based on the following text. Follow these rules strictly:
-            - Generate multiple comprehensive questions covering the main topics
-            - Each question must have exactly 4 answer choices and one correct answer
-            - Ensure proper JSON structure with all required fields
+            Create a quiz from this text with multiple key questions.
+            Each question must have exactly 4 answer choices with only one correct answer.
         `;
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
 
-        console.log("🧠 Processing text content...");
-        
         // Chunk processing logic
-        const MAX_CHUNK_SIZE = 4000; // characters
+        const MAX_CHUNK_SIZE = 3000; // Reduced for faster processing
         let finalResult: QuizResult = {
             quizz: {
                 name: "Generated Quiz",
@@ -164,21 +181,21 @@ export async function POST(req: NextRequest) {
         };
 
         try {
+            console.log(`📏 Text length: ${textContent.length} chars`);
+            
             if (textContent.length > MAX_CHUNK_SIZE) {
-                console.log(`📏 Text length: ${textContent.length} chars - splitting into chunks`);
-                // Split text into sentences to avoid cutting in the middle of sentences
-                const sentences = textContent.match(/[^.!?]+[.!?]+/g) || [textContent];
-                
-                // Group sentences into chunks
+                // Break into paragraphs first
+                const paragraphs = textContent.split(/\n\s*\n/);
                 const chunks: string[] = [];
                 let currentChunk = "";
                 
-                for (const sentence of sentences) {
-                    if (currentChunk.length + sentence.length > MAX_CHUNK_SIZE) {
+                // Build chunks from paragraphs
+                for (const paragraph of paragraphs) {
+                    if (currentChunk.length + paragraph.length > MAX_CHUNK_SIZE) {
                         chunks.push(currentChunk);
-                        currentChunk = sentence;
+                        currentChunk = paragraph;
                     } else {
-                        currentChunk += sentence;
+                        currentChunk += (currentChunk ? "\n\n" : "") + paragraph;
                     }
                 }
                 
@@ -186,106 +203,105 @@ export async function POST(req: NextRequest) {
                     chunks.push(currentChunk);
                 }
                 
-                console.log(`🧩 Created ${chunks.length} chunks for processing`);
+                console.log(`🧩 Processing ${chunks.length} chunks`);
                 
-                // Process each chunk
-                for (let i = 0; i < chunks.length; i++) {
+                // Process chunks in sequence
+                let questionsGenerated = 0;
+                
+                for (let i = 0; i < chunks.length && questionsGenerated < 10; i++) {
                     const chunk = chunks[i];
-                    console.log(`⚙️ Processing chunk ${i+1}/${chunks.length} (${chunk.length} chars)...`);
+                    console.log(`⚙️ Processing chunk ${i+1}/${chunks.length}`);
                     
                     try {
                         const chunkPrompt = `
-                            Create a quiz based on the following text (Part ${i+1} of ${chunks.length}). Follow these rules strictly:
-                            - Generate 3-5 comprehensive questions covering key topics in this section
-                            - Each question must have exactly 4 answer choices and one correct answer
-                            - Ensure proper JSON structure with all required fields
+                            Create 2-3 quiz questions from this content (part ${i+1} of ${chunks.length}).
+                            Each question needs exactly 4 answer choices with only one correct answer.
                         `;
                         
                         const message = new HumanMessage({
                             content: [{ type: "text", text: `${chunkPrompt}\n\nContent:\n${chunk}` }],
                         });
                         
-                        const chunkResult = await runnable.invoke([message]);
+                        // Use the safe API call wrapper
+                        const chunkResult = await safeApiCall(() => runnable.invoke([message]));
                         
                         if (validateQuizResult(chunkResult)) {
-                            // Add these questions to our final result
                             finalResult.quizz.questions = [
                                 ...finalResult.quizz.questions,
                                 ...chunkResult.quizz.questions
                             ];
-                            console.log(`✅ Successfully processed chunk ${i+1}, got ${chunkResult.quizz.questions.length} questions`);
-                        } else {
-                            console.error(`❌ Invalid result structure from chunk ${i+1}`);
+                            
+                            questionsGenerated += chunkResult.quizz.questions.length;
+                            console.log(`✅ Got ${chunkResult.quizz.questions.length} questions from chunk ${i+1}`);
+                            
+                            // Stop if we have enough questions
+                            if (questionsGenerated >= 10) {
+                                console.log("🎯 Reached target question count, stopping");
+                                break;
+                            }
                         }
                     } catch (error) {
-                        const errorMessage = error instanceof Error 
-                            ? error.message 
-                            : String(error);
-                        console.error(`❌ Error processing chunk ${i+1}:`, errorMessage);
-                        // Continue with next chunk
+                        if (error.message === "TIMEOUT") {
+                            console.log(`⏱️ Timeout on chunk ${i+1}, skipping to next chunk`);
+                            continue;
+                        } else {
+                            console.error(`❌ Error on chunk ${i+1}:`, error);
+                        }
                     }
                 }
                 
-                // If we got no questions at all, that's an error
-                if (finalResult.quizz.questions.length === 0) {
-                    throw new Error("Failed to generate any valid questions from all text chunks");
+                // If we generated at least some questions, consider it a success
+                if (finalResult.quizz.questions.length > 0) {
+                    console.log(`🎯 Generated ${finalResult.quizz.questions.length} questions total`);
+                } else {
+                    throw new Error("Failed to generate any questions from the text");
                 }
-                
-                console.log(`🎯 Successfully generated ${finalResult.quizz.questions.length} questions in total`);
             } else {
-                // Process the text as a single chunk for smaller texts
-                console.log(`📏 Text length: ${textContent.length} chars - processing as single chunk`);
+                // Process as a single chunk
+                console.log("📝 Processing text as a single chunk");
+                
                 const message = new HumanMessage({
                     content: [{ type: "text", text: `${prompt}\n\nContent:\n${textContent}` }],
                 });
                 
-                const result = await runnable.invoke([message]);
+                // Use the safe API call wrapper
+                const result = await safeApiCall(() => runnable.invoke([message]));
                 
-                if (!validateQuizResult(result)) {
+                if (validateQuizResult(result)) {
+                    finalResult = result;
+                    console.log(`✅ Generated ${finalResult.quizz.questions.length} questions`);
+                } else {
                     throw new Error("Invalid quiz structure in response");
                 }
-                
-                finalResult = result;
-                console.log(`✅ Successfully generated ${finalResult.quizz.questions.length} questions`);
             }
 
             // Save to database
             console.log("💾 Saving quiz to database...");
             const { quizzId } = await saveQuizz(finalResult.quizz);
+            
             return NextResponse.json({ 
                 quizzId, 
                 questionCount: finalResult.quizz.questions.length 
             }, { status: 200 });
             
         } catch (error) {
-            console.error("❌ Processing error:", error);
-            const errorMessage = error instanceof Error 
-                ? error.message 
-                : typeof error === 'string' 
-                    ? error 
-                    : String(error);
-                    
-            if (errorMessage.includes("FUNCTION_INVOCATION_TIMEOUT")) {
-                return NextResponse.json(
-                    { error: "The quiz generation took too long. The system attempted to process your text in chunks but still encountered timeouts." },
-                    { status: 504 }
-                );
-            }
-            return NextResponse.json(
-                { error: "Failed to generate valid quiz content", details: errorMessage },
-                { status: 500 }
-            );
+            console.error("❌ Error:", error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            
+            // Always return a proper JSON response
+            return NextResponse.json({ 
+                error: errorMessage.includes("TIMEOUT") 
+                    ? "The text is too long to process. Please try with a shorter text." 
+                    : "Failed to generate quiz questions",
+                details: errorMessage
+            }, { status: errorMessage.includes("TIMEOUT") ? 504 : 500 });
         }
     } catch (error) {
         console.error("❌ Unexpected error:", error);
-        const errorMessage = error instanceof Error 
-            ? error.message 
-            : typeof error === 'string'
-                ? error
-                : String(error);
-        return NextResponse.json(
-            { error: "Internal server error", details: errorMessage },
-            { status: 500 }
-        );
+        // Ensure we always return proper JSON
+        return NextResponse.json({ 
+            error: "Internal server error", 
+            details: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
     }
 }
