@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import { JsonOutputFunctionsParser } from "langchain/output_parsers";
+import { Runnable } from "@langchain/core/runnables";
 import saveQuizz from "./saveToDb";
 
 interface Answer {
@@ -79,7 +80,7 @@ function chunkText(text: string, maxChunkSize: number = 4000): string[] {
 async function processChunkWithTimeout(
     chunk: string, 
     model: ChatOpenAI, 
-    runnable: any, 
+    runnable: Runnable<unknown, unknown>, 
     prompt: string, 
     chunkIndex: number, 
     totalChunks: number
