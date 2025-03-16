@@ -6,13 +6,21 @@ type Quizz = InferInsertModel<typeof quizzez>;
 type Question = InferInsertModel<typeof dbQuestions>;
 type Answer = InferInsertModel<typeof questionAnswers>;
 
-interface SaveQuizzData extends Quizz {
-    questions: Array<Question & { answers?: Answer[] }>;
+interface SaveQuizzData {
+    name: string;
+    description: string;
+    questions: Array<{
+        questionText: string;
+        answers: Array<{
+            answerText: string;
+            isCorrect: boolean;
+        }>;
+    }>;
 }
 
 export default async function saveQuizz(quizzData: SaveQuizzData) {
     const { name, description, questions } = quizzData;
-
+    
     const newQuizz = await db
         .insert(quizzez)
         .values({
@@ -20,8 +28,9 @@ export default async function saveQuizz(quizzData: SaveQuizzData) {
             description
         })
         .returning({ insertId: quizzez.id });
+    
     const quizzId = newQuizz[0].insertId;
-
+    
     await db.transaction(async (tx) => {
         for (const question of questions) {
             const [{ questionId }] = await tx
@@ -30,8 +39,8 @@ export default async function saveQuizz(quizzData: SaveQuizzData) {
                     questionText: question.questionText,
                     quizzId
                 })
-                .returning({ questionId: dbQuestions.id })
-
+                .returning({ questionId: dbQuestions.id });
+            
             if (question.answers && question.answers.length > 0) {
                 await tx.insert(questionAnswers).values(
                     question.answers.map((answer) => ({
@@ -39,9 +48,10 @@ export default async function saveQuizz(quizzData: SaveQuizzData) {
                         isCorrect: answer.isCorrect,
                         questionId
                     }))
-                )
+                );
             }
         }
-    })
-    return { quizzId }
+    });
+    
+    return { quizzId };
 }
