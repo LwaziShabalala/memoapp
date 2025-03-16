@@ -271,7 +271,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ status: "processing", message: "Quiz generation started." }, { status: 202 });
 
-    } catch (error) {
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-    }
+    } catch {
+    console.error("❌ Unexpected error occurred");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+}
+
 }
