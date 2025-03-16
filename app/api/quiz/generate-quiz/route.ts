@@ -76,10 +76,10 @@ function chunkText(text: string, maxChunkSize: number = 4000): string[] {
     return chunks;
 }
 
-async function processChunkWithTimeout<T>(
+async function processChunkWithTimeout(
     chunk: string, 
     model: ChatOpenAI, 
-    runnable: T, 
+    runnable: any, 
     prompt: string, 
     chunkIndex: number, 
     totalChunks: number
@@ -263,17 +263,14 @@ export async function POST(req: NextRequest) {
                 const mergedResult = mergeQuizResults(validResults);
                 await saveQuizz(mergedResult.quizz);
             } catch (error) {
-    console.error("❌ Unexpected error:", error);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
-}
-
+                console.error("❌ Unexpected error:", error);
+                return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+            }
         })();
 
         return NextResponse.json({ status: "processing", message: "Quiz generation started." }, { status: 202 });
-
-    } catch {
-    console.error("❌ Unexpected error occurred");
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-}
-
+    } catch (error) {
+        console.error("❌ Unexpected error occurred", error);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
 }
