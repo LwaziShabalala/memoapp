@@ -63,12 +63,21 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                 }),
             });
 
-            const data = await response.json();
-
+            // Check if the response is ok before attempting to parse JSON
             if (!response.ok) {
-                throw new Error(data.error || data.details || "Failed to generate quiz");
+                // Try to parse error response as JSON first
+                try {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || errorData.details || `Server error: ${response.status}`);
+                } catch (jsonError) {
+                    // If JSON parsing fails, use the status text
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
             }
 
+            // Parse the JSON response
+            const data = await response.json();
+            
             const { quizzId } = data;
             if (!quizzId) {
                 throw new Error("No quiz ID returned from server");
