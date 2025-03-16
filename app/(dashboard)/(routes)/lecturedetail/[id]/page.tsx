@@ -43,16 +43,16 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
             setError("No transcription available to generate quiz");
             return;
         }
-
         if (lecture.transcription.length < 50) {
             setError("Transcription is too short to generate a meaningful quiz");
             return;
         }
-
         setLoading(true);
         setError(null);
         
         try {
+            console.log("Starting quiz generation with transcript length:", lecture.transcription.length);
+            
             const response = await fetch("/api/quiz/generate-quiz", {
                 method: "POST",
                 headers: { 
@@ -62,21 +62,42 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                     text: lecture.transcription 
                 }),
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || data.details || "Failed to generate quiz");
+            
+            console.log("Received response with status:", response.status);
+            
+            // Get the raw text first
+            let responseText;
+            try {
+                responseText = await response.text();
+                console.log("Response text (first 200 chars):", responseText.substring(0, 200));
+            } catch (textError) {
+                console.error("Error getting response text:", textError);
+                throw new Error("Failed to read server response");
             }
-
+            
+            // Then parse as JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log("Parsed response data:", data);
+            } catch (jsonError) {
+                console.error("Error parsing JSON:", jsonError);
+                throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
+            }
+            if (!response.ok) {
+                const errorMsg = data?.error || data?.details || "Failed to generate quiz";
+                console.error("Server returned error:", errorMsg);
+                throw new Error(errorMsg);
+            }
             const { quizzId } = data;
             if (!quizzId) {
+                console.error("No quizzId in response:", data);
                 throw new Error("No quiz ID returned from server");
             }
-
+            console.log("Successfully generated quiz with ID:", quizzId);
             router.push(`/quiz/${quizzId}`);
         } catch (error) {
-            console.error("Error in quiz generation:", error);
+            console.error("Full error in quiz generation:", error);
             setError(error instanceof Error ? error.message : "An unexpected error occurred");
         } finally {
             setLoading(false);
