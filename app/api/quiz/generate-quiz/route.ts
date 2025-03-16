@@ -93,13 +93,12 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Increased timeout and added retry parameters
+        // Increased timeout and retry parameters
         const model = new ChatOpenAI({
             apiKey,
             modelName: "gpt-3.5-turbo-16k",
             temperature: 0.7,
             maxRetries: 5,
-            retryDelay: 1000,
             timeout: 180000, // Increased from 60000 to 180000 (3 minutes)
         });
 
