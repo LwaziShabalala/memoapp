@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
 import { JsonOutputFunctionsParser } from "langchain/output_parsers";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { RunnableSequence } from "langchain/schema/runnable";
+import { Runnable } from "langchain/schema";
+
 
 export async function POST(req) {
     try {
