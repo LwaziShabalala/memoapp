@@ -20,40 +20,6 @@ interface Quiz {
     questions: Question[];
 }
 
-interface QuizResult {
-    quizz: Quiz;
-}
-
-// Enhanced validation function
-function validateQuizResult(result: unknown): result is QuizResult {
-    try {
-        if (!result || typeof result !== 'object') return false;
-        
-        const quiz = (result as QuizResult).quizz;
-        if (!quiz || typeof quiz !== 'object') return false;
-        
-        if (typeof quiz.name !== 'string') return false;
-        if (typeof quiz.description !== 'string') return false;
-        if (!Array.isArray(quiz.questions)) return false;
-        
-        for (const question of quiz.questions) {
-            if (typeof question.questionText !== 'string') return false;
-            if (!Array.isArray(question.answers)) return false;
-            if (question.answers.length !== 4) return false;
-            
-            for (const answer of question.answers) {
-                if (typeof answer.answerText !== 'string') return false;
-                if (typeof answer.isCorrect !== 'boolean') return false;
-            }
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Validation error:', error);
-        return false;
-    }
-}
-
 // Function to split text into smaller chunks
 function splitTextIntoChunks(text: string, maxChunkSize: number = 3000): string[] {
     if (text.length <= maxChunkSize) {
@@ -294,7 +260,6 @@ export async function POST(req: NextRequest) {
         
         // Generate questions in parallel with limited concurrency
         console.log("🧠 Generating questions...");
-        const questionPromises: Promise<Question | null>[] = [];
         const questionLimit = Math.min(8, chunks.length); // Limit total questions
         
         // Take a random selection of chunks if there are too many
