@@ -189,6 +189,7 @@ export async function POST(req: NextRequest) {
             }
         } catch (error) {
             console.error("❌ OpenAI API or validation error:", error);
+            // Ensure we're always returning a proper JSON response
             return NextResponse.json(
                 { 
                     error: "Failed to generate valid quiz content",
@@ -200,6 +201,7 @@ export async function POST(req: NextRequest) {
 
         try {
             console.log("💾 Saving quiz to database...");
+            // Wrap this in a try/catch to handle any errors from saveQuizz
             const { quizzId } = await saveQuizz(result.quizz);
             
             return NextResponse.json({ 
@@ -215,6 +217,7 @@ export async function POST(req: NextRequest) {
         }
     } catch (error) {
         console.error("❌ Unexpected error:", error);
+        // Make sure the top-level catch also returns proper JSON
         return NextResponse.json(
             { error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
