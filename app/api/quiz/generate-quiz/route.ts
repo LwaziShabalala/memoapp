@@ -166,14 +166,20 @@ export async function POST(req: NextRequest) {
             }
         } catch (error) {
             console.error("❌ OpenAI API error:", error);
-            if (error.toString().includes("FUNCTION_INVOCATION_TIMEOUT")) {
+            const errorMessage = error instanceof Error 
+                ? error.message 
+                : typeof error === 'string' 
+                    ? error 
+                    : String(error);
+                    
+            if (errorMessage.includes("FUNCTION_INVOCATION_TIMEOUT")) {
                 return NextResponse.json(
                     { error: "The quiz generation took too long. Try again with a shorter transcript." },
                     { status: 504 }
                 );
             }
             return NextResponse.json(
-                { error: "Failed to generate valid quiz content", details: error.message },
+                { error: "Failed to generate valid quiz content", details: errorMessage },
                 { status: 500 }
             );
         }
@@ -184,15 +190,25 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ quizzId, questionCount: result.quizz.questions.length }, { status: 200 });
         } catch (error) {
             console.error("❌ Database error:", error);
+            const errorMessage = error instanceof Error 
+                ? error.message 
+                : typeof error === 'string'
+                    ? error
+                    : String(error);
             return NextResponse.json(
-                { error: "Failed to save quiz", details: error.message },
+                { error: "Failed to save quiz", details: errorMessage },
                 { status: 500 }
             );
         }
     } catch (error) {
         console.error("❌ Unexpected error:", error);
+        const errorMessage = error instanceof Error 
+            ? error.message 
+            : typeof error === 'string'
+                ? error
+                : String(error);
         return NextResponse.json(
-            { error: "Internal server error", details: error.message },
+            { error: "Internal server error", details: errorMessage },
             { status: 500 }
         );
     }
