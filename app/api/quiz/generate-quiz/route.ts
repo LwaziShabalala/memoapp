@@ -86,10 +86,11 @@ async function processChunkWithTimeout(
     totalChunks: number
 ): Promise<QuizResult | null> {
     return new Promise(async (resolve) => {
+        // Increased timeout from 45000 to 60000 (60 seconds)
         const timeoutId = setTimeout(() => {
             console.log(`⏱️ Timeout reached for chunk ${chunkIndex + 1}/${totalChunks}`);
             resolve(null);
-        }, 45000);
+        }, 60000);
         
         try {
             const message = new HumanMessage({
@@ -235,17 +236,25 @@ export async function POST(req: NextRequest) {
             const basePrompt = `
                 Create a quiz based on the following text. Follow these rules strictly:
 
-                1. Generate 2-3 comprehensive questions that cover the main topics in this text chunk.
+                1. Generate as many comprehensive questions as possible from this text chunk (aim for 5-8 quality questions).
                 2. Each question must:
                    - Be clear and specific.
                    - Have exactly 4 answer choices.
                    - Have exactly one correct answer.
-                3. Ensure proper JSON structure with all required fields.
+                   - Cover important concepts, terminology, or procedures from the text.
+                3. Include questions that test different levels of understanding (basic recall, comprehension, application).
+                4. Ensure proper JSON structure with all required fields.
+                5. Focus on creating meaningful questions rather than limiting yourself to an arbitrary number.
             `;
 
             const textContent = Array.isArray(text) ? text.join("\n") : text;
-            const textChunks = chunkText(textContent, 4000);
-            const chunksToProcess = textChunks.slice(0, 10);
+            const textChunks = chunkText(textContent, 3500); // Reduced chunk size slightly to give the model more room to work
+            
+            // Process all chunks up to a reasonable limit (increased from 10 to 15)
+            const maxChunksToProcess = Math.min(textChunks.length, 15);
+            const chunksToProcess = textChunks.slice(0, maxChunksToProcess);
+
+            console.log(`📊 Processing ${chunksToProcess.length} chunks from document`);
 
             const chunkPromises = chunksToProcess.map((chunk, index) => {
                 const prompt = basePrompt + `\n\nThis is part ${index+1} of ${chunksToProcess.length}.`;
@@ -255,18 +264,23 @@ export async function POST(req: NextRequest) {
             const results = await Promise.all(chunkPromises);
             const validResults = results.filter(result => result !== null) as QuizResult[];
 
+            console.log(`📋 Successfully processed ${validResults.length} out of ${chunksToProcess.length} chunks`);
+
             if (validResults.length === 0) {
                 console.error("❌ No valid quiz content generated");
                 return NextResponse.json({ error: "Failed to generate quiz content" }, { status: 500 });
             }
             
             const mergedResult = mergeQuizResults(validResults);
+            console.log(`✅ Generated a total of ${mergedResult.quizz.questions.length} questions`);
+            
             const result = await saveQuizz(mergedResult.quizz);
             
             return NextResponse.json({ 
                 status: "success", 
                 message: "Quiz generation completed",
-                quizzId: result.quizzId
+                quizzId: result.quizzId,
+                questionCount: mergedResult.quizz.questions.length
             });
         } catch (error) {
             console.error("❌ Unexpected error:", error);
