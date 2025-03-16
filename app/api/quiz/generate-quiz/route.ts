@@ -87,7 +87,7 @@ function chunkText(text: string, maxChunkSize: number = 4000): string[] {
 async function processChunkWithTimeout(
     chunk: string, 
     model: ChatOpenAI, 
-    runnable: any, 
+    runnable: ReturnType<typeof model.bind>, 
     prompt: string, 
     chunkIndex: number, 
     totalChunks: number
@@ -165,21 +165,6 @@ function mergeQuizResults(results: QuizResult[]): QuizResult {
 export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
-        
-        // Send an immediate response to prevent timeout for large files
-        const encoder = new TextEncoder();
-        const stream = new ReadableStream({
-            start(controller) {
-                controller.enqueue(encoder.encode('{"status":"processing"}'));
-            }
-        });
-        
-        const response = new Response(stream, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Transfer-Encoding': 'chunked'
-            }
-        });
         
         let body: { text?: string };
         try {
