@@ -79,7 +79,7 @@ function chunkText(text: string, maxChunkSize: number = 4000): string[] {
 async function processChunkWithTimeout(
     chunk: string, 
     model: ChatOpenAI, 
-    runnable: ReturnType<typeof model.bind>, 
+    runnable: any, 
     prompt: string, 
     chunkIndex: number, 
     totalChunks: number
