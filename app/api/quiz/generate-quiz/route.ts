@@ -136,24 +136,25 @@ export async function POST(req: NextRequest) {
         };
 
         // Create a function to safely handle API calls
-        async function safeApiCall(apiCall: () => Promise<any>) {
-            try {
-                return await apiCall();
-            } catch (error) {
-                // Capture the full error message
-                const fullError = String(error);
-                console.error("API Call Error:", fullError);
-                
-                // Check for timeout errors
-                if (fullError.includes("FUNCTION_INVOCATION_TIMEOUT") || 
-                    fullError.includes("timeout") || 
-                    fullError.includes("timed out")) {
-                    throw new Error("TIMEOUT");
-                }
-                
-                throw error;
-            }
+        // Create a function to safely handle API calls with a generic type
+async function safeApiCall<T>(apiCall: () => Promise<T>): Promise<T> {
+    try {
+        return await apiCall();
+    } catch (error) {
+        // Capture the full error message
+        const fullError = String(error);
+        console.error("API Call Error:", fullError);
+        
+        // Check for timeout errors
+        if (fullError.includes("FUNCTION_INVOCATION_TIMEOUT") || 
+            fullError.includes("timeout") || 
+            fullError.includes("timed out")) {
+            throw new Error("TIMEOUT");
         }
+        
+        throw error;
+    }
+}
 
         const runnable = model
             .bind({
