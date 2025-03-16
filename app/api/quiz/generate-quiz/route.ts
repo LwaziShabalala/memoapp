@@ -40,6 +40,10 @@ function validateQuizResult(result: unknown): result is QuizResult {
             if (!Array.isArray(question.answers)) return false;
             if (question.answers.length !== 4) return false;
             
+            // Verify we have exactly one correct answer
+            const correctAnswers = question.answers.filter(a => a.isCorrect);
+            if (correctAnswers.length !== 1) return false;
+            
             for (const answer of question.answers) {
                 if (typeof answer.answerText !== 'string') return false;
                 if (typeof answer.isCorrect !== 'boolean') return false;
@@ -78,6 +82,7 @@ export async function POST(req: NextRequest) {
 
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
+            console.error("❌ Missing OpenAI API key");
             return NextResponse.json(
                 { error: "Server configuration error" },
                 { status: 500 }
@@ -173,16 +178,18 @@ export async function POST(req: NextRequest) {
         `;
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
+        // Limit text length to avoid API issues
+        const trimmedText = textContent.slice(0, 15000);
 
         console.log("🧠 Sending request to OpenAI...");
         let result: unknown;
         try {
             const message = new HumanMessage({
-                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${textContent}` }],
+                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${trimmedText}` }],
             });
             
             result = await runnable.invoke([message]);
-            console.log("📝 Raw response:", JSON.stringify(result, null, 2));
+            console.log("📝 Raw response received");
             
             if (!validateQuizResult(result)) {
                 throw new Error("Invalid quiz structure in response");
