@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
                 const chunksToProcess = textChunks.slice(0, 10);
 
                 const chunkPromises = chunksToProcess.map((chunk, index) => {
-                    let prompt = basePrompt + `\n\nThis is part ${index+1} of ${chunksToProcess.length}.`;
+                    const prompt = basePrompt + `\n\nThis is part ${index+1} of ${chunksToProcess.length}.`;
                     return processChunkWithTimeout(chunk, model, runnable, prompt, index, chunksToProcess.length);
                 });
 
