@@ -86,11 +86,10 @@ async function processChunkWithTimeout(
     totalChunks: number
 ): Promise<QuizResult | null> {
     return new Promise(async (resolve) => {
-        // Increased timeout from 45000 to 60000 (60 seconds)
         const timeoutId = setTimeout(() => {
             console.log(`⏱️ Timeout reached for chunk ${chunkIndex + 1}/${totalChunks}`);
             resolve(null);
-        }, 60000);
+        }, 30000); // Reduced from 60000 to 30000 (30 seconds)
         
         try {
             const message = new HumanMessage({
@@ -236,7 +235,7 @@ export async function POST(req: NextRequest) {
             const basePrompt = `
                 Create a quiz based on the following text. Follow these rules strictly:
 
-                1. Generate as many comprehensive questions as possible from this text chunk (aim for 5-8 quality questions).
+                1. Generate 6-10 comprehensive questions from this text chunk.
                 2. Each question must:
                    - Be clear and specific.
                    - Have exactly 4 answer choices.
@@ -250,8 +249,8 @@ export async function POST(req: NextRequest) {
             const textContent = Array.isArray(text) ? text.join("\n") : text;
             const textChunks = chunkText(textContent, 3500); // Reduced chunk size slightly to give the model more room to work
             
-            // Process all chunks up to a reasonable limit (increased from 10 to 15)
-            const maxChunksToProcess = Math.min(textChunks.length, 15);
+            // Process all chunks up to a reasonable limit (reduced from 15 to 5)
+            const maxChunksToProcess = Math.min(textChunks.length, 5);
             const chunksToProcess = textChunks.slice(0, maxChunksToProcess);
 
             console.log(`📊 Processing ${chunksToProcess.length} chunks from document`);
