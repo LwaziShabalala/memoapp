@@ -44,8 +44,7 @@ function validateQuizResult(result: unknown): result is QuizResult {
             if (correctAnswers.length !== 1) return false;
             
             for (const answer of question.answers) {
-                if (typeof answer.answerText !== 'string') return false;
-                if (typeof answer.isCorrect !== 'boolean') return false;
+                if (typeof answer.answerText !== 'string' || typeof answer.isCorrect !== 'boolean') return false;
             }
         }
         
@@ -154,7 +153,14 @@ export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
         
-        const body = await req.json();
+        let body: { text?: string };
+        try {
+            body = await req.json();
+        } catch (e) {
+            console.error("❌ Error parsing request body:", e);
+            return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+        }
+
         const { text } = body;
         if (!text) {
             return NextResponse.json({ error: "Text input is required" }, { status: 400 });
@@ -166,61 +172,104 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
         }
 
-        const model = new ChatOpenAI({
-            apiKey,
-            modelName: "gpt-3.5-turbo-16k",
-            temperature: 0.7,
-            maxRetries: 2,
-            timeout: 60000,
-        });
+        (async () => {
+            try {
+                const model = new ChatOpenAI({
+                    apiKey,
+                    modelName: "gpt-3.5-turbo-16k",
+                    temperature: 0.7,
+                    maxRetries: 2,
+                    timeout: 60000,
+                });
 
-        const parser = new JsonOutputFunctionsParser();
-        const extractionFunctionSchema = {
-            name: "extractor",
-            description: "Extracts quiz questions from the provided text",
-            parameters: {
-                type: "object",
-                properties: {
-                    quizz: {
+                const parser = new JsonOutputFunctionsParser();
+                const extractionFunctionSchema = {
+                    name: "extractor",
+                    description: "Extracts quiz questions from the provided text",
+                    parameters: {
                         type: "object",
                         properties: {
-                            name: { type: "string" },
-                            description: { type: "string" },
-                            questions: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        questionText: { type: "string" },
-                                        answers: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    answerText: { type: "string" },
-                                                    isCorrect: { type: "boolean" },
-                                                },
-                                                required: ["answerText", "isCorrect"]
+                            quizz: {
+                                type: "object",
+                                properties: {
+                                    name: { type: "string" },
+                                    description: { type: "string" },
+                                    questions: {
+                                        type: "array",
+                                        items: {
+                                            type: "object",
+                                            properties: {
+                                                questionText: { type: "string" },
+                                                answers: {
+                                                    type: "array",
+                                                    items: {
+                                                        type: "object",
+                                                        properties: {
+                                                            answerText: { type: "string" },
+                                                            isCorrect: { type: "boolean" },
+                                                        },
+                                                        required: ["answerText", "isCorrect"]
+                                                    },
+                                                    minItems: 4,
+                                                    maxItems: 4
+                                                }
                                             },
-                                            minItems: 4,
-                                            maxItems: 4
+                                            required: ["questionText", "answers"]
                                         }
-                                    },
-                                    required: ["questionText", "answers"]
-                                }
+                                    }
+                                },
+                                required: ["name", "description", "questions"]
                             }
                         },
-                        required: ["name", "description", "questions"]
+                        required: ["quizz"]
                     }
-                },
-                required: ["quizz"]
+                };
+
+                const runnable = model
+                    .bind({
+                        functions: [extractionFunctionSchema],
+                        function_call: { name: "extractor" },
+                    })
+                    .pipe(parser);
+
+                const basePrompt = `
+                    Create a quiz based on the following text. Follow these rules strictly:
+
+                    1. Generate 2-3 comprehensive questions that cover the main topics in this text chunk.
+                    2. Each question must:
+                       - Be clear and specific.
+                       - Have exactly 4 answer choices.
+                       - Have exactly one correct answer.
+                    3. Ensure proper JSON structure with all required fields.
+                `;
+
+                const textContent = Array.isArray(text) ? text.join("\n") : text;
+                const textChunks = chunkText(textContent, 4000);
+                const chunksToProcess = textChunks.slice(0, 10);
+
+                const chunkPromises = chunksToProcess.map((chunk, index) => {
+                    let prompt = basePrompt + `\n\nThis is part ${index+1} of ${chunksToProcess.length}.`;
+                    return processChunkWithTimeout(chunk, model, runnable, prompt, index, chunksToProcess.length);
+                });
+
+                const results = await Promise.all(chunkPromises);
+                const validResults = results.filter(result => result !== null) as QuizResult[];
+
+                if (validResults.length === 0) {
+                    console.error("❌ No valid quiz content generated");
+                    return;
+                }
+                
+                const mergedResult = mergeQuizResults(validResults);
+                await saveQuizz(mergedResult.quizz);
+            } catch (error) {
+                console.error("❌ Unexpected error:", error);
             }
-        };
-        
-        const runnable = model.bind({ functions: [extractionFunctionSchema], function_call: { name: "extractor" } }).pipe(parser);
-        console.log("✅ Quiz generation API initialized");
+        })();
+
+        return NextResponse.json({ status: "processing", message: "Quiz generation started." }, { status: 202 });
+
     } catch (error) {
-        console.error("❌ Error in POST handler:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
