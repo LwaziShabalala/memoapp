@@ -76,6 +76,15 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Check if the text is too long (rough estimate)
+        const textLength = Array.isArray(text) ? text.join("\n").length : text.length;
+        if (textLength > 15000) {
+            return NextResponse.json(
+                { error: "Text input is too long. Please provide shorter content to avoid timeouts." },
+                { status: 400 }
+            );
+        }
+
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
             return NextResponse.json(
@@ -84,12 +93,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Increased timeout and added retry parameters
         const model = new ChatOpenAI({
             apiKey,
             modelName: "gpt-3.5-turbo-16k",
             temperature: 0.7,
-            maxRetries: 3,
-            timeout: 60000,
+            maxRetries: 5,
+            retryDelay: 1000,
+            timeout: 180000, // Increased from 60000 to 180000 (3 minutes)
         });
 
         const parser = new JsonOutputFunctionsParser();
@@ -125,7 +136,9 @@ export async function POST(req: NextRequest) {
                                         }
                                     },
                                     required: ["questionText", "answers"]
-                                }
+                                },
+                                // Limit the number of questions to avoid timeouts
+                                maxItems: 10
                             }
                         },
                         required: ["name", "description", "questions"]
@@ -142,15 +155,16 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
+        // Simplified prompt to reduce complexity
         const prompt = `
             Create a quiz based on the following text. Follow these rules strictly:
 
-            1. Generate multiple comprehensive questions that cover the main topics
+            1. Generate up to 10 focused questions that cover key concepts
             2. Each question must:
                - Be clear and specific
                - Have exactly 4 answer choices
                - Have exactly one correct answer
-            3. Ensure proper JSON structure with all required fields
+            3. Ensure proper JSON structure
 
             Important: Your response must be valid JSON matching this exact structure:
             {
@@ -177,11 +191,21 @@ export async function POST(req: NextRequest) {
         console.log("🧠 Sending request to OpenAI...");
         let result: unknown;
         try {
+            // Set up a timeout promise in addition to the API's own timeout
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("Request timed out after 3 minutes")), 180000);
+            });
+            
             const message = new HumanMessage({
                 content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${textContent}` }],
             });
             
-            result = await runnable.invoke([message]);
+            // Race the API call against the timeout
+            result = await Promise.race([
+                runnable.invoke([message]),
+                timeoutPromise
+            ]);
+            
             console.log("📝 Raw response:", JSON.stringify(result, null, 2));
             
             if (!validateQuizResult(result)) {
@@ -189,12 +213,21 @@ export async function POST(req: NextRequest) {
             }
         } catch (error) {
             console.error("❌ OpenAI API or validation error:", error);
+            
+            // Check specifically for timeout errors
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const isTimeout = errorMessage.includes('TIMEOUT') || 
+                              errorMessage.includes('timed out') ||
+                              errorMessage.includes('FUNCTION_INVOCATION_TIMEOUT');
+            
             return NextResponse.json(
                 { 
-                    error: "Failed to generate valid quiz content",
-                    details: error instanceof Error ? error.message : 'Unknown error'
+                    error: isTimeout 
+                        ? "Request timed out - please try with shorter content or fewer questions" 
+                        : "Failed to generate valid quiz content",
+                    details: errorMessage
                 },
-                { status: 500 }
+                { status: isTimeout ? 504 : 500 }
             );
         }
 
@@ -204,7 +237,8 @@ export async function POST(req: NextRequest) {
             
             return NextResponse.json({ 
                 quizzId,
-                questionCount: result.quizz.questions.length
+                questionCount: result.quizz.questions.length,
+                success: true
             }, { status: 200 });
         } catch (error) {
             console.error("❌ Database error:", error);
