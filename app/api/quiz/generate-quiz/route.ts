@@ -57,6 +57,57 @@ function validateQuizResult(result: unknown): result is QuizResult {
     }
 }
 
+// Function to chunk text for large inputs
+function chunkText(text: string, chunkSize: number = 8000): string[] {
+    const chunks: string[] = [];
+    
+    // Split by paragraphs to avoid cutting in the middle of sentences
+    const paragraphs = text.split(/\n\s*\n/);
+    let currentChunk = '';
+    
+    for (const paragraph of paragraphs) {
+        // If adding this paragraph would exceed chunk size, save current chunk and start a new one
+        if (currentChunk.length + paragraph.length > chunkSize && currentChunk.length > 0) {
+            chunks.push(currentChunk);
+            currentChunk = paragraph;
+        } else {
+            currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
+        }
+    }
+    
+    // Add the last chunk if not empty
+    if (currentChunk) {
+        chunks.push(currentChunk);
+    }
+    
+    return chunks;
+}
+
+// Function to merge quiz results from multiple chunks
+function mergeQuizResults(results: QuizResult[]): QuizResult {
+    if (results.length === 0) {
+        throw new Error("No valid quiz results to merge");
+    }
+    
+    if (results.length === 1) {
+        return results[0];
+    }
+    
+    const firstResult = results[0];
+    const mergedQuiz: Quiz = {
+        name: firstResult.quizz.name,
+        description: firstResult.quizz.description,
+        questions: [...firstResult.quizz.questions]
+    };
+    
+    // Add questions from other chunks
+    for (let i = 1; i < results.length; i++) {
+        mergedQuiz.questions.push(...results[i].quizz.questions);
+    }
+    
+    return { quizz: mergedQuiz };
+}
+
 export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
@@ -94,7 +145,7 @@ export async function POST(req: NextRequest) {
             modelName: "gpt-3.5-turbo-16k",
             temperature: 0.7,
             maxRetries: 3,
-            timeout: 60000,
+            timeout: 180000, // Increased timeout to 3 minutes
         });
 
         const parser = new JsonOutputFunctionsParser();
@@ -147,7 +198,7 @@ export async function POST(req: NextRequest) {
             })
             .pipe(parser);
 
-        const prompt = `
+        const basePrompt = `
             Create a quiz based on the following text. Follow these rules strictly:
 
             1. Generate multiple comprehensive questions that cover the main topics
@@ -178,40 +229,58 @@ export async function POST(req: NextRequest) {
         `;
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
-        // Limit text length to avoid API issues
-        const trimmedText = textContent.slice(0, 15000);
-
-        console.log("🧠 Sending request to OpenAI...");
-        let result: unknown;
-        try {
-            const message = new HumanMessage({
-                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${trimmedText}` }],
-            });
+        const textChunks = chunkText(textContent);
+        console.log(`🧩 Split input into ${textChunks.length} chunks`);
+        
+        const results: QuizResult[] = [];
+        
+        // Process each chunk
+        for (let i = 0; i < textChunks.length; i++) {
+            const chunk = textChunks[i];
+            console.log(`🧠 Processing chunk ${i+1}/${textChunks.length} (${chunk.length} characters)`);
             
-            result = await runnable.invoke([message]);
-            console.log("📝 Raw response received");
-            
-            if (!validateQuizResult(result)) {
-                throw new Error("Invalid quiz structure in response");
+            let prompt = basePrompt;
+            if (textChunks.length > 1) {
+                prompt += `\n\nThis is part ${i+1} of ${textChunks.length} from the text. Focus on creating questions specific to this section.`;
             }
-        } catch (error) {
-            console.error("❌ OpenAI API or validation error:", error);
+            
+            try {
+                const message = new HumanMessage({
+                    content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${chunk}` }],
+                });
+                
+                const result = await runnable.invoke([message]);
+                console.log(`📝 Raw response received for chunk ${i+1}`);
+                
+                if (!validateQuizResult(result)) {
+                    throw new Error(`Invalid quiz structure in response for chunk ${i+1}`);
+                }
+                
+                results.push(result as QuizResult);
+            } catch (error) {
+                console.error(`❌ Error processing chunk ${i+1}:`, error);
+                // Continue with other chunks if one fails
+            }
+        }
+        
+        if (results.length === 0) {
             return NextResponse.json(
-                { 
-                    error: "Failed to generate valid quiz content",
-                    details: error instanceof Error ? error.message : 'Unknown error'
-                },
+                { error: "Failed to generate valid quiz content from any text chunk" },
                 { status: 500 }
             );
         }
+        
+        // Merge results from all chunks
+        const mergedResult = mergeQuizResults(results);
+        console.log(`✅ Successfully generated quiz with ${mergedResult.quizz.questions.length} questions`);
 
         try {
             console.log("💾 Saving quiz to database...");
-            const { quizzId } = await saveQuizz(result.quizz);
+            const { quizzId } = await saveQuizz(mergedResult.quizz);
             
             return NextResponse.json({ 
                 quizzId,
-                questionCount: result.quizz.questions.length
+                questionCount: mergedResult.quizz.questions.length
             }, { status: 200 });
         } catch (error) {
             console.error("❌ Database error:", error);
