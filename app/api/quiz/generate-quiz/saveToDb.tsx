@@ -18,7 +18,7 @@ interface SaveQuizzData {
     }>;
 }
 
-export default async function saveQuizz(quizzData: SaveQuizzData) {
+export default async function saveQuizz(quizzData: SaveQuizzData): Promise<{ quizzId: Quizz['id'] }> {
     const { name, description, questions } = quizzData;
     
     const newQuizz = await db
@@ -26,29 +26,31 @@ export default async function saveQuizz(quizzData: SaveQuizzData) {
         .values({
             name,
             description
-        })
+        } as Quizz)
         .returning({ insertId: quizzez.id });
     
     const quizzId = newQuizz[0].insertId;
     
     await db.transaction(async (tx) => {
         for (const question of questions) {
+            const questionData: Partial<Question> = {
+                questionText: question.questionText,
+                quizzId
+            };
+            
             const [{ questionId }] = await tx
                 .insert(dbQuestions)
-                .values({
-                    questionText: question.questionText,
-                    quizzId
-                })
+                .values(questionData)
                 .returning({ questionId: dbQuestions.id });
             
             if (question.answers && question.answers.length > 0) {
-                await tx.insert(questionAnswers).values(
-                    question.answers.map((answer) => ({
-                        answerText: answer.answerText,
-                        isCorrect: answer.isCorrect,
-                        questionId
-                    }))
-                );
+                const answerValues: Partial<Answer>[] = question.answers.map((answer) => ({
+                    answerText: answer.answerText,
+                    isCorrect: answer.isCorrect,
+                    questionId
+                }));
+                
+                await tx.insert(questionAnswers).values(answerValues);
             }
         }
     });
