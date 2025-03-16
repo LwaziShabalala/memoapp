@@ -69,8 +69,8 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                 try {
                     const errorData = await response.json();
                     throw new Error(errorData.error || errorData.details || `Server error: ${response.status}`);
-                } catch (jsonError) {
-                    // If JSON parsing fails, use the status text
+                } catch (_) {
+                    // If JSON parsing fails, use the status text (underscore ignores unused variable)
                     throw new Error(`Server error: ${response.status} ${response.statusText}`);
                 }
             }
