@@ -65,14 +65,9 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
 
             // Check if the response is ok before attempting to parse JSON
             if (!response.ok) {
-                // Try to parse error response as JSON first
-                try {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || errorData.details || `Server error: ${response.status}`);
-                } catch (_) {
-                    // If JSON parsing fails, use the status text (underscore ignores unused variable)
-                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
-                }
+                // Handle error response without creating unused variables
+                const errorMessage = await getErrorMessage(response);
+                throw new Error(errorMessage);
             }
 
             // Parse the JSON response
@@ -89,6 +84,17 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
             setError(error instanceof Error ? error.message : "An unexpected error occurred");
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Helper function to extract error message from response
+    const getErrorMessage = async (response: Response): Promise<string> => {
+        try {
+            const errorData = await response.json();
+            return errorData.error || errorData.details || `Server error: ${response.status}`;
+        } catch {
+            // If JSON parsing fails, use the status text
+            return `Server error: ${response.status} ${response.statusText}`;
         }
     };
 
