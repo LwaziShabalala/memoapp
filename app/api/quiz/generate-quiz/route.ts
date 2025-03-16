@@ -151,21 +151,114 @@ export async function POST(req: NextRequest) {
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
 
-        console.log("🧠 Sending request to OpenAI...");
-        let result: unknown;
-        try {
-            const message = new HumanMessage({
-                content: [{ type: "text", text: `${prompt}\n\nContent:\n${textContent}` }],
-            });
-            
-            result = await runnable.invoke([message]);
-            console.log("📝 Raw response:", JSON.stringify(result, null, 2));
-            
-            if (!validateQuizResult(result)) {
-                throw new Error("Invalid quiz structure in response");
+        console.log("🧠 Processing text content...");
+        
+        // Chunk processing logic
+        const MAX_CHUNK_SIZE = 4000; // characters
+        let finalResult: QuizResult = {
+            quizz: {
+                name: "Generated Quiz",
+                description: "Quiz generated from provided text",
+                questions: []
             }
+        };
+
+        try {
+            if (textContent.length > MAX_CHUNK_SIZE) {
+                console.log(`📏 Text length: ${textContent.length} chars - splitting into chunks`);
+                // Split text into sentences to avoid cutting in the middle of sentences
+                const sentences = textContent.match(/[^.!?]+[.!?]+/g) || [textContent];
+                
+                // Group sentences into chunks
+                const chunks: string[] = [];
+                let currentChunk = "";
+                
+                for (const sentence of sentences) {
+                    if (currentChunk.length + sentence.length > MAX_CHUNK_SIZE) {
+                        chunks.push(currentChunk);
+                        currentChunk = sentence;
+                    } else {
+                        currentChunk += sentence;
+                    }
+                }
+                
+                if (currentChunk) {
+                    chunks.push(currentChunk);
+                }
+                
+                console.log(`🧩 Created ${chunks.length} chunks for processing`);
+                
+                // Process each chunk
+                for (let i = 0; i < chunks.length; i++) {
+                    const chunk = chunks[i];
+                    console.log(`⚙️ Processing chunk ${i+1}/${chunks.length} (${chunk.length} chars)...`);
+                    
+                    try {
+                        const chunkPrompt = `
+                            Create a quiz based on the following text (Part ${i+1} of ${chunks.length}). Follow these rules strictly:
+                            - Generate 3-5 comprehensive questions covering key topics in this section
+                            - Each question must have exactly 4 answer choices and one correct answer
+                            - Ensure proper JSON structure with all required fields
+                        `;
+                        
+                        const message = new HumanMessage({
+                            content: [{ type: "text", text: `${chunkPrompt}\n\nContent:\n${chunk}` }],
+                        });
+                        
+                        const chunkResult = await runnable.invoke([message]);
+                        
+                        if (validateQuizResult(chunkResult)) {
+                            // Add these questions to our final result
+                            finalResult.quizz.questions = [
+                                ...finalResult.quizz.questions,
+                                ...chunkResult.quizz.questions
+                            ];
+                            console.log(`✅ Successfully processed chunk ${i+1}, got ${chunkResult.quizz.questions.length} questions`);
+                        } else {
+                            console.error(`❌ Invalid result structure from chunk ${i+1}`);
+                        }
+                    } catch (error) {
+                        const errorMessage = error instanceof Error 
+                            ? error.message 
+                            : String(error);
+                        console.error(`❌ Error processing chunk ${i+1}:`, errorMessage);
+                        // Continue with next chunk
+                    }
+                }
+                
+                // If we got no questions at all, that's an error
+                if (finalResult.quizz.questions.length === 0) {
+                    throw new Error("Failed to generate any valid questions from all text chunks");
+                }
+                
+                console.log(`🎯 Successfully generated ${finalResult.quizz.questions.length} questions in total`);
+            } else {
+                // Process the text as a single chunk for smaller texts
+                console.log(`📏 Text length: ${textContent.length} chars - processing as single chunk`);
+                const message = new HumanMessage({
+                    content: [{ type: "text", text: `${prompt}\n\nContent:\n${textContent}` }],
+                });
+                
+                const result = await runnable.invoke([message]);
+                
+                if (!validateQuizResult(result)) {
+                    throw new Error("Invalid quiz structure in response");
+                }
+                
+                finalResult = result;
+                console.log(`✅ Successfully generated ${finalResult.quizz.questions.length} questions`);
+            }
+
+            // Save to database
+            console.log("💾 Saving quiz to database...");
+            const { quizzId } = await saveQuizz(finalResult.quizz);
+            return NextResponse.json({ 
+                quizzId, 
+                questionCount: finalResult.quizz.questions.length 
+            }, { status: 200 });
+            
         } catch (error) {
-            console.error("❌ OpenAI API error:", error);
+            console.error("❌ Processing error:", error);
             const errorMessage = error instanceof Error 
                 ? error.message 
                 : typeof error === 'string' 
@@ -174,29 +267,12 @@ export async function POST(req: NextRequest) {
                     
             if (errorMessage.includes("FUNCTION_INVOCATION_TIMEOUT")) {
                 return NextResponse.json(
-                    { error: "The quiz generation took too long. Try again with a shorter transcript." },
+                    { error: "The quiz generation took too long. The system attempted to process your text in chunks but still encountered timeouts." },
                     { status: 504 }
                 );
             }
             return NextResponse.json(
                 { error: "Failed to generate valid quiz content", details: errorMessage },
-                { status: 500 }
-            );
-        }
-
-        try {
-            console.log("💾 Saving quiz to database...");
-            const { quizzId } = await saveQuizz(result.quizz);
-            return NextResponse.json({ quizzId, questionCount: result.quizz.questions.length }, { status: 200 });
-        } catch (error) {
-            console.error("❌ Database error:", error);
-            const errorMessage = error instanceof Error 
-                ? error.message 
-                : typeof error === 'string'
-                    ? error
-                    : String(error);
-            return NextResponse.json(
-                { error: "Failed to save quiz", details: errorMessage },
                 { status: 500 }
             );
         }
