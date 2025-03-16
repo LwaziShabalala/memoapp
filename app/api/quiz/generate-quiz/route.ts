@@ -135,9 +135,8 @@ export async function POST(req: NextRequest) {
             }
         };
 
-        // Create a function to safely handle API calls
-        // Create a function to safely handle API calls with a generic type
-async function safeApiCall<T>(apiCall: () => Promise<T>): Promise<T> {
+        // Use a function expression instead of a function declaration
+const safeApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
     try {
         return await apiCall();
     } catch (error) {
@@ -154,7 +153,7 @@ async function safeApiCall<T>(apiCall: () => Promise<T>): Promise<T> {
         
         throw error;
     }
-}
+};
 
         const runnable = model
             .bind({
