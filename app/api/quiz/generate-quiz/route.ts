@@ -263,8 +263,10 @@ export async function POST(req: NextRequest) {
                 const mergedResult = mergeQuizResults(validResults);
                 await saveQuizz(mergedResult.quizz);
             } catch (error) {
-                console.error("❌ Unexpected error:", error);
-            }
+    console.error("❌ Unexpected error:", error);
+    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+}
+
         })();
 
         return NextResponse.json({ status: "processing", message: "Quiz generation started." }, { status: 202 });
