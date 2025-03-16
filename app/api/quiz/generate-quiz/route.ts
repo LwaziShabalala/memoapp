@@ -69,9 +69,9 @@ export async function POST(req: NextRequest) {
         }
 
         const { text } = body;
-        if (!text || text.length > 5000) {  // Limiting transcript size
+        if (!text) {  // Only check if text exists, no length limit
             return NextResponse.json(
-                { error: "Text input is required and must be under 5000 characters" },
+                { error: "Text input is required" },
                 { status: 400 }
             );
         }
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
             modelName: "gpt-3.5-turbo-16k",
             temperature: 0.7,
             maxRetries: 3,
-            timeout: 120000, // Increased timeout to 120 seconds
+            timeout: 120000, // 120 seconds timeout
         });
 
         const parser = new JsonOutputFunctionsParser();
