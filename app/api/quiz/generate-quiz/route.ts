@@ -136,24 +136,24 @@ export async function POST(req: NextRequest) {
         };
 
         // Use a function expression instead of a function declaration
-const safeApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
-    try {
-        return await apiCall();
-    } catch (error) {
-        // Capture the full error message
-        const fullError = String(error);
-        console.error("API Call Error:", fullError);
-        
-        // Check for timeout errors
-        if (fullError.includes("FUNCTION_INVOCATION_TIMEOUT") || 
-            fullError.includes("timeout") || 
-            fullError.includes("timed out")) {
-            throw new Error("TIMEOUT");
-        }
-        
-        throw error;
-    }
-};
+        const safeApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
+            try {
+                return await apiCall();
+            } catch (error) {
+                // Capture the full error message
+                const fullError = String(error);
+                console.error("API Call Error:", fullError);
+                
+                // Check for timeout errors
+                if (fullError.includes("FUNCTION_INVOCATION_TIMEOUT") || 
+                    fullError.includes("timeout") || 
+                    fullError.includes("timed out")) {
+                    throw new Error("TIMEOUT");
+                }
+                
+                throw error;
+            }
+        };
 
         const runnable = model
             .bind({
@@ -240,8 +240,8 @@ const safeApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
                                 break;
                             }
                         }
-                    } catch (error) {
-                        if (error.message === "TIMEOUT") {
+                    } catch (error: unknown) {
+                        if (error instanceof Error && error.message === "TIMEOUT") {
                             console.log(`⏱️ Timeout on chunk ${i+1}, skipping to next chunk`);
                             continue;
                         } else {
@@ -284,7 +284,7 @@ const safeApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
                 questionCount: finalResult.quizz.questions.length 
             }, { status: 200 });
             
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("❌ Error:", error);
             const errorMessage = error instanceof Error ? error.message : String(error);
             
@@ -296,7 +296,7 @@ const safeApiCall = async <T>(apiCall: () => Promise<T>): Promise<T> => {
                 details: errorMessage
             }, { status: errorMessage.includes("TIMEOUT") ? 504 : 500 });
         }
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("❌ Unexpected error:", error);
         // Ensure we always return proper JSON
         return NextResponse.json({ 
