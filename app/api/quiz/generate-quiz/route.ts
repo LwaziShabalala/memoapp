@@ -69,9 +69,9 @@ export async function POST(req: NextRequest) {
         }
 
         const { text } = body;
-        if (!text) {
+        if (!text || text.length > 5000) {  // Limiting transcript size
             return NextResponse.json(
-                { error: "Text input is required" },
+                { error: "Text input is required and must be under 5000 characters" },
                 { status: 400 }
             );
         }
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
             modelName: "gpt-3.5-turbo-16k",
             temperature: 0.7,
             maxRetries: 3,
-            timeout: 60000,
+            timeout: 120000, // Increased timeout to 120 seconds
         });
 
         const parser = new JsonOutputFunctionsParser();
@@ -144,32 +144,9 @@ export async function POST(req: NextRequest) {
 
         const prompt = `
             Create a quiz based on the following text. Follow these rules strictly:
-
-            1. Generate multiple comprehensive questions that cover the main topics
-            2. Each question must:
-               - Be clear and specific
-               - Have exactly 4 answer choices
-               - Have exactly one correct answer
-            3. Ensure proper JSON structure with all required fields
-
-            Important: Your response must be valid JSON matching this exact structure:
-            {
-              "quizz": {
-                "name": "string",
-                "description": "string",
-                "questions": [
-                  {
-                    "questionText": "string",
-                    "answers": [
-                      {"answerText": "string", "isCorrect": boolean},
-                      {"answerText": "string", "isCorrect": boolean},
-                      {"answerText": "string", "isCorrect": boolean},
-                      {"answerText": "string", "isCorrect": boolean}
-                    ]
-                  }
-                ]
-              }
-            }
+            - Generate multiple comprehensive questions covering the main topics
+            - Each question must have exactly 4 answer choices and one correct answer
+            - Ensure proper JSON structure with all required fields
         `;
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
@@ -178,7 +155,7 @@ export async function POST(req: NextRequest) {
         let result: unknown;
         try {
             const message = new HumanMessage({
-                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${textContent}` }],
+                content: [{ type: "text", text: `${prompt}\n\nContent:\n${textContent}` }],
             });
             
             result = await runnable.invoke([message]);
@@ -188,38 +165,34 @@ export async function POST(req: NextRequest) {
                 throw new Error("Invalid quiz structure in response");
             }
         } catch (error) {
-            console.error("❌ OpenAI API or validation error:", error);
-            // Ensure we're always returning a proper JSON response
+            console.error("❌ OpenAI API error:", error);
+            if (error.toString().includes("FUNCTION_INVOCATION_TIMEOUT")) {
+                return NextResponse.json(
+                    { error: "The quiz generation took too long. Try again with a shorter transcript." },
+                    { status: 504 }
+                );
+            }
             return NextResponse.json(
-                { 
-                    error: "Failed to generate valid quiz content",
-                    details: error instanceof Error ? error.message : 'Unknown error'
-                },
+                { error: "Failed to generate valid quiz content", details: error.message },
                 { status: 500 }
             );
         }
 
         try {
             console.log("💾 Saving quiz to database...");
-            // Wrap this in a try/catch to handle any errors from saveQuizz
             const { quizzId } = await saveQuizz(result.quizz);
-            
-            return NextResponse.json({ 
-                quizzId,
-                questionCount: result.quizz.questions.length
-            }, { status: 200 });
+            return NextResponse.json({ quizzId, questionCount: result.quizz.questions.length }, { status: 200 });
         } catch (error) {
             console.error("❌ Database error:", error);
             return NextResponse.json(
-                { error: "Failed to save quiz", details: error instanceof Error ? error.message : 'Unknown error' },
+                { error: "Failed to save quiz", details: error.message },
                 { status: 500 }
             );
         }
     } catch (error) {
         console.error("❌ Unexpected error:", error);
-        // Make sure the top-level catch also returns proper JSON
         return NextResponse.json(
-            { error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' },
+            { error: "Internal server error", details: error.message },
             { status: 500 }
         );
     }
