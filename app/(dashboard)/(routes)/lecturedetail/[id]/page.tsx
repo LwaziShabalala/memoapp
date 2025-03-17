@@ -39,82 +39,71 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
     }, [id]);
 
     const handleQuizGeneration = async () => {
-    if (!lecture?.transcription) {
-        setError("No transcription available to generate quiz");
-        return;
-    }
-
-    if (lecture.transcription.length < 50) {
-        setError("Transcription is too short to generate a meaningful quiz");
-        return;
-    }
-
-    setLoading(true);
-    setError(null);
-    
-    console.log("1. Starting quiz generation process");
-    
-    try {
-        console.log("2. Sending API request with transcription length:", lecture.transcription.length);
-        
-        const response = await fetch("/api/quiz/generate-quiz", {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json" 
-            },
-            body: JSON.stringify({ 
-                text: lecture.transcription 
-            }),
-        });
-
-        console.log("3. Received response with status:", response.status);
-        
-        // Get the raw response text first for debugging
-        const responseText = await response.text();
-        console.log("4. Raw response:", responseText);
-        
-        // Try to parse it as JSON
-        let data;
-        try {
-            data = JSON.parse(responseText);
-            console.log("5. Parsed response data:", data);
-        } catch (parseError) {
-            console.error("5. Failed to parse response as JSON:", parseError);
-            throw new Error("Invalid JSON response from server");
+        if (!lecture?.transcription) {
+            setError("No transcription available to generate quiz");
+            return;
         }
+
+        if (lecture.transcription.length < 50) {
+            setError("Transcription is too short to generate a meaningful quiz");
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
         
-        // Check if we have a quizzId
-        if (!data.quizzId) {
-            console.error("6. No quizzId in response. Response data:", data);
+        console.log("1. Starting quiz generation process");
+        
+        try {
+            console.log("2. Sending API request with transcription length:", lecture.transcription.length);
             
-            // Show more details about the error if available
-            if (data.error) {
-                throw new Error(`Server error: ${data.error}${data.details ? ` - ${data.details}` : ''}`);
-            } else {
-                throw new Error("No quiz ID returned from server");
-            }
-        }
-        
-        console.log("6. Successfully received quizzId:", data.quizzId);
-        
-        // Navigate to the quiz page
-        router.push(`/quiz/${data.quizzId}`);
-    } catch (error) {
-        console.error("Error in quiz generation:", error);
-        setError(error instanceof Error ? error.message : "An unexpected error occurred");
-    } finally {
-        setLoading(false);
-    }
-};
+            const response = await fetch("/api/quiz/generate-quiz", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json" 
+                },
+                body: JSON.stringify({ 
+                    text: lecture.transcription 
+                }),
+            });
 
-    // Helper function to extract error message from response
-    const getErrorMessage = async (response: Response): Promise<string> => {
-        try {
-            const errorData = await response.json();
-            return errorData.error || errorData.details || `Server error: ${response.status}`;
-        } catch {
-            // If JSON parsing fails, use the status text
-            return `Server error: ${response.status} ${response.statusText}`;
+            console.log("3. Received response with status:", response.status);
+            
+            // Get the raw response text first for debugging
+            const responseText = await response.text();
+            console.log("4. Raw response:", responseText);
+            
+            // Try to parse it as JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log("5. Parsed response data:", data);
+            } catch (parseError) {
+                console.error("5. Failed to parse response as JSON:", parseError);
+                throw new Error("Invalid JSON response from server");
+            }
+            
+            // Check if we have a quizzId
+            if (!data.quizzId) {
+                console.error("6. No quizzId in response. Response data:", data);
+                
+                // Show more details about the error if available
+                if (data.error) {
+                    throw new Error(`Server error: ${data.error}${data.details ? ` - ${data.details}` : ''}`);
+                } else {
+                    throw new Error("No quiz ID returned from server");
+                }
+            }
+            
+            console.log("6. Successfully received quizzId:", data.quizzId);
+            
+            // Navigate to the quiz page
+            router.push(`/quiz/${data.quizzId}`);
+        } catch (error) {
+            console.error("Error in quiz generation:", error);
+            setError(error instanceof Error ? error.message : "An unexpected error occurred");
+        } finally {
+            setLoading(false);
         }
     };
 
