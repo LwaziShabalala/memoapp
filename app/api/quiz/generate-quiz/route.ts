@@ -186,11 +186,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(result);
         } catch (error) {
             console.error("❌ Unexpected error:", error);
-            return NextResponse.json({ error: "An unexpected error occurred", details: error.message }, { status: 500 });
+            // Fixed TypeScript error by handling unknown error type
+            const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+            return NextResponse.json({ error: "An unexpected error occurred", details: errorMessage }, { status: 500 });
         }
     } catch (error) {
         console.error("❌ Unexpected error occurred", error);
-        return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 });
+        // Fixed TypeScript error by handling unknown error type
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return NextResponse.json({ error: "Internal server error", details: errorMessage }, { status: 500 });
     }
 }
 
@@ -314,13 +318,17 @@ async function generateQuiz(textInput: string, apiKey: string) {
             };
         } catch (dbError) {
             console.error("❌ Database save error:", dbError);
+            // Handle unknown error type correctly
+            const errorMessage = dbError instanceof Error ? dbError.message : "Unknown database error";
             return { 
                 error: "Failed to save quiz to database", 
-                message: dbError.message 
+                message: errorMessage
             };
         }
     } catch (error) {
         console.error("❌ Unexpected error in quiz generation:", error);
-        return { error: "An unexpected error occurred during quiz generation", details: error.message };
+        // Handle unknown error type correctly
+        const errorMessage = error instanceof Error ? error.message : "Unknown generation error";
+        return { error: "An unexpected error occurred during quiz generation", details: errorMessage };
     }
 }
