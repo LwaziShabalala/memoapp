@@ -218,9 +218,6 @@ function mergeQuizResults(results: QuizResult[]): QuizResult {
     return { quizz: baseQuiz };
 }
 
-// Use Edge Runtime
-export const runtime = 'edge';
-
 export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
