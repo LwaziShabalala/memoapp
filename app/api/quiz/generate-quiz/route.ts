@@ -158,51 +158,34 @@ export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
         
-        // Send immediate 202 Accepted response to prevent timeout
-        const encoder = new TextEncoder();
-        const stream = new ReadableStream({
-            async start(controller) {
-                controller.enqueue(encoder.encode(JSON.stringify({ status: "processing" })));
-                
-                try {
-                    let body: { text?: string };
-                    try {
-                        body = await req.json();
-                    } catch (e) {
-                        console.error("❌ Error parsing request body:", e);
-                        controller.enqueue(encoder.encode(JSON.stringify({ error: "Invalid request body" })));
-                        controller.close();
-                        return;
-                    }
+        // Parse request first before sending response
+        let body: { text?: string };
+        try {
+            body = await req.json();
+        } catch (e) {
+            console.error("❌ Error parsing request body:", e);
+            return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+        }
 
-                    const { text } = body;
-                    if (!text) {
-                        controller.enqueue(encoder.encode(JSON.stringify({ error: "Text input is required" })));
-                        controller.close();
-                        return;
-                    }
+        const { text } = body;
+        if (!text) {
+            return NextResponse.json({ error: "Text input is required" }, { status: 400 });
+        }
 
-                    const apiKey = process.env.OPENAI_API_KEY;
-                    if (!apiKey) {
-                        console.error("❌ Missing OpenAI API key");
-                        controller.enqueue(encoder.encode(JSON.stringify({ error: "Server configuration error" })));
-                        controller.close();
-                        return;
-                    }
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.error("❌ Missing OpenAI API key");
+            return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+        }
 
-                    // Process the quiz generation
-                    const result = await generateQuiz(text, apiKey);
-                    controller.enqueue(encoder.encode(JSON.stringify(result)));
-                    controller.close();
-                } catch (error) {
-                    console.error("❌ Unexpected error occurred during stream processing:", error);
-                    controller.enqueue(encoder.encode(JSON.stringify({ error: "Internal server error" })));
-                    controller.close();
-                }
-            }
-        });
-
-        return new NextResponse(stream);
+        // Use a different implementation without streaming
+        try {
+            const result = await generateQuiz(text, apiKey);
+            return NextResponse.json(result);
+        } catch (error) {
+            console.error("❌ Unexpected error:", error);
+            return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+        }
     } catch (error) {
         console.error("❌ Unexpected error occurred", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
