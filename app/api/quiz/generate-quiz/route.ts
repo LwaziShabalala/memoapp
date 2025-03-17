@@ -89,7 +89,7 @@ async function processChunkWithTimeout(
         const timeoutId = setTimeout(() => {
             console.log(`⏱️ Timeout reached for chunk ${chunkIndex + 1}/${totalChunks}`);
             resolve(null);
-        }, 30000); // Reduced from 60000 to 30000 (30 seconds)
+        }, 25000); // Reduced from 30000 to 25000 (25 seconds)
         
         try {
             const message = new HumanMessage({
@@ -150,6 +150,9 @@ function mergeQuizResults(results: QuizResult[]): QuizResult {
     return { quizz: baseQuiz };
 }
 
+// Use Edge Runtime for longer timeouts
+export const runtime = 'edge';
+
 export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
@@ -174,12 +177,13 @@ export async function POST(req: NextRequest) {
         }
 
         try {
+            // Upgrade to GPT-4 Turbo for better performance
             const model = new ChatOpenAI({
                 apiKey,
-                modelName: "gpt-3.5-turbo-16k",
+                modelName: "gpt-4-turbo", // Upgraded from gpt-3.5-turbo-16k
                 temperature: 0.7,
                 maxRetries: 2,
-                timeout: 60000,
+                timeout: 25000, // Reduced timeout for individual API calls
             });
 
             const parser = new JsonOutputFunctionsParser();
@@ -232,10 +236,11 @@ export async function POST(req: NextRequest) {
                 })
                 .pipe(parser);
 
+            // Enhanced prompt requesting more questions per chunk
             const basePrompt = `
                 Create a quiz based on the following text. Follow these rules strictly:
 
-                1. Generate 6-10 comprehensive questions from this text chunk.
+                1. Generate exactly 10-15 high-quality multiple choice questions from this text chunk.
                 2. Each question must:
                    - Be clear and specific.
                    - Have exactly 4 answer choices.
@@ -243,34 +248,43 @@ export async function POST(req: NextRequest) {
                    - Cover important concepts, terminology, or procedures from the text.
                 3. Include questions that test different levels of understanding (basic recall, comprehension, application).
                 4. Ensure proper JSON structure with all required fields.
-                5. Focus on creating meaningful questions rather than limiting yourself to an arbitrary number.
+                5. Make the questions challenging but fair.
+                6. Focus on the most important concepts in the text.
             `;
 
             const textContent = Array.isArray(text) ? text.join("\n") : text;
-            const textChunks = chunkText(textContent, 3500); // Reduced chunk size slightly to give the model more room to work
+            const textChunks = chunkText(textContent, 4000); // Increased chunk size slightly since we're using GPT-4
             
-            // Process all chunks up to a reasonable limit (reduced from 15 to 5)
-            const maxChunksToProcess = Math.min(textChunks.length, 5);
+            // Process fewer chunks (only 2)
+            const maxChunksToProcess = Math.min(textChunks.length, 2);
             const chunksToProcess = textChunks.slice(0, maxChunksToProcess);
 
             console.log(`📊 Processing ${chunksToProcess.length} chunks from document`);
 
-            const chunkPromises = chunksToProcess.map((chunk, index) => {
-                const prompt = basePrompt + `\n\nThis is part ${index+1} of ${chunksToProcess.length}.`;
-                return processChunkWithTimeout(chunk, model, runnable, prompt, index, chunksToProcess.length);
-            });
+            // Process chunks sequentially instead of in parallel
+            const results = [];
+            
+            for (let i = 0; i < chunksToProcess.length; i++) {
+                const chunk = chunksToProcess[i];
+                const prompt = basePrompt + `\n\nThis is part ${i+1} of ${chunksToProcess.length}.`;
+                
+                console.log(`🔄 Processing chunk ${i+1}/${chunksToProcess.length}`);
+                const result = await processChunkWithTimeout(chunk, model, runnable, prompt, i, chunksToProcess.length);
+                
+                if (result) {
+                    results.push(result);
+                    console.log(`✅ Chunk ${i+1} processed successfully with ${result.quizz.questions.length} questions`);
+                }
+            }
 
-            const results = await Promise.all(chunkPromises);
-            const validResults = results.filter(result => result !== null) as QuizResult[];
+            console.log(`📋 Successfully processed ${results.length} out of ${chunksToProcess.length} chunks`);
 
-            console.log(`📋 Successfully processed ${validResults.length} out of ${chunksToProcess.length} chunks`);
-
-            if (validResults.length === 0) {
+            if (results.length === 0) {
                 console.error("❌ No valid quiz content generated");
                 return NextResponse.json({ error: "Failed to generate quiz content" }, { status: 500 });
             }
             
-            const mergedResult = mergeQuizResults(validResults);
+            const mergedResult = mergeQuizResults(results);
             console.log(`✅ Generated a total of ${mergedResult.quizz.questions.length} questions`);
             
             const result = await saveQuizz(mergedResult.quizz);
