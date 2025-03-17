@@ -40,7 +40,9 @@ export default async function saveQuizz(quizzData: SaveQuizzData): Promise<{ qui
             await db.transaction(async (tx) => {
                 console.log(`🔄 Starting transaction to save ${questions.length} questions`);
                 
-                for (const [index, question] of questions.entries()) {
+                // Changed to a regular for loop to avoid TypeScript iteration issues
+                for (let i = 0; i < questions.length; i++) {
+                    const question = questions[i];
                     const questionData: Partial<Question> = {
                         questionText: question.questionText,
                         quizzId
@@ -51,7 +53,7 @@ export default async function saveQuizz(quizzData: SaveQuizzData): Promise<{ qui
                         .values(questionData)
                         .returning({ questionId: dbQuestions.id });
                     
-                    console.log(`✅ Added question ${index + 1} with ID: ${questionId}`);
+                    console.log(`✅ Added question ${i + 1} with ID: ${questionId}`);
                     
                     if (question.answers && question.answers.length > 0) {
                         const answerValues: Partial<Answer>[] = question.answers.map((answer) => ({
@@ -61,9 +63,9 @@ export default async function saveQuizz(quizzData: SaveQuizzData): Promise<{ qui
                         }));
                         
                         await tx.insert(questionAnswers).values(answerValues);
-                        console.log(`✅ Added ${answerValues.length} answers for question ${index + 1}`);
+                        console.log(`✅ Added ${answerValues.length} answers for question ${i + 1}`);
                     } else {
-                        console.warn(`⚠️ No answers for question ${index + 1}`);
+                        console.warn(`⚠️ No answers for question ${i + 1}`);
                     }
                 }
                 
@@ -74,10 +76,12 @@ export default async function saveQuizz(quizzData: SaveQuizzData): Promise<{ qui
             return { quizzId };
         } catch (txError) {
             console.error("❌ Transaction error:", txError);
-            throw new Error(`Failed to save questions and answers: ${txError.message}`);
+            const errorMessage = txError instanceof Error ? txError.message : "Unknown transaction error";
+            throw new Error(`Failed to save questions and answers: ${errorMessage}`);
         }
     } catch (error) {
         console.error("❌ Database error:", error);
-        throw new Error(`Failed to save quiz to database: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : "Unknown database error";
+        throw new Error(`Failed to save quiz to database: ${errorMessage}`);
     }
 }
