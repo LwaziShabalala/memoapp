@@ -40,10 +40,15 @@ function validateQuizResult(result: unknown): result is QuizResult {
             if (!Array.isArray(question.answers)) return false;
             if (question.answers.length !== 4) return false;
             
+            let correctAnswerCount = 0;
             for (const answer of question.answers) {
                 if (typeof answer.answerText !== 'string') return false;
                 if (typeof answer.isCorrect !== 'boolean') return false;
+                if (answer.isCorrect) correctAnswerCount++;
             }
+            
+            // Ensure exactly one correct answer
+            if (correctAnswerCount !== 1) return false;
         }
         
         return true;
@@ -89,7 +94,7 @@ export async function POST(req: NextRequest) {
             modelName: "gpt-3.5-turbo-16k",
             temperature: 0.7,
             maxRetries: 3,
-            timeout: 60000,
+            timeout: 120000, // Increased timeout to 2 minutes
         });
 
         const parser = new JsonOutputFunctionsParser();
@@ -145,12 +150,14 @@ export async function POST(req: NextRequest) {
         const prompt = `
             Create a quiz based on the following text. Follow these rules strictly:
 
-            1. Generate multiple comprehensive questions that cover the main topics
+            1. Generate 5-10 comprehensive questions that cover the main topics
             2. Each question must:
                - Be clear and specific
                - Have exactly 4 answer choices
-               - Have exactly one correct answer
+               - Have exactly ONE correct answer marked with isCorrect: true
+               - Have all other answers marked with isCorrect: false
             3. Ensure proper JSON structure with all required fields
+            4. Make sure the quiz is focused on testing comprehension of the main concepts
 
             Important: Your response must be valid JSON matching this exact structure:
             {
@@ -173,12 +180,14 @@ export async function POST(req: NextRequest) {
         `;
 
         const textContent = Array.isArray(text) ? text.join("\n") : text;
+        // Limit text length to prevent timeouts
+        const truncatedText = textContent.length > 10000 ? textContent.substring(0, 10000) + "..." : textContent;
 
         console.log("🧠 Sending request to OpenAI...");
         let result: unknown;
         try {
             const message = new HumanMessage({
-                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${textContent}` }],
+                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${truncatedText}` }],
             });
             
             result = await runnable.invoke([message]);
@@ -204,7 +213,8 @@ export async function POST(req: NextRequest) {
             
             return NextResponse.json({ 
                 quizzId,
-                questionCount: result.quizz.questions.length
+                questionCount: result.quizz.questions.length,
+                success: true
             }, { status: 200 });
         } catch (error) {
             console.error("❌ Database error:", error);
