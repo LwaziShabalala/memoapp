@@ -108,3 +108,4 @@ async function generateQuiz(textInput: string, apiKey: string) {
     const quizResults = await Promise.all(chunks.map(chunk => processChunkWithTimeout(chunk, model, runnable, "Generate a quiz")));
     
     return mergeQuizResults(quizResults.filter(r => r != null) as QuizResult[]);
+}
