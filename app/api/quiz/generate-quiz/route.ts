@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ChatOpenAI } from "@langchain/openai";
+import { HumanMessage } from "@langchain/core/messages";
+import { JsonOutputFunctionsParser } from "langchain/output_parsers";
+import { Runnable } from "@langchain/core/runnables";
 import saveQuizz from "./saveToDb";
 
 interface Answer {
@@ -22,7 +26,6 @@ interface QuizResult {
 }
 
 function validateQuizResult(result: unknown): result is QuizResult {
-    // Your existing validation function
     try {
         if (!result || typeof result !== 'object') return false;
         
@@ -54,7 +57,6 @@ function validateQuizResult(result: unknown): result is QuizResult {
 }
 
 function chunkText(text: string, maxChunkSize: number = 4000): string[] {
-    // Your existing chunking function
     const chunks: string[] = [];
     const paragraphs = text.split(/\n\s*\n/);
     let currentChunk = '';
@@ -77,94 +79,25 @@ function chunkText(text: string, maxChunkSize: number = 4000): string[] {
 
 async function processChunkWithTimeout(
     chunk: string, 
+    model: ChatOpenAI, 
+    runnable: Runnable<unknown, unknown>, 
     prompt: string, 
     chunkIndex: number, 
-    totalChunks: number,
-    apiKey: string
+    totalChunks: number
 ): Promise<QuizResult | null> {
     return new Promise(async (resolve) => {
         const timeoutId = setTimeout(() => {
             console.log(`⏱️ Timeout reached for chunk ${chunkIndex + 1}/${totalChunks}`);
             resolve(null);
-        }, 25000);
+        }, 25000); // Reduced from 30000 to 25000 (25 seconds)
         
         try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4-turbo",
-                    temperature: 0.7,
-                    messages: [
-                        {
-                            role: "user",
-                            content: `${prompt}\n\nContent to create quiz from:\n${chunk}`
-                        }
-                    ],
-                    functions: [{
-                        name: "extractor",
-                        description: "Extracts quiz questions from the provided text",
-                        parameters: {
-                            type: "object",
-                            properties: {
-                                quizz: {
-                                    type: "object",
-                                    properties: {
-                                        name: { type: "string" },
-                                        description: { type: "string" },
-                                        questions: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    questionText: { type: "string" },
-                                                    answers: {
-                                                        type: "array",
-                                                        items: {
-                                                            type: "object",
-                                                            properties: {
-                                                                answerText: { type: "string" },
-                                                                isCorrect: { type: "boolean" },
-                                                            },
-                                                            required: ["answerText", "isCorrect"]
-                                                        },
-                                                        minItems: 4,
-                                                        maxItems: 4
-                                                    }
-                                                },
-                                                required: ["questionText", "answers"]
-                                            }
-                                        }
-                                    },
-                                    required: ["name", "description", "questions"]
-                                }
-                            },
-                            required: ["quizz"]
-                        }
-                    }],
-                    function_call: { name: "extractor" }
-                })
+            const message = new HumanMessage({
+                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${chunk}` }],
             });
             
+            const result = await runnable.invoke([message]);
             clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`OpenAI API error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            const functionCall = data.choices[0]?.message?.function_call;
-            
-            if (!functionCall || functionCall.name !== "extractor") {
-                console.error(`❌ Invalid response format for chunk ${chunkIndex + 1}`);
-                resolve(null);
-                return;
-            }
-            
-            const result = JSON.parse(functionCall.arguments);
             
             if (!validateQuizResult(result)) {
                 console.error(`❌ Invalid quiz structure in response for chunk ${chunkIndex + 1}`);
@@ -183,7 +116,6 @@ async function processChunkWithTimeout(
 }
 
 function mergeQuizResults(results: QuizResult[]): QuizResult {
-    // Your existing merge function
     if (results.length === 0) {
         throw new Error("No valid quiz results to merge");
     }
@@ -242,6 +174,65 @@ export async function POST(req: NextRequest) {
         }
 
         try {
+            // Upgrade to GPT-4 Turbo for better performance
+            const model = new ChatOpenAI({
+                apiKey,
+                modelName: "gpt-4-turbo", // Upgraded from gpt-3.5-turbo-16k
+                temperature: 0.7,
+                maxRetries: 2,
+                timeout: 25000, // Reduced timeout for individual API calls
+            });
+
+            const parser = new JsonOutputFunctionsParser();
+            const extractionFunctionSchema = {
+                name: "extractor",
+                description: "Extracts quiz questions from the provided text",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        quizz: {
+                            type: "object",
+                            properties: {
+                                name: { type: "string" },
+                                description: { type: "string" },
+                                questions: {
+                                    type: "array",
+                                    items: {
+                                        type: "object",
+                                        properties: {
+                                            questionText: { type: "string" },
+                                            answers: {
+                                                type: "array",
+                                                items: {
+                                                    type: "object",
+                                                    properties: {
+                                                        answerText: { type: "string" },
+                                                        isCorrect: { type: "boolean" },
+                                                    },
+                                                    required: ["answerText", "isCorrect"]
+                                                },
+                                                minItems: 4,
+                                                maxItems: 4
+                                            }
+                                        },
+                                        required: ["questionText", "answers"]
+                                    }
+                                }
+                            },
+                            required: ["name", "description", "questions"]
+                        }
+                    },
+                    required: ["quizz"]
+                }
+            };
+
+            const runnable = model
+                .bind({
+                    functions: [extractionFunctionSchema],
+                    function_call: { name: "extractor" },
+                })
+                .pipe(parser);
+
             // Enhanced prompt requesting more questions per chunk
             const basePrompt = `
                 Create a quiz based on the following text. Follow these rules strictly:
@@ -259,7 +250,7 @@ export async function POST(req: NextRequest) {
             `;
 
             const textContent = Array.isArray(text) ? text.join("\n") : text;
-            const textChunks = chunkText(textContent, 4000);
+            const textChunks = chunkText(textContent, 4000); // Increased chunk size slightly since we're using GPT-4
             
             // Process fewer chunks (only 2)
             const maxChunksToProcess = Math.min(textChunks.length, 2);
@@ -275,7 +266,7 @@ export async function POST(req: NextRequest) {
                 const prompt = basePrompt + `\n\nThis is part ${i+1} of ${chunksToProcess.length}.`;
                 
                 console.log(`🔄 Processing chunk ${i+1}/${chunksToProcess.length}`);
-                const result = await processChunkWithTimeout(chunk, prompt, i, chunksToProcess.length, apiKey);
+                const result = await processChunkWithTimeout(chunk, model, runnable, prompt, i, chunksToProcess.length);
                 
                 if (result) {
                     results.push(result);
