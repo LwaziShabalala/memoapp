@@ -182,6 +182,24 @@ export async function POST(req: NextRequest) {
         // Use a different implementation without streaming
         try {
             const result = await generateQuiz(text, apiKey);
+            console.log("📤 Final API response:", JSON.stringify(result, null, 2));
+            return NextResponse.json(result);
+        } catch (error) {
+            console.error("❌ Unexpected error:", error);
+            // Fixed TypeScript error by handling unknown error type
+            const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+            return NextResponse.json({ error: "An unexpected error occurred", details: errorMessage }, { status: 500 });
+        }
+    } catch (error) {
+        console.error("❌ Unexpected error occurred", error);
+        // Fixed TypeScript error by handling unknown error type
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return NextResponse.json({ error: "Internal server error", details: errorMessage }, { status: 500 });
+    }
+}
+        // Use a different implementation without streaming
+        try {
+            const result = await generateQuiz(text, apiKey);
             console.log("📤 Sending response to client:", result);
             return NextResponse.json(result);
         } catch (error) {
