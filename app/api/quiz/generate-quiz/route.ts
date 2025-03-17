@@ -93,7 +93,7 @@ async function processChunkWithTimeout(
         const timeoutId = setTimeout(() => {
             console.log(`⏱️ Timeout reached for chunk ${chunkIndex + 1}/${totalChunks}`);
             resolve(null);
-        }, 15000); // Reduced timeout to 15 seconds for faster feedback
+        }, 25000); // Increased timeout to 25 seconds for better completion chance
         
         try {
             const message = new HumanMessage({
@@ -105,6 +105,7 @@ async function processChunkWithTimeout(
             
             if (!validateQuizResult(result)) {
                 console.error(`❌ Invalid quiz structure in response for chunk ${chunkIndex + 1}`);
+                console.error('Received structure:', JSON.stringify(result, null, 2));
                 resolve(null);
                 return;
             }
@@ -181,14 +182,15 @@ export async function POST(req: NextRequest) {
         // Use a different implementation without streaming
         try {
             const result = await generateQuiz(text, apiKey);
+            console.log("📤 Sending response to client:", result);
             return NextResponse.json(result);
         } catch (error) {
             console.error("❌ Unexpected error:", error);
-            return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+            return NextResponse.json({ error: "An unexpected error occurred", details: error.message }, { status: 500 });
         }
     } catch (error) {
         console.error("❌ Unexpected error occurred", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 });
     }
 }
 
@@ -200,8 +202,8 @@ async function generateQuiz(textInput: string, apiKey: string) {
             apiKey,
             modelName: "gpt-3.5-turbo-16k", // Using 16k context for speed, can handle larger chunks
             temperature: 0.7,
-            maxRetries: 1, // Reduced retries for faster failure
-            timeout: 20000,
+            maxRetries: 2, // Increased retries
+            timeout: 30000, // Increased timeout
         });
 
         const parser = new JsonOutputFunctionsParser();
@@ -261,13 +263,14 @@ async function generateQuiz(textInput: string, apiKey: string) {
             2. Each question must have 4 answer choices with exactly 1 correct answer.
             3. Cover key concepts from the text.
             4. Make questions clear and specific.
+            5. Ensure the JSON structure perfectly matches the required format.
         `;
 
         const textContent = Array.isArray(textInput) ? textInput.join("\n") : textInput;
         const textChunks = chunkText(textContent, 3000); // Smaller chunks for faster processing
         
-        // Process only 1 chunk to start with
-        const maxChunksToProcess = Math.min(textChunks.length, 1);
+        // Process more chunks for better coverage
+        const maxChunksToProcess = Math.min(textChunks.length, 2); // Increased to 2 chunks
         const chunksToProcess = textChunks.slice(0, maxChunksToProcess);
 
         console.log(`📊 Processing ${chunksToProcess.length} chunks from document`);
@@ -298,16 +301,26 @@ async function generateQuiz(textInput: string, apiKey: string) {
         const mergedResult = mergeQuizResults(results);
         console.log(`✅ Generated a total of ${mergedResult.quizz.questions.length} questions`);
         
-        const dbResult = await saveQuizz(mergedResult.quizz);
-        
-        return { 
-            status: "success", 
-            message: "Quiz generation completed",
-            quizzId: dbResult.quizzId,
-            questionCount: mergedResult.quizz.questions.length
-        };
+        try {
+            console.log(`🔄 Saving quiz to database with ${mergedResult.quizz.questions.length} questions`);
+            const dbResult = await saveQuizz(mergedResult.quizz);
+            console.log(`✅ Quiz saved to database with ID: ${dbResult.quizzId}`);
+            
+            return { 
+                status: "success", 
+                message: "Quiz generation completed",
+                quizzId: dbResult.quizzId,
+                questionCount: mergedResult.quizz.questions.length
+            };
+        } catch (dbError) {
+            console.error("❌ Database save error:", dbError);
+            return { 
+                error: "Failed to save quiz to database", 
+                message: dbError.message 
+            };
+        }
     } catch (error) {
         console.error("❌ Unexpected error in quiz generation:", error);
-        return { error: "An unexpected error occurred during quiz generation" };
+        return { error: "An unexpected error occurred during quiz generation", details: error.message };
     }
 }
