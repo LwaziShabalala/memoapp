@@ -201,6 +201,8 @@ export async function POST(req: NextRequest) {
 // Separated quiz generation logic for better organization
 async function generateQuiz(textInput: string, apiKey: string) {
     try {
+        console.log("🔍 Starting quiz generation process");
+        
         // Use GPT-3.5-turbo for faster processing (change back to gpt-4-turbo if needed)
         const model = new ChatOpenAI({
             apiKey,
@@ -209,6 +211,133 @@ async function generateQuiz(textInput: string, apiKey: string) {
             maxRetries: 2, // Increased retries
             timeout: 30000, // Increased timeout
         });
+
+        const parser = new JsonOutputFunctionsParser();
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts quiz questions from the provided text",
+            parameters: {
+                type: "object",
+                properties: {
+                    quizz: {
+                        type: "object",
+                        properties: {
+                            name: { type: "string" },
+                            description: { type: "string" },
+                            questions: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        questionText: { type: "string" },
+                                        answers: {
+                                            type: "array",
+                                            items: {
+                                                type: "object",
+                                                properties: {
+                                                    answerText: { type: "string" },
+                                                    isCorrect: { type: "boolean" },
+                                                },
+                                                required: ["answerText", "isCorrect"]
+                                            },
+                                            minItems: 4,
+                                            maxItems: 4
+                                        }
+                                    },
+                                    required: ["questionText", "answers"]
+                                }
+                            }
+                        },
+                        required: ["name", "description", "questions"]
+                    }
+                },
+                required: ["quizz"]
+            }
+        };
+
+        const runnable = model
+            .bind({
+                functions: [extractionFunctionSchema],
+                function_call: { name: "extractor" },
+            })
+            .pipe(parser);
+
+        // Simplified prompt for faster processing
+        const basePrompt = `
+            Create a quiz based on this text. Rules:
+            1. Generate 5-8 multiple choice questions.
+            2. Each question must have 4 answer choices with exactly 1 correct answer.
+            3. Cover key concepts from the text.
+            4. Make questions clear and specific.
+            5. Ensure the JSON structure perfectly matches the required format.
+        `;
+
+        const textContent = Array.isArray(textInput) ? textInput.join("\n") : textInput;
+        const textChunks = chunkText(textContent, 3000); // Smaller chunks for faster processing
+        
+        // Process more chunks for better coverage
+        const maxChunksToProcess = Math.min(textChunks.length, 2); // Increased to 2 chunks
+        const chunksToProcess = textChunks.slice(0, maxChunksToProcess);
+
+        console.log(`📊 Processing ${chunksToProcess.length} chunks from document`);
+
+        // Process chunks sequentially
+        const results = [];
+        
+        for (let i = 0; i < chunksToProcess.length; i++) {
+            const chunk = chunksToProcess[i];
+            const prompt = basePrompt + `\n\nThis is part ${i+1} of ${chunksToProcess.length}.`;
+            
+            console.log(`🔄 Processing chunk ${i+1}/${chunksToProcess.length}`);
+            const result = await processChunkWithTimeout(chunk, model, runnable, prompt, i, chunksToProcess.length);
+            
+            if (result) {
+                results.push(result);
+                console.log(`✅ Chunk ${i+1} processed successfully with ${result.quizz.questions.length} questions`);
+            }
+        }
+
+        console.log(`📋 Successfully processed ${results.length} out of ${chunksToProcess.length} chunks`);
+
+        if (results.length === 0) {
+            console.error("❌ No valid quiz content generated");
+            return { error: "Failed to generate quiz content" };
+        }
+        
+        const mergedResult = mergeQuizResults(results);
+        console.log(`✅ Generated a total of ${mergedResult.quizz.questions.length} questions`);
+        
+        try {
+            console.log(`🔄 Saving quiz to database with ${mergedResult.quizz.questions.length} questions`);
+            const dbResult = await saveQuizz(mergedResult.quizz);
+            console.log(`✅ Quiz saved to database with ID: ${dbResult.quizzId}`);
+            console.log(`✅ Full dbResult:`, JSON.stringify(dbResult, null, 2));
+            
+            const responseData = { 
+                status: "success", 
+                message: "Quiz generation completed",
+                quizzId: dbResult.quizzId,
+                questionCount: mergedResult.quizz.questions.length
+            };
+            
+            console.log(`📤 Final response data:`, JSON.stringify(responseData, null, 2));
+            return responseData;
+        } catch (dbError) {
+            console.error("❌ Database save error:", dbError);
+            // Handle unknown error type correctly
+            const errorMessage = dbError instanceof Error ? dbError.message : "Unknown database error";
+            return { 
+                error: "Failed to save quiz to database", 
+                message: errorMessage
+            };
+        }
+    } catch (error) {
+        console.error("❌ Unexpected error in quiz generation:", error);
+        // Handle unknown error type correctly
+        const errorMessage = error instanceof Error ? error.message : "Unknown generation error";
+        return { error: "An unexpected error occurred during quiz generation", details: errorMessage };
+    }
+}
 
         const parser = new JsonOutputFunctionsParser();
         const extractionFunctionSchema = {
