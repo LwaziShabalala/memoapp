@@ -155,67 +155,6 @@ function mergeQuizResults(results: QuizResult[]): QuizResult {
     return { quizz: baseQuiz };
 }
 
-export async function POST(req: NextRequest) {
-    try {
-        console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
-        
-        // Parse request first before sending response
-        let body: { text?: string };
-        try {
-            body = await req.json();
-        } catch (e) {
-            console.error("❌ Error parsing request body:", e);
-            return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-        }
-
-        const { text } = body;
-        if (!text) {
-            return NextResponse.json({ error: "Text input is required" }, { status: 400 });
-        }
-
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            console.error("❌ Missing OpenAI API key");
-            return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-        }
-
-        // Use a different implementation without streaming
-        try {
-            const result = await generateQuiz(text, apiKey);
-            console.log("📤 Final API response:", JSON.stringify(result, null, 2));
-            return NextResponse.json(result);
-        } catch (error) {
-            console.error("❌ Unexpected error:", error);
-            // Fixed TypeScript error by handling unknown error type
-            const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-            return NextResponse.json({ error: "An unexpected error occurred", details: errorMessage }, { status: 500 });
-        }
-    } catch (error) {
-        console.error("❌ Unexpected error occurred", error);
-        // Fixed TypeScript error by handling unknown error type
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        return NextResponse.json({ error: "Internal server error", details: errorMessage }, { status: 500 });
-    }
-}
-        // Use a different implementation without streaming
-        try {
-            const result = await generateQuiz(text, apiKey);
-            console.log("📤 Sending response to client:", result);
-            return NextResponse.json(result);
-        } catch (error) {
-            console.error("❌ Unexpected error:", error);
-            // Fixed TypeScript error by handling unknown error type
-            const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-            return NextResponse.json({ error: "An unexpected error occurred", details: errorMessage }, { status: 500 });
-        }
-    } catch (error) {
-        console.error("❌ Unexpected error occurred", error);
-        // Fixed TypeScript error by handling unknown error type
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        return NextResponse.json({ error: "Internal server error", details: errorMessage }, { status: 500 });
-    }
-}
-
 // Separated quiz generation logic for better organization
 async function generateQuiz(textInput: string, apiKey: string) {
     try {
@@ -357,125 +296,45 @@ async function generateQuiz(textInput: string, apiKey: string) {
     }
 }
 
-        const parser = new JsonOutputFunctionsParser();
-        const extractionFunctionSchema = {
-            name: "extractor",
-            description: "Extracts quiz questions from the provided text",
-            parameters: {
-                type: "object",
-                properties: {
-                    quizz: {
-                        type: "object",
-                        properties: {
-                            name: { type: "string" },
-                            description: { type: "string" },
-                            questions: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        questionText: { type: "string" },
-                                        answers: {
-                                            type: "array",
-                                            items: {
-                                                type: "object",
-                                                properties: {
-                                                    answerText: { type: "string" },
-                                                    isCorrect: { type: "boolean" },
-                                                },
-                                                required: ["answerText", "isCorrect"]
-                                            },
-                                            minItems: 4,
-                                            maxItems: 4
-                                        }
-                                    },
-                                    required: ["questionText", "answers"]
-                                }
-                            }
-                        },
-                        required: ["name", "description", "questions"]
-                    }
-                },
-                required: ["quizz"]
-            }
-        };
-
-        const runnable = model
-            .bind({
-                functions: [extractionFunctionSchema],
-                function_call: { name: "extractor" },
-            })
-            .pipe(parser);
-
-        // Simplified prompt for faster processing
-        const basePrompt = `
-            Create a quiz based on this text. Rules:
-            1. Generate 5-8 multiple choice questions.
-            2. Each question must have 4 answer choices with exactly 1 correct answer.
-            3. Cover key concepts from the text.
-            4. Make questions clear and specific.
-            5. Ensure the JSON structure perfectly matches the required format.
-        `;
-
-        const textContent = Array.isArray(textInput) ? textInput.join("\n") : textInput;
-        const textChunks = chunkText(textContent, 3000); // Smaller chunks for faster processing
+export async function POST(req: NextRequest) {
+    try {
+        console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
         
-        // Process more chunks for better coverage
-        const maxChunksToProcess = Math.min(textChunks.length, 2); // Increased to 2 chunks
-        const chunksToProcess = textChunks.slice(0, maxChunksToProcess);
-
-        console.log(`📊 Processing ${chunksToProcess.length} chunks from document`);
-
-        // Process chunks sequentially
-        const results = [];
-        
-        for (let i = 0; i < chunksToProcess.length; i++) {
-            const chunk = chunksToProcess[i];
-            const prompt = basePrompt + `\n\nThis is part ${i+1} of ${chunksToProcess.length}.`;
-            
-            console.log(`🔄 Processing chunk ${i+1}/${chunksToProcess.length}`);
-            const result = await processChunkWithTimeout(chunk, model, runnable, prompt, i, chunksToProcess.length);
-            
-            if (result) {
-                results.push(result);
-                console.log(`✅ Chunk ${i+1} processed successfully with ${result.quizz.questions.length} questions`);
-            }
-        }
-
-        console.log(`📋 Successfully processed ${results.length} out of ${chunksToProcess.length} chunks`);
-
-        if (results.length === 0) {
-            console.error("❌ No valid quiz content generated");
-            return { error: "Failed to generate quiz content" };
-        }
-        
-        const mergedResult = mergeQuizResults(results);
-        console.log(`✅ Generated a total of ${mergedResult.quizz.questions.length} questions`);
-        
+        // Parse request first before sending response
+        let body: { text?: string };
         try {
-            console.log(`🔄 Saving quiz to database with ${mergedResult.quizz.questions.length} questions`);
-            const dbResult = await saveQuizz(mergedResult.quizz);
-            console.log(`✅ Quiz saved to database with ID: ${dbResult.quizzId}`);
-            
-            return { 
-                status: "success", 
-                message: "Quiz generation completed",
-                quizzId: dbResult.quizzId,
-                questionCount: mergedResult.quizz.questions.length
-            };
-        } catch (dbError) {
-            console.error("❌ Database save error:", dbError);
-            // Handle unknown error type correctly
-            const errorMessage = dbError instanceof Error ? dbError.message : "Unknown database error";
-            return { 
-                error: "Failed to save quiz to database", 
-                message: errorMessage
-            };
+            body = await req.json();
+        } catch (e) {
+            console.error("❌ Error parsing request body:", e);
+            return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+        }
+
+        const { text } = body;
+        if (!text) {
+            return NextResponse.json({ error: "Text input is required" }, { status: 400 });
+        }
+
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.error("❌ Missing OpenAI API key");
+            return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+        }
+
+        // Use a different implementation without streaming
+        try {
+            const result = await generateQuiz(text, apiKey);
+            console.log("📤 Final API response:", JSON.stringify(result, null, 2));
+            return NextResponse.json(result);
+        } catch (error) {
+            console.error("❌ Unexpected error:", error);
+            // Fixed TypeScript error by handling unknown error type
+            const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+            return NextResponse.json({ error: "An unexpected error occurred", details: errorMessage }, { status: 500 });
         }
     } catch (error) {
-        console.error("❌ Unexpected error in quiz generation:", error);
-        // Handle unknown error type correctly
-        const errorMessage = error instanceof Error ? error.message : "Unknown generation error";
-        return { error: "An unexpected error occurred during quiz generation", details: errorMessage };
+        console.error("❌ Unexpected error occurred", error);
+        // Fixed TypeScript error by handling unknown error type
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        return NextResponse.json({ error: "Internal server error", details: errorMessage }, { status: 500 });
     }
 }
