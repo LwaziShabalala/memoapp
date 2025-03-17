@@ -52,11 +52,7 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
         setLoading(true);
         setError(null);
         
-        console.log("1. Starting quiz generation process");
-        
         try {
-            console.log("2. Sending API request with transcription length:", lecture.transcription.length);
-            
             const response = await fetch("/api/quiz/generate-quiz", {
                 method: "POST",
                 headers: { 
@@ -67,38 +63,18 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                 }),
             });
 
-            console.log("3. Received response with status:", response.status);
-            
-            // Get the raw response text first for debugging
-            const responseText = await response.text();
-            console.log("4. Raw response:", responseText);
-            
-            // Try to parse it as JSON
-            let data;
-            try {
-                data = JSON.parse(responseText);
-                console.log("5. Parsed response data:", data);
-            } catch (parseError) {
-                console.error("5. Failed to parse response as JSON:", parseError);
-                throw new Error("Invalid JSON response from server");
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || data.details || "Failed to generate quiz");
             }
-            
-            // Check if we have a quizzId
-            if (!data.quizzId) {
-                console.error("6. No quizzId in response. Response data:", data);
-                
-                // Show more details about the error if available
-                if (data.error) {
-                    throw new Error(`Server error: ${data.error}${data.details ? ` - ${data.details}` : ''}`);
-                } else {
-                    throw new Error("No quiz ID returned from server");
-                }
+
+            const { quizzId } = data;
+            if (!quizzId) {
+                throw new Error("No quiz ID returned from server");
             }
-            
-            console.log("6. Successfully received quizzId:", data.quizzId);
-            
-            // Navigate to the quiz page
-            router.push(`/quiz/${data.quizzId}`);
+
+            router.push(`/quiz/${quizzId}`);
         } catch (error) {
             console.error("Error in quiz generation:", error);
             setError(error instanceof Error ? error.message : "An unexpected error occurred");
