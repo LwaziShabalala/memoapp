@@ -25,6 +25,9 @@ interface QuizResult {
     quizz: Quiz;
 }
 
+// Increased the server timeout for Next.js route handlers
+export const maxDuration = 60; // 60 seconds (adjust as needed)
+
 function validateQuizResult(result: unknown): result is QuizResult {
     try {
         if (!result || typeof result !== 'object') return false;
@@ -56,7 +59,8 @@ function validateQuizResult(result: unknown): result is QuizResult {
     }
 }
 
-function chunkText(text: string, maxChunkSize: number = 4000): string[] {
+function chunkText(text: string, maxChunkSize: number = 3000): string[] {
+    // Reduced chunk size for faster processing
     const chunks: string[] = [];
     const paragraphs = text.split(/\n\s*\n/);
     let currentChunk = '';
@@ -89,7 +93,7 @@ async function processChunkWithTimeout(
         const timeoutId = setTimeout(() => {
             console.log(`⏱️ Timeout reached for chunk ${chunkIndex + 1}/${totalChunks}`);
             resolve(null);
-        }, 25000); // Reduced from 30000 to 25000 (25 seconds)
+        }, 15000); // Reduced timeout to 15 seconds for faster feedback
         
         try {
             const message = new HumanMessage({
@@ -154,150 +158,173 @@ export async function POST(req: NextRequest) {
     try {
         console.log("🔍 [DEBUG] Received request at /api/quiz/generate-quiz");
         
-        let body: { text?: string };
-        try {
-            body = await req.json();
-        } catch (e) {
-            console.error("❌ Error parsing request body:", e);
-            return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-        }
-
-        const { text } = body;
-        if (!text) {
-            return NextResponse.json({ error: "Text input is required" }, { status: 400 });
-        }
-
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            console.error("❌ Missing OpenAI API key");
-            return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-        }
-
-        try {
-            // Upgrade to GPT-4 Turbo for better performance
-            const model = new ChatOpenAI({
-                apiKey,
-                modelName: "gpt-4-turbo", // Upgraded from gpt-3.5-turbo-16k
-                temperature: 0.7,
-                maxRetries: 2,
-                timeout: 25000, // Reduced timeout for individual API calls
-            });
-
-            const parser = new JsonOutputFunctionsParser();
-            const extractionFunctionSchema = {
-                name: "extractor",
-                description: "Extracts quiz questions from the provided text",
-                parameters: {
-                    type: "object",
-                    properties: {
-                        quizz: {
-                            type: "object",
-                            properties: {
-                                name: { type: "string" },
-                                description: { type: "string" },
-                                questions: {
-                                    type: "array",
-                                    items: {
-                                        type: "object",
-                                        properties: {
-                                            questionText: { type: "string" },
-                                            answers: {
-                                                type: "array",
-                                                items: {
-                                                    type: "object",
-                                                    properties: {
-                                                        answerText: { type: "string" },
-                                                        isCorrect: { type: "boolean" },
-                                                    },
-                                                    required: ["answerText", "isCorrect"]
-                                                },
-                                                minItems: 4,
-                                                maxItems: 4
-                                            }
-                                        },
-                                        required: ["questionText", "answers"]
-                                    }
-                                }
-                            },
-                            required: ["name", "description", "questions"]
-                        }
-                    },
-                    required: ["quizz"]
-                }
-            };
-
-            const runnable = model
-                .bind({
-                    functions: [extractionFunctionSchema],
-                    function_call: { name: "extractor" },
-                })
-                .pipe(parser);
-
-            // Enhanced prompt requesting more questions per chunk
-            const basePrompt = `
-                Create a quiz based on the following text. Follow these rules strictly:
-
-                1. Generate exactly 10-15 high-quality multiple choice questions from this text chunk.
-                2. Each question must:
-                   - Be clear and specific.
-                   - Have exactly 4 answer choices.
-                   - Have exactly one correct answer.
-                   - Cover important concepts, terminology, or procedures from the text.
-                3. Include questions that test different levels of understanding (basic recall, comprehension, application).
-                4. Ensure proper JSON structure with all required fields.
-                5. Make the questions challenging but fair.
-                6. Focus on the most important concepts in the text.
-            `;
-
-            const textContent = Array.isArray(text) ? text.join("\n") : text;
-            const textChunks = chunkText(textContent, 4000); // Increased chunk size slightly since we're using GPT-4
-            
-            // Process fewer chunks (only 2)
-            const maxChunksToProcess = Math.min(textChunks.length, 2);
-            const chunksToProcess = textChunks.slice(0, maxChunksToProcess);
-
-            console.log(`📊 Processing ${chunksToProcess.length} chunks from document`);
-
-            // Process chunks sequentially instead of in parallel
-            const results = [];
-            
-            for (let i = 0; i < chunksToProcess.length; i++) {
-                const chunk = chunksToProcess[i];
-                const prompt = basePrompt + `\n\nThis is part ${i+1} of ${chunksToProcess.length}.`;
+        // Send immediate 202 Accepted response to prevent timeout
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+            async start(controller) {
+                controller.enqueue(encoder.encode(JSON.stringify({ status: "processing" })));
                 
-                console.log(`🔄 Processing chunk ${i+1}/${chunksToProcess.length}`);
-                const result = await processChunkWithTimeout(chunk, model, runnable, prompt, i, chunksToProcess.length);
-                
-                if (result) {
-                    results.push(result);
-                    console.log(`✅ Chunk ${i+1} processed successfully with ${result.quizz.questions.length} questions`);
+                try {
+                    let body: { text?: string };
+                    try {
+                        body = await req.json();
+                    } catch (e) {
+                        console.error("❌ Error parsing request body:", e);
+                        controller.enqueue(encoder.encode(JSON.stringify({ error: "Invalid request body" })));
+                        controller.close();
+                        return;
+                    }
+
+                    const { text } = body;
+                    if (!text) {
+                        controller.enqueue(encoder.encode(JSON.stringify({ error: "Text input is required" })));
+                        controller.close();
+                        return;
+                    }
+
+                    const apiKey = process.env.OPENAI_API_KEY;
+                    if (!apiKey) {
+                        console.error("❌ Missing OpenAI API key");
+                        controller.enqueue(encoder.encode(JSON.stringify({ error: "Server configuration error" })));
+                        controller.close();
+                        return;
+                    }
+
+                    // Process the quiz generation
+                    const result = await generateQuiz(text, apiKey);
+                    controller.enqueue(encoder.encode(JSON.stringify(result)));
+                    controller.close();
+                } catch (error) {
+                    console.error("❌ Unexpected error occurred during stream processing:", error);
+                    controller.enqueue(encoder.encode(JSON.stringify({ error: "Internal server error" })));
+                    controller.close();
                 }
             }
+        });
 
-            console.log(`📋 Successfully processed ${results.length} out of ${chunksToProcess.length} chunks`);
-
-            if (results.length === 0) {
-                console.error("❌ No valid quiz content generated");
-                return NextResponse.json({ error: "Failed to generate quiz content" }, { status: 500 });
-            }
-            
-            const mergedResult = mergeQuizResults(results);
-            console.log(`✅ Generated a total of ${mergedResult.quizz.questions.length} questions`);
-            
-            const result = await saveQuizz(mergedResult.quizz);
-            
-            return NextResponse.json({ 
-                status: "success", 
-                message: "Quiz generation completed",
-                quizzId: result.quizzId,
-                questionCount: mergedResult.quizz.questions.length
-            });
-        } catch (error) {
-            console.error("❌ Unexpected error:", error);
-            return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
-        }
+        return new NextResponse(stream);
     } catch (error) {
         console.error("❌ Unexpected error occurred", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+}
+
+// Separated quiz generation logic for better organization
+async function generateQuiz(textInput: string, apiKey: string) {
+    try {
+        // Use GPT-3.5-turbo for faster processing (change back to gpt-4-turbo if needed)
+        const model = new ChatOpenAI({
+            apiKey,
+            modelName: "gpt-3.5-turbo-16k", // Using 16k context for speed, can handle larger chunks
+            temperature: 0.7,
+            maxRetries: 1, // Reduced retries for faster failure
+            timeout: 20000,
+        });
+
+        const parser = new JsonOutputFunctionsParser();
+        const extractionFunctionSchema = {
+            name: "extractor",
+            description: "Extracts quiz questions from the provided text",
+            parameters: {
+                type: "object",
+                properties: {
+                    quizz: {
+                        type: "object",
+                        properties: {
+                            name: { type: "string" },
+                            description: { type: "string" },
+                            questions: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        questionText: { type: "string" },
+                                        answers: {
+                                            type: "array",
+                                            items: {
+                                                type: "object",
+                                                properties: {
+                                                    answerText: { type: "string" },
+                                                    isCorrect: { type: "boolean" },
+                                                },
+                                                required: ["answerText", "isCorrect"]
+                                            },
+                                            minItems: 4,
+                                            maxItems: 4
+                                        }
+                                    },
+                                    required: ["questionText", "answers"]
+                                }
+                            }
+                        },
+                        required: ["name", "description", "questions"]
+                    }
+                },
+                required: ["quizz"]
+            }
+        };
+
+        const runnable = model
+            .bind({
+                functions: [extractionFunctionSchema],
+                function_call: { name: "extractor" },
+            })
+            .pipe(parser);
+
+        // Simplified prompt for faster processing
+        const basePrompt = `
+            Create a quiz based on this text. Rules:
+            1. Generate 5-8 multiple choice questions.
+            2. Each question must have 4 answer choices with exactly 1 correct answer.
+            3. Cover key concepts from the text.
+            4. Make questions clear and specific.
+        `;
+
+        const textContent = Array.isArray(textInput) ? textInput.join("\n") : textInput;
+        const textChunks = chunkText(textContent, 3000); // Smaller chunks for faster processing
+        
+        // Process only 1 chunk to start with
+        const maxChunksToProcess = Math.min(textChunks.length, 1);
+        const chunksToProcess = textChunks.slice(0, maxChunksToProcess);
+
+        console.log(`📊 Processing ${chunksToProcess.length} chunks from document`);
+
+        // Process chunks sequentially
+        const results = [];
+        
+        for (let i = 0; i < chunksToProcess.length; i++) {
+            const chunk = chunksToProcess[i];
+            const prompt = basePrompt + `\n\nThis is part ${i+1} of ${chunksToProcess.length}.`;
+            
+            console.log(`🔄 Processing chunk ${i+1}/${chunksToProcess.length}`);
+            const result = await processChunkWithTimeout(chunk, model, runnable, prompt, i, chunksToProcess.length);
+            
+            if (result) {
+                results.push(result);
+                console.log(`✅ Chunk ${i+1} processed successfully with ${result.quizz.questions.length} questions`);
+            }
+        }
+
+        console.log(`📋 Successfully processed ${results.length} out of ${chunksToProcess.length} chunks`);
+
+        if (results.length === 0) {
+            console.error("❌ No valid quiz content generated");
+            return { error: "Failed to generate quiz content" };
+        }
+        
+        const mergedResult = mergeQuizResults(results);
+        console.log(`✅ Generated a total of ${mergedResult.quizz.questions.length} questions`);
+        
+        const dbResult = await saveQuizz(mergedResult.quizz);
+        
+        return { 
+            status: "success", 
+            message: "Quiz generation completed",
+            quizzId: dbResult.quizzId,
+            questionCount: mergedResult.quizz.questions.length
+        };
+    } catch (error) {
+        console.error("❌ Unexpected error in quiz generation:", error);
+        return { error: "An unexpected error occurred during quiz generation" };
     }
 }
