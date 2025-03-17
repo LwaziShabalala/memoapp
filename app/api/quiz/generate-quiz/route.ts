@@ -26,29 +26,68 @@ interface QuizResult {
 
 function validateQuizResult(result: unknown): result is QuizResult {
     try {
-        if (!result || typeof result !== 'object') return false;
+        if (!result || typeof result !== 'object') {
+            console.error('Quiz result is not an object');
+            return false;
+        }
         
         const quiz = (result as QuizResult).quizz;
-        if (!quiz || typeof quiz !== 'object') return false;
+        if (!quiz || typeof quiz !== 'object') {
+            console.error('Quiz.quizz is not an object');
+            return false;
+        }
         
-        if (typeof quiz.name !== 'string') return false;
-        if (typeof quiz.description !== 'string') return false;
-        if (!Array.isArray(quiz.questions)) return false;
+        if (typeof quiz.name !== 'string') {
+            console.error('Quiz.quizz.name is not a string');
+            return false;
+        }
+        if (typeof quiz.description !== 'string') {
+            console.error('Quiz.quizz.description is not a string');
+            return false;
+        }
+        if (!Array.isArray(quiz.questions)) {
+            console.error('Quiz.quizz.questions is not an array');
+            return false;
+        }
+        
+        // Ensure we have at least one question
+        if (quiz.questions.length === 0) {
+            console.error('Quiz has no questions');
+            return false;
+        }
         
         for (const question of quiz.questions) {
-            if (typeof question.questionText !== 'string') return false;
-            if (!Array.isArray(question.answers)) return false;
-            if (question.answers.length !== 4) return false;
+            if (typeof question.questionText !== 'string') {
+                console.error('Question.questionText is not a string');
+                return false;
+            }
+            if (!Array.isArray(question.answers)) {
+                console.error('Question.answers is not an array');
+                return false;
+            }
+            if (question.answers.length !== 4) {
+                console.error(`Question "${question.questionText.substring(0, 30)}..." has ${question.answers.length} answers, expected 4`);
+                return false;
+            }
             
             let correctAnswerCount = 0;
             for (const answer of question.answers) {
-                if (typeof answer.answerText !== 'string') return false;
-                if (typeof answer.isCorrect !== 'boolean') return false;
+                if (typeof answer.answerText !== 'string') {
+                    console.error('Answer.answerText is not a string');
+                    return false;
+                }
+                if (typeof answer.isCorrect !== 'boolean') {
+                    console.error('Answer.isCorrect is not a boolean');
+                    return false;
+                }
                 if (answer.isCorrect) correctAnswerCount++;
             }
             
             // Ensure exactly one correct answer
-            if (correctAnswerCount !== 1) return false;
+            if (correctAnswerCount !== 1) {
+                console.error(`Question "${question.questionText.substring(0, 30)}..." has ${correctAnswerCount} correct answers, expected 1`);
+                return false;
+            }
         }
         
         return true;
@@ -56,6 +95,29 @@ function validateQuizResult(result: unknown): result is QuizResult {
         console.error('Validation error:', error);
         return false;
     }
+}
+
+// Fallback function to create a basic quiz if OpenAI fails
+function createFallbackQuiz(text: string): Quiz {
+    const title = "Quiz on Provided Content";
+    const description = "Quiz generated from the provided lecture transcription.";
+    
+    // Create a simple question from the content
+    const sampleQuestion = {
+        questionText: "What was the main topic of this lecture?",
+        answers: [
+            { answerText: "The information provided in the transcription", isCorrect: true },
+            { answerText: "An unrelated topic", isCorrect: false },
+            { answerText: "Only technical details", isCorrect: false },
+            { answerText: "None of the above", isCorrect: false }
+        ]
+    };
+    
+    return {
+        name: title,
+        description: description,
+        questions: [sampleQuestion]
+    };
 }
 
 export async function POST(req: NextRequest) {
@@ -89,12 +151,18 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Limit text length to prevent timeouts
+        const maxLength = 8000;
+        const truncatedText = text.length > maxLength 
+            ? text.substring(0, maxLength) + "..." 
+            : text;
+        
         const model = new ChatOpenAI({
             apiKey,
             modelName: "gpt-3.5-turbo-16k",
-            temperature: 0.7,
+            temperature: 0.5, // Reduced temperature for more consistent outputs
             maxRetries: 3,
-            timeout: 120000, // Increased timeout to 2 minutes
+            timeout: 120000, // 2 minutes timeout
         });
 
         const parser = new JsonOutputFunctionsParser();
@@ -130,7 +198,8 @@ export async function POST(req: NextRequest) {
                                         }
                                     },
                                     required: ["questionText", "answers"]
-                                }
+                                },
+                                minItems: 1
                             }
                         },
                         required: ["name", "description", "questions"]
@@ -150,14 +219,25 @@ export async function POST(req: NextRequest) {
         const prompt = `
             Create a quiz based on the following text. Follow these rules strictly:
 
-            1. Generate 5-10 comprehensive questions that cover the main topics
+            1. Generate 3-5 comprehensive questions that cover the main topics
             2. Each question must:
                - Be clear and specific
                - Have exactly 4 answer choices
-               - Have exactly ONE correct answer marked with isCorrect: true
-               - Have all other answers marked with isCorrect: false
+               - Have EXACTLY ONE correct answer marked with isCorrect: true
+               - Have ALL OTHER answers marked with isCorrect: false
             3. Ensure proper JSON structure with all required fields
             4. Make sure the quiz is focused on testing comprehension of the main concepts
+
+            Example question format:
+            {
+              "questionText": "What is the main focus of this lecture?",
+              "answers": [
+                {"answerText": "The correct answer", "isCorrect": true},
+                {"answerText": "An incorrect answer", "isCorrect": false},
+                {"answerText": "Another incorrect answer", "isCorrect": false},
+                {"answerText": "Yet another incorrect answer", "isCorrect": false}
+              ]
+            }
 
             Important: Your response must be valid JSON matching this exact structure:
             {
@@ -179,12 +259,11 @@ export async function POST(req: NextRequest) {
             }
         `;
 
-        const textContent = Array.isArray(text) ? text.join("\n") : text;
-        // Limit text length to prevent timeouts
-        const truncatedText = textContent.length > 10000 ? textContent.substring(0, 10000) + "..." : textContent;
-
         console.log("🧠 Sending request to OpenAI...");
         let result: unknown;
+        let quizData: Quiz;
+        let usedFallback = false;
+        
         try {
             const message = new HumanMessage({
                 content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${truncatedText}` }],
@@ -194,26 +273,27 @@ export async function POST(req: NextRequest) {
             console.log("📝 Raw response:", JSON.stringify(result, null, 2));
             
             if (!validateQuizResult(result)) {
-                throw new Error("Invalid quiz structure in response");
+                console.log("❌ OpenAI response failed validation, trying fallback");
+                quizData = createFallbackQuiz(truncatedText);
+                usedFallback = true;
+            } else {
+                quizData = (result as QuizResult).quizz;
             }
         } catch (error) {
-            console.error("❌ OpenAI API or validation error:", error);
-            return NextResponse.json(
-                { 
-                    error: "Failed to generate valid quiz content",
-                    details: error instanceof Error ? error.message : 'Unknown error'
-                },
-                { status: 500 }
-            );
+            console.error("❌ OpenAI API error:", error);
+            console.log("Using fallback quiz generation");
+            quizData = createFallbackQuiz(truncatedText);
+            usedFallback = true;
         }
 
         try {
             console.log("💾 Saving quiz to database...");
-            const { quizzId } = await saveQuizz(result.quizz);
+            const { quizzId } = await saveQuizz(quizData);
             
             return NextResponse.json({ 
                 quizzId,
-                questionCount: result.quizz.questions.length,
+                questionCount: quizData.questions.length,
+                usedFallback,
                 success: true
             }, { status: 200 });
         } catch (error) {
