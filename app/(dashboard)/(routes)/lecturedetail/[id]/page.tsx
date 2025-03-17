@@ -22,6 +22,7 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
     const [lecture, setLecture] = useState<Lecture | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [generationAttempts, setGenerationAttempts] = useState(0);
 
     useEffect(() => {
         try {
@@ -51,33 +52,51 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
 
         setLoading(true);
         setError(null);
+        setGenerationAttempts(prev => prev + 1);
         
         try {
+            // Truncate long transcriptions to prevent timeouts
+            const maxLength = 10000;
+            const truncatedTranscription = lecture.transcription.length > maxLength 
+                ? lecture.transcription.substring(0, maxLength) 
+                : lecture.transcription;
+            
             const response = await fetch("/api/quiz/generate-quiz", {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json" 
                 },
                 body: JSON.stringify({ 
-                    text: lecture.transcription 
+                    text: truncatedTranscription 
                 }),
             });
 
-            const data = await response.json();
+            // First check if we can parse the response as JSON
+            let data;
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await response.json();
+            } else {
+                // Handle non-JSON responses
+                const textResponse = await response.text();
+                throw new Error(`Server returned non-JSON response: ${textResponse.substring(0, 100)}...`);
+            }
 
             if (!response.ok) {
                 throw new Error(data.error || data.details || "Failed to generate quiz");
             }
 
-            const { quizzId } = data;
-            if (!quizzId) {
-                throw new Error("No quiz ID returned from server");
+            const { quizzId, success } = data;
+            if (!quizzId || !success) {
+                throw new Error("No quiz ID returned from server or generation was not successful");
             }
 
             router.push(`/quiz/${quizzId}`);
         } catch (error) {
             console.error("Error in quiz generation:", error);
-            setError(error instanceof Error ? error.message : "An unexpected error occurred");
+            setError(error instanceof Error 
+                ? `Quiz generation failed: ${error.message}` 
+                : "An unexpected error occurred during quiz generation");
         } finally {
             setLoading(false);
         }
@@ -117,6 +136,11 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                                 {error && (
                                     <div className="bg-red-900/20 border border-red-900 text-red-300 px-4 py-2 rounded-md">
                                         {error}
+                                        {generationAttempts > 1 && (
+                                            <div className="mt-2 text-sm">
+                                                Note: If quiz generation fails repeatedly, try with a shorter transcription or wait a few minutes before trying again.
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -128,7 +152,7 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                                 {loading ? (
                                     <div className="flex items-center gap-2">
                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                        Generating Quiz...
+                                        Generating Quiz... This may take up to 60 seconds
                                     </div>
                                 ) : (
                                     "Generate Quiz"
