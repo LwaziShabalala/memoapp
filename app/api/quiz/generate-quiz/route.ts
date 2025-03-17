@@ -98,7 +98,7 @@ function validateQuizResult(result: unknown): result is QuizResult {
 }
 
 // Fallback function to create a basic quiz if OpenAI fails
-function createFallbackQuiz(text: string): Quiz {
+function createFallbackQuiz(content: string): Quiz {
     const title = "Quiz on Provided Content";
     const description = "Quiz generated from the provided lecture transcription.";
     
