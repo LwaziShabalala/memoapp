@@ -36,7 +36,6 @@ body,
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
   }
-
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -83,4 +82,20 @@ body,
 * {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
+}
+
+/* Video container specific styles */
+.video-container video,
+.video-container div,
+.video-container [data-video-player] {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Fix for next-video specifically */
+[data-video-player] video {
+  object-fit: cover !important;
+  width: 100% !important;
+  height: 100% !important;
 }
