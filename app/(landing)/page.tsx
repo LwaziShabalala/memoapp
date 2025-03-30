@@ -9,8 +9,6 @@ import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from '@/components/virtualized-wrapper';
 
 const LandingPage = () => {
-    // We're keeping useUser() for now in case it's needed for auth checking elsewhere
-    // If you don't need user or isLoaded at all, you can remove this line completely
     useUser();
 
     return (
@@ -24,7 +22,7 @@ const LandingPage = () => {
                     <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
                         See how it works
                     </h2>
-                    <div className="max-w-4xl mx-auto px-8">
+                    <div className="max-w-4xl mx-auto px-8 h-[400px] md:h-[500px]">
                         <VideoComponent />
                     </div>
                 </section>
