@@ -19,7 +19,7 @@ const VideoComponent = () => {
       const playerElements = containerRef.current.querySelectorAll('[data-video-player]');
       const divElements = containerRef.current.querySelectorAll('div');
       
-      // Apply styles to all found elements - without comparing to containerRef
+      // Apply styles to all found elements
       videoElements.forEach(element => {
         element.style.position = 'absolute';
         element.style.top = '0';
@@ -28,7 +28,7 @@ const VideoComponent = () => {
         element.style.height = '100%';
         element.style.objectFit = 'cover';
       });
-      
+
       playerElements.forEach(element => {
         element.style.position = 'absolute';
         element.style.top = '0';
@@ -36,12 +36,9 @@ const VideoComponent = () => {
         element.style.width = '100%';
         element.style.height = '100%';
       });
-      
-      // For div elements, we need to avoid styling the container itself
+
       divElements.forEach(element => {
-        // Skip the container itself by checking if it's the same element
         if (element === containerRef.current) return;
-        
         element.style.position = 'absolute';
         element.style.top = '0';
         element.style.left = '0';
@@ -52,13 +49,13 @@ const VideoComponent = () => {
   }, [isLoading]);
 
   return (
-    <div className="relative group">
+    <div className="relative group w-full h-full">
       {/* Gradient overlay */}
       <div className="absolute -inset-1 md:-inset-2 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 rounded-xl blur-xl opacity-75 group-hover:opacity-100 transition duration-1000"></div>
       
       {/* Video container */}
-      <div className="relative">
-        <div className="rounded-xl bg-gray-900/50 overflow-hidden ring-1 ring-gray-800/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] md:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+      <div className="relative w-full h-full">
+        <div className="rounded-xl bg-gray-900/50 overflow-hidden ring-1 ring-gray-800/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] md:shadow-[0_0_30px_rgba(0,0,0,0.5)] w-full h-full">
           {/* Loading state */}
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg z-10">
@@ -66,8 +63,8 @@ const VideoComponent = () => {
             </div>
           )}
           
-          {/* Video container with fixed styling */}
-          <div ref={containerRef} className="relative w-full aspect-video overflow-hidden video-wrapper">
+          {/* Video wrapper with fixed height */}
+          <div ref={containerRef} className="relative w-full h-full overflow-hidden video-wrapper">
             <div className="absolute inset-0">
               <Video 
                 src={landingvideo}
