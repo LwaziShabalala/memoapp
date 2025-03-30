@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Video from 'next-video';
 import landingvideo from '@/videos/memoappvideo.mp4';
 
@@ -26,12 +26,11 @@ const VideoComponent = () => {
             </div>
           )}
           
-          {/* Video container with fixed aspect ratio */}
-          <div ref={containerRef} className="aspect-video w-full h-full relative">
+          {/* Video container with video-container class */}
+          <div ref={containerRef} className="aspect-video w-full relative video-container">
             <div className="absolute inset-0">
               <Video 
                 src={landingvideo}
-                className="!w-full !h-full !object-cover"
                 onLoadedData={handleVideoLoad}
                 controls={false}
                 autoPlay
