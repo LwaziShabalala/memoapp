@@ -84,32 +84,27 @@ body,
   scrollbar-width: none; /* Firefox */
 }
 
-/* Very specific and aggressive video styles */
-[data-video-player],
-[data-video-player] > *,
-[data-video-player] > * > *,
-[data-video-player] > * > * > * {
+/* Super aggressive video styling */
+.video-wrapper [data-video-player],
+.video-wrapper [data-video-player] > div,
+.video-wrapper [data-video-player] > span,
+.video-wrapper [data-video-player] > * > * {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   width: 100% !important;
   height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  object-fit: cover !important;
-  position: relative !important;
+  max-width: none !important;
+  max-height: none !important;
 }
 
-[data-video-player] video {
-  object-fit: cover !important;
+.video-wrapper video {
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
   width: 100% !important;
   height: 100% !important;
-}
-
-.aspect-video [data-video-player] {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  object-fit: cover !important;
 }
