@@ -1,12 +1,40 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Video from 'next-video';
+import landingvideo from '@/videos/memoappvideo.mp4';
 
 const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const containerRef = useRef(null);
   
   const handleVideoLoad = () => {
     setIsLoading(false);
   };
+
+  // Apply direct styling to fix the video element
+  useEffect(() => {
+    if (!isLoading && containerRef.current) {
+      // Get all video elements within the container
+      const videoElements = containerRef.current.querySelectorAll('video');
+      const playerElements = containerRef.current.querySelectorAll('[data-video-player]');
+      const divElements = containerRef.current.querySelectorAll('div');
+      
+      // Apply styles to all found elements
+      [...videoElements, ...playerElements, ...divElements].forEach(element => {
+        if (element === containerRef.current) return; // Skip the container itself
+        
+        element.style.position = 'absolute';
+        element.style.top = '0';
+        element.style.left = '0';
+        element.style.width = '100%';
+        element.style.height = '100%';
+        
+        if (element.tagName === 'VIDEO') {
+          element.style.objectFit = 'cover';
+        }
+      });
+    }
+  }, [isLoading]);
 
   return (
     <div className="relative group">
@@ -23,18 +51,19 @@ const VideoComponent = () => {
             </div>
           )}
           
-          {/* Video container with fixed aspect ratio */}
-          <div className="relative w-full aspect-video overflow-hidden">
-            <video
-              src="/videos/memoappvideo.mp4" 
-              className="absolute inset-0 w-full h-full object-cover"
-              onLoadedData={handleVideoLoad}
-              controls={false}
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
+          {/* Video container with fixed styling */}
+          <div ref={containerRef} className="relative w-full aspect-video overflow-hidden video-wrapper">
+            <div className="absolute inset-0">
+              <Video 
+                src={landingvideo}
+                onLoadedData={handleVideoLoad}
+                controls={false}
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+            </div>
           </div>
         </div>
         
