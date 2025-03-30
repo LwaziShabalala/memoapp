@@ -1,13 +1,13 @@
+here is my global css file:
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 html,
 body,
 :root {
   height: 100%;
 }
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -63,7 +63,6 @@ body,
     --chart-5: 340 75% 55%;
   }
 }
-
 @layer base {
   * {
     @apply border-border;
@@ -72,39 +71,12 @@ body,
     @apply bg-background text-foreground;
   }
 }
-
-/* Hide scrollbar for Chrome, Safari and Opera */
+/* Hide scrollbar for Chrome, Safari and Opera /
 ::-webkit-scrollbar {
   display: none;
 }
-
-/* Hide scrollbar for IE, Edge and Firefox */
+/ Hide scrollbar for IE, Edge and Firefox */
 * {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-
-/* Super aggressive video styling */
-.video-wrapper [data-video-player],
-.video-wrapper [data-video-player] > div,
-.video-wrapper [data-video-player] > span,
-.video-wrapper [data-video-player] > * > * {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-}
-
-.video-wrapper video {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
+  -ms-overflow-style: none; /* IE and Edge /
+  scrollbar-width: none; / Firefox */
 }
