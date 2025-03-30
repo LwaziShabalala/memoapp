@@ -5,33 +5,11 @@ import landingvideo from '@/videos/memoappvideo.mp4';
 
 const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
-  // Fix the TypeScript error by properly typing the ref
   const containerRef = useRef<HTMLDivElement>(null);
   
   const handleVideoLoad = () => {
     setIsLoading(false);
   };
-
-  // Apply styles to the next-video rendered elements
-  useEffect(() => {
-    if (!isLoading && containerRef.current) {
-      // Target all video elements inside the container
-      const videoElements = containerRef.current.querySelectorAll('video');
-      const containerElements = containerRef.current.querySelectorAll('div');
-      
-      videoElements.forEach(video => {
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'fill';
-      });
-      
-      // Target all container divs that next-video might add
-      containerElements.forEach(div => {
-        div.style.width = '100%';
-        div.style.height = '100%';
-      });
-    }
-  }, [isLoading]);
 
   return (
     <div className="relative group">
@@ -48,18 +26,20 @@ const VideoComponent = () => {
             </div>
           )}
           
-          {/* Video container with ref for direct DOM manipulation */}
-          <div ref={containerRef} className="aspect-video w-full">
-            <Video 
-              src={landingvideo}
-              className="w-full h-full"
-              onLoadedData={handleVideoLoad}
-              controls={false}
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
+          {/* Video container with fixed aspect ratio */}
+          <div ref={containerRef} className="aspect-video w-full h-full relative">
+            <div className="absolute inset-0">
+              <Video 
+                src={landingvideo}
+                className="!w-full !h-full !object-cover"
+                onLoadedData={handleVideoLoad}
+                controls={false}
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+            </div>
           </div>
         </div>
         
