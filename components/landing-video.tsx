@@ -5,7 +5,8 @@ import landingvideo from '@/videos/memoappvideo.mp4';
 
 const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const containerRef = useRef(null);
+  // Fix the TypeScript error by properly typing the ref as HTMLDivElement
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const handleVideoLoad = () => {
     setIsLoading(false);
