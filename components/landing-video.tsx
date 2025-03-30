@@ -5,7 +5,6 @@ import landingvideo from '@/videos/memoappvideo.mp4';
 
 const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
-  // Fix the TypeScript error by properly typing the ref as HTMLDivElement
   const containerRef = useRef<HTMLDivElement>(null);
   
   const handleVideoLoad = () => {
@@ -20,10 +19,8 @@ const VideoComponent = () => {
       const playerElements = containerRef.current.querySelectorAll('[data-video-player]');
       const divElements = containerRef.current.querySelectorAll('div');
       
-      // Apply styles to all found elements - using forEach instead of spread operator
+      // Apply styles to all found elements - without comparing to containerRef
       videoElements.forEach(element => {
-        if (element === containerRef.current) return; // Skip the container itself
-        
         element.style.position = 'absolute';
         element.style.top = '0';
         element.style.left = '0';
@@ -33,8 +30,6 @@ const VideoComponent = () => {
       });
       
       playerElements.forEach(element => {
-        if (element === containerRef.current) return;
-        
         element.style.position = 'absolute';
         element.style.top = '0';
         element.style.left = '0';
@@ -42,7 +37,9 @@ const VideoComponent = () => {
         element.style.height = '100%';
       });
       
+      // For div elements, we need to avoid styling the container itself
       divElements.forEach(element => {
+        // Skip the container itself by checking if it's the same element
         if (element === containerRef.current) return;
         
         element.style.position = 'absolute';
