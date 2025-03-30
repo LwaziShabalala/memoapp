@@ -20,8 +20,8 @@ const VideoComponent = () => {
       const playerElements = containerRef.current.querySelectorAll('[data-video-player]');
       const divElements = containerRef.current.querySelectorAll('div');
       
-      // Apply styles to all found elements
-      [...videoElements, ...playerElements, ...divElements].forEach(element => {
+      // Apply styles to all found elements - using forEach instead of spread operator
+      videoElements.forEach(element => {
         if (element === containerRef.current) return; // Skip the container itself
         
         element.style.position = 'absolute';
@@ -29,10 +29,27 @@ const VideoComponent = () => {
         element.style.left = '0';
         element.style.width = '100%';
         element.style.height = '100%';
+        element.style.objectFit = 'cover';
+      });
+      
+      playerElements.forEach(element => {
+        if (element === containerRef.current) return;
         
-        if (element.tagName === 'VIDEO') {
-          element.style.objectFit = 'cover';
-        }
+        element.style.position = 'absolute';
+        element.style.top = '0';
+        element.style.left = '0';
+        element.style.width = '100%';
+        element.style.height = '100%';
+      });
+      
+      divElements.forEach(element => {
+        if (element === containerRef.current) return;
+        
+        element.style.position = 'absolute';
+        element.style.top = '0';
+        element.style.left = '0';
+        element.style.width = '100%';
+        element.style.height = '100%';
       });
     }
   }, [isLoading]);
