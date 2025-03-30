@@ -2,18 +2,17 @@
 import { useState, useEffect, useRef } from 'react';
 import Video from 'next-video';
 import landingvideo from '@/videos/memoappvideo.mp4';
+
 const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
-  // Fix the TypeScript error by properly typing the ref
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleVideoLoad = () => {
     setIsLoading(false);
   };
-  // Apply styles to the next-video rendered elements
+
   useEffect(() => {
     if (!isLoading && containerRef.current) {
-      // Target all video elements inside the container
       const videoElements = containerRef.current.querySelectorAll('video');
       const containerElements = containerRef.current.querySelectorAll('div');
 
@@ -23,22 +22,22 @@ const VideoComponent = () => {
         video.style.objectFit = 'fill';
       });
 
-      // Target all container divs that next-video might add
       containerElements.forEach(div => {
         div.style.width = '100%';
         div.style.height = '100%';
       });
     }
   }, [isLoading]);
+
   return (
     <div className="relative group">
       {/* Gradient overlay */}
       <div className="absolute -inset-1 md:-inset-2 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 rounded-xl blur-xl opacity-75 group-hover:opacity-100 transition duration-1000"></div>
 
-      {/* Video container /}
+      {/* Video container */}
       <div className="relative">
         <div className="rounded-xl bg-gray-900/50 overflow-hidden ring-1 ring-gray-800/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] md:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-          {/ Loading state */}
+          {/* Loading state */}
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg z-10">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -67,4 +66,5 @@ const VideoComponent = () => {
     </div>
   );
 };
+
 export default VideoComponent;
