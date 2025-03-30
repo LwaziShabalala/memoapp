@@ -8,10 +8,12 @@ import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from '@/components/virtualized-wrapper';
 
 const LandingPage = () => {
+    // We're keeping useUser() for now in case it's needed for auth checking elsewhere
+    // If you don't need user or isLoaded at all, you can remove this line completely
     useUser();
     return (
         <VirtualizedWrapper>
-            <div className="min-h-screen bg-gray-950">
+            <div className="min-h-screen bg-gray-950 overflow-hidden"> {/* Added overflow-hidden */}
                 <LandingNavbar />
                 <section className="py-16">
                     <LandingHero />
@@ -20,7 +22,7 @@ const LandingPage = () => {
                     <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
                         See how it works
                     </h2>
-                    <div className="w-full">
+                    <div className="max-w-4xl mx-auto px-8">
                         <VideoComponent />
                     </div>
                 </section>
