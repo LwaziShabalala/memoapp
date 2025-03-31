@@ -22,7 +22,7 @@ function Analytics(): JSX.Element {
     }
   }, [pathname, searchParams]);
 
-  return null;
+  return <></>; // Return an empty fragment instead of null
 }
 
 export default function GoogleAnalytics(): JSX.Element {
@@ -44,8 +44,8 @@ export default function GoogleAnalytics(): JSX.Element {
           `,
         }}
       />
-      {/* Wrap in Suspense to fix Next.js pre-rendering issue */}
-      <Suspense fallback={null}>
+      {/* Wrap in Suspense to avoid pre-rendering issues */}
+      <Suspense fallback={<></>}>
         <Analytics />
       </Suspense>
     </>
