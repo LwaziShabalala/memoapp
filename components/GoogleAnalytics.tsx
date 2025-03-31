@@ -1,21 +1,23 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import { usePathname, useSearchParams } from 'next/navigation'
-import Script from 'next/script'
+import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import Script from "next/script";
 
 export default function GoogleAnalytics(): JSX.Element {
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Use type assertion here to avoid the TypeScript error
-    if (typeof (window as any).gtag === 'function') {
-      (window as any).gtag('config', 'G-GXB7S8KDNR', {
-        page_path: pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ''),
-      })
+    // Use 'window' safely with type assertion
+    const gtag = (window as unknown as { gtag?: (...args: any[]) => void }).gtag;
+
+    if (typeof gtag === "function") {
+      gtag("config", "G-GXB7S8KDNR", {
+        page_path: pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ""),
+      });
     }
-  }, [pathname, searchParams])
+  }, [pathname, searchParams]);
 
   return (
     <>
@@ -36,5 +38,5 @@ export default function GoogleAnalytics(): JSX.Element {
         }}
       />
     </>
-  )
+  );
 }
