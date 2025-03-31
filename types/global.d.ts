@@ -12,3 +12,5 @@ declare global {
     dataLayer: any[];
   }
 }
+
+export {}; // This makes the file a module
