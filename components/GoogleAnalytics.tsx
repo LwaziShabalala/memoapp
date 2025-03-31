@@ -9,8 +9,9 @@ export default function GoogleAnalytics(): JSX.Element {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    if (typeof window.gtag === 'function') {
-      window.gtag('config', 'G-GXB7S8KDNR', {
+    // Use type assertion here to avoid the TypeScript error
+    if (typeof (window as any).gtag === 'function') {
+      (window as any).gtag('config', 'G-GXB7S8KDNR', {
         page_path: pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ''),
       })
     }
