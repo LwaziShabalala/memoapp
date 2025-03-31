@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs"
 import Script from "next/script";
-import GoogleAnalytics from "@/components/GoogleAnalytics"; // Add this import
+import GoogleAnalytics from "@/components/GoogleAnalytics.tsx"; // Add this import
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
