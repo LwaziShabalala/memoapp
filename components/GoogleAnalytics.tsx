@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 
@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-export default function GoogleAnalytics(): JSX.Element {
+function Analytics(): JSX.Element {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -22,6 +22,10 @@ export default function GoogleAnalytics(): JSX.Element {
     }
   }, [pathname, searchParams]);
 
+  return null;
+}
+
+export default function GoogleAnalytics(): JSX.Element {
   return (
     <>
       <Script
@@ -40,6 +44,10 @@ export default function GoogleAnalytics(): JSX.Element {
           `,
         }}
       />
+      {/* Wrap in Suspense to fix Next.js pre-rendering issue */}
+      <Suspense fallback={null}>
+        <Analytics />
+      </Suspense>
     </>
   );
 }
