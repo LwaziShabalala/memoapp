@@ -1,58 +1,60 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import Video from "next-video";
-import landingvideo from "@/videos/memoappvideo.mp4";
+import { useUser } from "@clerk/nextjs";
+import { LandingHero } from "@/components/landing-hero";
+import LandingNavbar from "@/components/landing-navbar";
+import PricingCard from "@/components/ui/pricingcard";
+import VideoComponent from "@/components/landing-video";
+import FeaturesSection from "@/components/landing-features";
+import VirtualizedWrapper from '@/components/virtualized-wrapper';
 
-const VideoComponent = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
+const LandingPage = () => {
+    // We're keeping useUser() for now in case it's needed for auth checking elsewhere
+    // If you don't need user or isLoaded at all, you can remove this line completely
+    useUser();
+    return (
+        <VirtualizedWrapper>
+            <div className="min-h-screen bg-gray-950 overflow-hidden"> {/* Added overflow-hidden */}
+                <LandingNavbar />
+                <section className="py-16">
+                    <LandingHero />
+                </section>
+                <section className="-mt-8 w-full py-12">
+                    <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
+                        See how it works
+                    </h2>
+                    <div className="max-w-4xl mx-auto px-8">
+                        <VideoComponent />
+                    </div>
+                </section>
+                <FeaturesSection />
 
-  const handleVideoLoad = () => {
-    setIsLoading(false);
-  };
+                {/* Pricing Section */}
+                <section className="max-w-4xl mx-auto px-4 py-20">
+                    <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
+                        Choose Your Plan
+                    </h2>
 
-  useEffect(() => {
-    if (!isLoading && containerRef.current) {
-      const videoElements = containerRef.current.querySelectorAll("video");
-
-      videoElements.forEach((video) => {
-        video.style.width = "100%";
-        video.style.height = "100%";
-        video.style.objectFit = "fill";
-      });
-    }
-  }, [isLoading]);
-
-  return (
-    <div className="relative group w-full">
-      {/* Gradient Glow */}
-      <div className="absolute inset-0 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 rounded-xl blur-3xl opacity-75 group-hover:opacity-100 transition duration-1000 -z-10"></div>
-
-      {/* Video Container */}
-      <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-gray-800/50 shadow-lg before:absolute before:inset-0 before:bg-gradient-to-b before:from-indigo-500/40 before:to-transparent before:blur-3xl before:-z-10">
-        {/* Loading Spinner */}
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg z-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-          </div>
-        )}
-
-        {/* Video */}
-        <div ref={containerRef} className="aspect-video w-full">
-          <Video
-            src={landingvideo}
-            className="w-full h-full"
-            onLoadedData={handleVideoLoad}
-            controls={false}
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-        </div>
-      </div>
-    </div>
-  );
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <PricingCard
+                            title="1-year access"
+                            originalPrice="$50"
+                            price="$25"
+                            storage="Join now and get early access to exclusive updates and features."
+                            users="Be among the first to experience advanced transcription tools and AI-powered features!"
+                            sendUp={true}
+                        />
+                        <PricingCard
+                            title="Lifetime Access"
+                            originalPrice="$150"
+                            price="$50"
+                            storage="Secure lifetime access with exclusive perks and continuous updates."
+                            users="Enjoy permanent access to new features, including priority support and more!"
+                            sendUp={true}
+                        />
+                    </div>
+                </section>
+            </div>
+        </VirtualizedWrapper>
+    );
 };
-
-export default VideoComponent;
+export default LandingPage;
