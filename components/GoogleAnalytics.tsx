@@ -4,16 +4,19 @@ import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
 export default function GoogleAnalytics(): JSX.Element {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Use 'window' safely with type assertion
-    const gtag = (window as unknown as { gtag?: (...args: any[]) => void }).gtag;
-
-    if (typeof gtag === "function") {
-      gtag("config", "G-GXB7S8KDNR", {
+    if (typeof window.gtag === "function") {
+      window.gtag("config", "G-GXB7S8KDNR", {
         page_path: pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ""),
       });
     }
