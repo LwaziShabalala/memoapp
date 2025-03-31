@@ -3,19 +3,18 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs"
 import Script from "next/script";
+import GoogleAnalytics from "@/components/GoogleAnalytics"; // Add this import
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
   weight: "100 900",
 });
-
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
 });
-
 export const metadata: Metadata = {
   title: "memo",
   description: "AI platform",
@@ -23,7 +22,6 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
   }
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,6 +33,7 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
+          <GoogleAnalytics /> {/* Add this component */}
           <Script
             defer
             data-website-id="67c9482c5891e85373d3e90b"
