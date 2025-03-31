@@ -151,12 +151,9 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Limit text length to prevent timeouts
-        const maxLength = 8000;
-        const truncatedText = text.length > maxLength 
-            ? text.substring(0, maxLength) + "..." 
-            : text;
-        
+        // Remove the maxLength truncation
+        const truncatedText = text; // No truncation
+
         const model = new ChatOpenAI({
             apiKey,
             modelName: "gpt-3.5-turbo-16k",
@@ -311,3 +308,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+
