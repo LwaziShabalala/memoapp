@@ -151,9 +151,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Remove the maxLength truncation
-        const truncatedText = text; // No truncation
-
         const model = new ChatOpenAI({
             apiKey,
             modelName: "gpt-3.5-turbo-16k",
@@ -263,7 +260,7 @@ export async function POST(req: NextRequest) {
         
         try {
             const message = new HumanMessage({
-                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${truncatedText}` }],
+                content: [{ type: "text", text: `${prompt}\n\nContent to create quiz from:\n${text}` }],
             });
             
             result = await runnable.invoke([message]);
@@ -271,7 +268,7 @@ export async function POST(req: NextRequest) {
             
             if (!validateQuizResult(result)) {
                 console.log("❌ OpenAI response failed validation, trying fallback");
-                quizData = createFallbackQuiz(truncatedText);
+                quizData = createFallbackQuiz(text);
                 usedFallback = true;
             } else {
                 quizData = (result as QuizResult).quizz;
@@ -279,7 +276,7 @@ export async function POST(req: NextRequest) {
         } catch (error) {
             console.error("❌ OpenAI API error:", error);
             console.log("Using fallback quiz generation");
-            quizData = createFallbackQuiz(truncatedText);
+            quizData = createFallbackQuiz(text);
             usedFallback = true;
         }
 
@@ -308,4 +305,3 @@ export async function POST(req: NextRequest) {
         );
     }
 }
-
