@@ -12,7 +12,7 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    gumroadUrl: string;
+    gumroadUrl: string; // URL for the Gumroad product
     onSuccess?: (purchaseId: string) => void;
     onCancel?: () => void;
 }
@@ -30,15 +30,15 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 }) => {
     const router = useRouter();
 
-    // Handle the redirect to Gumroad with success redirect
+    // Handle direct navigation to Gumroad in the same window
     const handlePurchase = () => {
         // Add redirect parameter to Gumroad URL
         // This will make Gumroad redirect to your signup page after successful purchase
         const signupUrl = `${window.location.origin}/sign-up`;
-        const gumroadUrlWithRedirect = `${gumroadUrl}?wanted=true&after_success_url=${encodeURIComponent(signupUrl)}`;
+        const fullGumroadUrl = `${gumroadUrl}?wanted=true&after_success_url=${encodeURIComponent(signupUrl)}`;
         
-        // You could implement analytics tracking here
-        window.open(gumroadUrlWithRedirect, '_blank');
+        // Navigate in the same window
+        window.location.href = fullGumroadUrl;
     };
 
     return (
