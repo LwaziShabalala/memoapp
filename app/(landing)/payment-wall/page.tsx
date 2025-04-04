@@ -15,15 +15,13 @@ const PaymentWall = () => {
     
     const handleSuccess = (reference: string) => {
         console.log("Payment successful, reference:", reference);
-        // Here you can implement additional logic like:
-        // - Storing the payment information in your database
-        // - Redirecting to a thank you page
-        // - Updating user permissions/access
+        // With Gumroad, these callbacks won't be called automatically
+        // They're kept for potential future use with webhooks
     };
     
     const handleCancel = () => {
         console.log("Payment was canceled");
-        // Handle cancellation logic if needed
+        // This won't be called automatically with Gumroad
     };
     
     if (isLoading) {
@@ -51,7 +49,7 @@ const PaymentWall = () => {
                         sendUp={true}
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
-                        gumroadUrl="https://your-gumroad-url/yearly-plan" // Add your actual yearly plan Gumroad URL here
+                        gumroadUrl="https://your-username.gumroad.com/l/your-yearly-product" // Replace with your actual Gumroad yearly product URL
                     />
                 </div>
                 <div className="flex flex-col h-full">
@@ -64,7 +62,7 @@ const PaymentWall = () => {
                         sendUp={true}
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
-                        gumroadUrl="https://your-gumroad-url/lifetime-plan" // Add your actual lifetime plan Gumroad URL here
+                        gumroadUrl="https://your-username.gumroad.com/l/your-lifetime-product" // Replace with your actual Gumroad lifetime product URL
                     />
                 </div>
             </div>
