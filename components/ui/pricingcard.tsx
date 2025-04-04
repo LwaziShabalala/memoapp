@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
@@ -12,7 +12,7 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    gumroadUrl: string; // URL for the Gumroad product
+    gumroadUrl: string; // Gumroad product ID or full URL
     onSuccess?: (purchaseId: string) => void;
     onCancel?: () => void;
 }
@@ -29,16 +29,56 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     onCancel
 }) => {
     const router = useRouter();
+    
+    // Extract product ID from Gumroad URL if it's a full URL
+    const getProductId = (url: string) => {
+        // Handle both formats: full URLs and just product IDs
+        if (url.includes('gumroad.com')) {
+            const parts = url.split('/');
+            return parts[parts.length - 1];
+        }
+        return url;
+    };
+    
+    useEffect(() => {
+        // Load Gumroad JS script once
+        if (typeof window !== 'undefined' && !document.getElementById('gumroad-script')) {
+            const script = document.createElement('script');
+            script.src = 'https://gumroad.com/js/gumroad.js';
+            script.id = 'gumroad-script';
+            script.async = true;
+            document.body.appendChild(script);
+            
+            // Listen for Gumroad purchase events
+            window.addEventListener('gumroadPurchase', function(event) {
+                // @ts-ignore - Add a proper type if needed
+                console.log('Purchase completed:', event.detail);
+                
+                // Wait a moment to make sure Gumroad processes finish
+                setTimeout(() => {
+                    router.push('/sign-up');
+                }, 1000);
+            });
+        }
+    }, [router]);
 
-    // Handle direct navigation to Gumroad in the same window
     const handlePurchase = () => {
-        // Add redirect parameter to Gumroad URL
-        // This will make Gumroad redirect to your signup page after successful purchase
-        const signupUrl = `${window.location.origin}/sign-up`;
-        const fullGumroadUrl = `${gumroadUrl}?wanted=true&after_success_url=${encodeURIComponent(signupUrl)}`;
+        const productId = getProductId(gumroadUrl);
+        // Using Gumroad's data attributes for overlay functionality
+        const buyButton = document.createElement('a');
+        buyButton.className = 'gumroad-button';
+        buyButton.href = `https://gumroad.com/l/${productId}`;
+        buyButton.setAttribute('data-gumroad-overlay-checkout', 'true');
+        buyButton.setAttribute('data-gumroad-success-redirect', `${window.location.origin}/sign-up`);
         
-        // Navigate in the same window
-        window.location.href = fullGumroadUrl;
+        // Append to body temporarily and click
+        document.body.appendChild(buyButton);
+        buyButton.click();
+        
+        // Remove after click
+        setTimeout(() => {
+            document.body.removeChild(buyButton);
+        }, 100);
     };
 
     return (
