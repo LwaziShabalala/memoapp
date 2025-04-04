@@ -39,7 +39,7 @@ const LandingPage = () => {
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
-              gumroadUrl="https://lwazigugushabalala.gumroad.com/l/qlale" // Replace with your actual Gumroad URL
+              gumroadUrl="https://memoapp.gumroad.com/l/qlale" // Replace with your actual Gumroad URL
             />
             <PricingCard
               title="Lifetime Access"
