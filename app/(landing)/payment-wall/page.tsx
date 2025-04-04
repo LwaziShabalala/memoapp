@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import PricingCard from "../../../components/ui/pricingcard";
@@ -7,13 +6,13 @@ import PricingCard from "../../../components/ui/pricingcard";
 const PaymentWall = () => {
     const { isLoaded } = useUser();
     const [isLoading, setIsLoading] = useState(true);
-
+    
     useEffect(() => {
         if (isLoaded) {
             setIsLoading(false);
         }
     }, [isLoaded]);
-
+    
     const handleSuccess = (reference: string) => {
         console.log("Payment successful, reference:", reference);
         // Here you can implement additional logic like:
@@ -21,12 +20,12 @@ const PaymentWall = () => {
         // - Redirecting to a thank you page
         // - Updating user permissions/access
     };
-
+    
     const handleCancel = () => {
         console.log("Payment was canceled");
         // Handle cancellation logic if needed
     };
-
+    
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -34,14 +33,13 @@ const PaymentWall = () => {
             </div>
         );
     }
-
+    
     return (
         <div className="text-center py-20 space-y-8">
             <h1 className="text-4xl font-bold text-gray-800">Choose Your Payment Option</h1>
             <p className="text-xl text-gray-600">
                 Please choose one of the following payment options to proceed.
             </p>
-
             <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 <div className="flex flex-col h-full">
                     <PricingCard
@@ -53,6 +51,7 @@ const PaymentWall = () => {
                         sendUp={true}
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
+                        gumroadUrl="https://your-gumroad-url/yearly-plan" // Add your actual yearly plan Gumroad URL here
                     />
                 </div>
                 <div className="flex flex-col h-full">
@@ -65,6 +64,7 @@ const PaymentWall = () => {
                         sendUp={true}
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
+                        gumroadUrl="https://your-gumroad-url/lifetime-plan" // Add your actual lifetime plan Gumroad URL here
                     />
                 </div>
             </div>
