@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
@@ -15,6 +15,7 @@ interface PricingCardProps {
     gumroadUrl: string; // Gumroad product ID or full URL
     onSuccess?: (purchaseId: string) => void;
     onCancel?: () => void;
+    redirectPath?: string; // Allow customization of redirect path
 }
 
 // Define the Gumroad event type with specific properties
@@ -27,7 +28,6 @@ interface GumroadPurchaseDetail {
     productName?: string;
     affiliateId?: string;
     orderId?: string;
-    // If there are other potential fields, list them here with optional types
 }
 
 interface GumroadPurchaseEvent extends CustomEvent {
@@ -49,7 +49,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     sendUp,
     gumroadUrl,
     onSuccess,
-    onCancel
+    onCancel,
+    redirectPath = '/sign-up' // Default redirect path
 }) => {
     const router = useRouter();
     
@@ -63,7 +64,40 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         return url;
     };
     
+    // Create a stable redirect function
+    const handleRedirect = useCallback((purchaseId?: string) => {
+        console.log('Redirecting to sign-up page...');
+        
+        // If onSuccess callback is provided, call it
+        if (onSuccess && purchaseId) {
+            onSuccess(purchaseId);
+        }
+        
+        // Store purchase info in localStorage for recovery if redirect fails
+        if (purchaseId) {
+            localStorage.setItem('lastPurchaseId', purchaseId);
+            localStorage.setItem('pendingRedirect', redirectPath);
+        }
+        
+        // Perform the redirect
+        router.push(redirectPath);
+    }, [onSuccess, redirectPath, router]);
+    
     useEffect(() => {
+        // Check if there's a pending redirect from a previous session
+        const pendingRedirect = localStorage.getItem('pendingRedirect');
+        const lastPurchaseId = localStorage.getItem('lastPurchaseId');
+        
+        if (pendingRedirect === redirectPath && lastPurchaseId) {
+            // Clear the pending redirect
+            localStorage.removeItem('pendingRedirect');
+            
+            // Call onSuccess with the stored purchase ID
+            if (onSuccess) {
+                onSuccess(lastPurchaseId);
+            }
+        }
+        
         // Load Gumroad JS script once
         if (typeof window !== 'undefined' && !document.getElementById('gumroad-script')) {
             const script = document.createElement('script');
@@ -76,30 +110,46 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             const handlePurchaseEvent = (event: GumroadPurchaseEvent) => {
                 console.log('Purchase completed:', event.detail);
                 
-                // Call onSuccess callback if provided
-                if (onSuccess && event.detail.purchaseId) {
-                    onSuccess(event.detail.purchaseId);
-                }
+                // Clear any stored purchase info
+                localStorage.removeItem('lastPurchaseId');
+                localStorage.removeItem('pendingRedirect');
                 
                 // Wait a moment to make sure Gumroad processes finish
                 setTimeout(() => {
-                    router.push('/sign-up');
+                    handleRedirect(event.detail.purchaseId);
                 }, 1000);
             };
             
             // Listen for Gumroad purchase events
             window.addEventListener('gumroadPurchase', handlePurchaseEvent);
             
-            // Cleanup event listener on unmount
+            // Also listen for the success message in the URL (alternative method)
+            const checkUrlForSuccess = () => {
+                if (window.location.search.includes('success=true')) {
+                    // Extract purchase ID from URL if available
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const purchaseId = urlParams.get('purchase_id') || '';
+                    
+                    // Redirect to sign-up page
+                    handleRedirect(purchaseId);
+                }
+            };
+            
+            // Check URL immediately and also set up an interval to check
+            checkUrlForSuccess();
+            const intervalId = setInterval(checkUrlForSuccess, 500);
+            
+            // Cleanup event listener and interval on unmount
             return () => {
                 if (typeof window !== 'undefined') {
                     window.removeEventListener('gumroadPurchase', handlePurchaseEvent);
+                    clearInterval(intervalId);
                 }
             };
         }
         
         return undefined;
-    }, [router, onSuccess]);
+    }, [handleRedirect, onSuccess, redirectPath]);
 
     const handlePurchase = () => {
         const productId = getProductId(gumroadUrl);
@@ -108,7 +158,10 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         buyButton.className = 'gumroad-button';
         buyButton.href = `https://gumroad.com/l/${productId}`;
         buyButton.setAttribute('data-gumroad-overlay-checkout', 'true');
-        buyButton.setAttribute('data-gumroad-success-redirect', `${window.location.origin}/sign-up`);
+        buyButton.setAttribute('data-gumroad-success-redirect', `${window.location.origin}${redirectPath}`);
+        
+        // Additional query parameters for tracking
+        buyButton.setAttribute('data-gumroad-success-query', 'success=true');
         
         // Append to body temporarily and click
         document.body.appendChild(buyButton);
