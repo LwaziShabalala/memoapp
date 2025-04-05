@@ -130,13 +130,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     };
 
     const initializePayPalButtons = () => {
-        // Check if PayPal is defined
-        if (!window.paypal || typeof window.paypal.Buttons !== 'function') {
-            console.error("PayPal is not properly loaded");
-            closePayPalModal();
-            return;
-        }
-        
         // Parse the price
         const numericPrice = price.replace(/[^0-9.-]+/g, "");
         const amount = parseFloat(numericPrice);
@@ -153,7 +146,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }
 
         try {
-            const paypalButtons = window.paypal.Buttons({
+            window.paypal.Buttons({
                 createOrder: (_, actions) => {
                     return actions.order.create({
                         purchase_units: [{
@@ -185,13 +178,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     console.error("PayPal Error:", err);
                     closePayPalModal();
                 }
-            });
-            
-            if (paypalButtons && typeof paypalButtons.render === 'function') {
-                paypalButtons.render(`#paypal-button-${modalContainerId}`);
-            } else {
-                throw new Error("PayPal buttons render function not available");
-            }
+            }).render(`#paypal-button-${modalContainerId}`);
         } catch (error) {
             console.error("Error setting up PayPal buttons:", error);
             closePayPalModal();
