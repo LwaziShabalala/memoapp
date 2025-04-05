@@ -5,6 +5,19 @@ import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
 // PayPal interfaces for Subscriptions
+interface PayPalOrderDetails {
+    payer: {
+        name: {
+            given_name: string;
+        }
+    };
+    id: string;
+}
+
+interface PayPalSubscriptionData {
+    subscriptionID: string;
+}
+
 interface PayPalButtonConfig {
     createSubscription?: (data: unknown, actions: {
         subscription: {
@@ -34,7 +47,11 @@ interface PayPalButtonConfig {
             }) => Promise<string>
         }
     }) => Promise<string>;
-    onApprove: (data: unknown, actions: any) => Promise<void>;
+    onApprove: (data: PayPalSubscriptionData | unknown, actions?: {
+        order?: {
+            capture: () => Promise<PayPalOrderDetails>
+        }
+    }) => Promise<void>;
     onCancel: () => void;
     onError: (err: Error) => void;
 }
@@ -86,6 +103,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     // Modal container ID
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
+    const closePayPalModal = () => {
+        setShowPayPalModal(false);
+        onCancel?.();
+    };
+
     useEffect(() => {
         // Dynamically load PayPal script with subscription capability
         if (!window.paypal) {
@@ -124,7 +146,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             document.removeEventListener('keydown', handleEscKey);
             document.body.classList.remove('overflow-hidden');
         };
-    }, [showPayPalModal]);
+    }, [showPayPalModal, closePayPalModal]);
 
     const openPayPalModal = () => {
         if (!isPayPalReady || !window.paypal?.Buttons) return;
@@ -133,11 +155,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         setTimeout(() => {
             initializePayPalButtons();
         }, 100);
-    };
-
-    const closePayPalModal = () => {
-        setShowPayPalModal(false);
-        onCancel?.();
     };
 
     const initializePayPalButtons = () => {
@@ -180,16 +197,19 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         });
                     },
                     onApprove: (_, actions) => {
-                        return actions.order.capture().then((details: any) => {
-                            console.log("Transaction completed by " + details.payer.name.given_name);
-                            
-                            // Close the modal
-                            setShowPayPalModal(false);
-                            
-                            // Notify parent component of success
-                            onSuccess?.(details.id);
-                            router.push("/sign-up");
-                        });
+                        if (actions?.order) {
+                            return actions.order.capture().then((details: PayPalOrderDetails) => {
+                                console.log("Transaction completed by " + details.payer.name.given_name);
+                                
+                                // Close the modal
+                                setShowPayPalModal(false);
+                                
+                                // Notify parent component of success
+                                onSuccess?.(details.id);
+                                router.push("/sign-up");
+                            });
+                        }
+                        return Promise.resolve();
                     },
                     onCancel: () => {
                         console.log("Transaction was canceled");
@@ -220,15 +240,20 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                             }
                         });
                     },
-                    onApprove: (data) => {
+                    onApprove: (data: PayPalSubscriptionData | unknown) => {
+                        // Type guard for subscription data
+                        const subscriptionData = data as PayPalSubscriptionData;
+                        
                         // Subscription was approved
-                        console.log("Subscription approved: ", data);
+                        console.log("Subscription approved: ", subscriptionData);
                         
                         // Close the modal
                         setShowPayPalModal(false);
                         
                         // Notify parent component of success with the subscription ID
-                        onSuccess?.(data.subscriptionID);
+                        if (subscriptionData.subscriptionID) {
+                            onSuccess?.(subscriptionData.subscriptionID);
+                        }
                         router.push("/sign-up");
                         
                         return Promise.resolve();
