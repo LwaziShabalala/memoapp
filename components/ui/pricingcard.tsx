@@ -17,13 +17,21 @@ interface PricingCardProps {
     onCancel?: () => void;
 }
 
-// Define the Gumroad event type
+// Define the Gumroad event type with specific properties
+interface GumroadPurchaseDetail {
+    purchaseId: string;
+    productId: string;
+    price: number;
+    currency: string;
+    sellerName?: string;
+    productName?: string;
+    affiliateId?: string;
+    orderId?: string;
+    // If there are other potential fields, list them here with optional types
+}
+
 interface GumroadPurchaseEvent extends CustomEvent {
-    detail: {
-        purchaseId: string;
-        productId: string;
-        [key: string]: any;
-    };
+    detail: GumroadPurchaseDetail;
 }
 
 declare global {
@@ -64,8 +72,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             script.async = true;
             document.body.appendChild(script);
             
-            // Listen for Gumroad purchase events
-            window.addEventListener('gumroadPurchase', (event) => {
+            // Function to handle purchase event
+            const handlePurchaseEvent = (event: GumroadPurchaseEvent) => {
                 console.log('Purchase completed:', event.detail);
                 
                 // Call onSuccess callback if provided
@@ -77,15 +85,20 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 setTimeout(() => {
                     router.push('/sign-up');
                 }, 1000);
-            });
+            };
+            
+            // Listen for Gumroad purchase events
+            window.addEventListener('gumroadPurchase', handlePurchaseEvent);
+            
+            // Cleanup event listener on unmount
+            return () => {
+                if (typeof window !== 'undefined') {
+                    window.removeEventListener('gumroadPurchase', handlePurchaseEvent);
+                }
+            };
         }
         
-        // Cleanup event listener on unmount
-        return () => {
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('gumroadPurchase', () => {});
-            }
-        };
+        return undefined;
     }, [router, onSuccess]);
 
     const handlePurchase = () => {
