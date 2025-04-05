@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
@@ -18,49 +18,53 @@ interface PayPalSubscriptionData {
     subscriptionID: string;
 }
 
-interface PayPalButtonConfig {
-    createSubscription?: (data: unknown, actions: {
-        subscription: {
-            create: (details: {
-                plan_id: string;
-                custom_id?: string;
-                application_context?: {
-                    shipping_preference: string;
-                    user_action: string;
-                    return_url: string;
-                    cancel_url: string;
+interface PayPalOrderActions {
+    order: {
+        capture: () => Promise<PayPalOrderDetails>
+    }
+}
+
+interface PayPalSubscriptionActions {
+    subscription: {
+        create: (details: {
+            plan_id: string;
+            custom_id?: string;
+            application_context?: {
+                shipping_preference: string;
+                user_action: string;
+                return_url: string;
+                cancel_url: string;
+            };
+        }) => Promise<string>
+    }
+}
+
+interface PayPalOrderCreateActions {
+    order: {
+        create: (details: {
+            purchase_units: Array<{
+                amount: {
+                    value: string;
+                    currency_code: string;
                 };
-            }) => Promise<string>
-        }
-    }) => Promise<string>;
-    createOrder?: (data: unknown, actions: {
-        order: {
-            create: (details: {
-                purchase_units: Array<{
-                    amount: {
-                        value: string;
-                        currency_code: string;
-                    };
-                    description?: string;
-                    custom_id?: string;
-                }>
-            }) => Promise<string>
-        }
-    }) => Promise<string>;
-    onApprove: (data: PayPalSubscriptionData | unknown, actions?: {
-        order?: {
-            capture: () => Promise<PayPalOrderDetails>
-        }
-    }) => Promise<void>;
-    onCancel: () => void;
-    onError: (err: Error) => void;
+                description?: string;
+                custom_id?: string;
+            }>
+        }) => Promise<string>
+    }
 }
 
 // Declare global interface augmentation for window
 declare global {
     interface Window {
         paypal?: {
-            Buttons: (config: PayPalButtonConfig) => {
+            Buttons: (config: {
+                createSubscription?: (data: unknown, actions: PayPalSubscriptionActions) => Promise<string>;
+                createOrder?: (data: unknown, actions: PayPalOrderCreateActions) => Promise<string>;
+                onApprove: (data: PayPalSubscriptionData | unknown, actions?: PayPalOrderActions) => Promise<void>;
+                onCancel: () => void;
+                onError: (err: Error) => void;
+            }) => {
                 render: (selector: string) => Promise<void>
             }
         }
@@ -84,6 +88,7 @@ interface PricingCardProps {
     onCancel?: () => void;
 }
 
+// eslint-disable-next-line react/display-name
 export const PricingCard: React.FC<PricingCardProps> = ({
     title,
     price,
@@ -103,10 +108,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     // Modal container ID
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
-    const closePayPalModal = () => {
+    // Use useCallback to avoid dependency issues with useEffect
+    const closePayPalModal = useCallback(() => {
         setShowPayPalModal(false);
         onCancel?.();
-    };
+    }, [onCancel]);
 
     useEffect(() => {
         // Dynamically load PayPal script with subscription capability
@@ -172,8 +178,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }
 
         try {
-            let paypalButtonConfig: PayPalButtonConfig;
-
             if (planType === 'ONE_TIME') {
                 // One-time payment logic (existing)
                 const numericPrice = price.replace(/[^0-9.-]+/g, "");
@@ -184,7 +188,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     return;
                 }
 
-                paypalButtonConfig = {
+                const oneTimePaypalButtons = window.paypal.Buttons({
                     createOrder: (_, actions) => {
                         return actions.order.create({
                             purchase_units: [{
@@ -197,29 +201,32 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         });
                     },
                     onApprove: (_, actions) => {
-                        if (actions?.order) {
-                            return actions.order.capture().then((details: PayPalOrderDetails) => {
-                                console.log("Transaction completed by " + details.payer.name.given_name);
-                                
-                                // Close the modal
-                                setShowPayPalModal(false);
-                                
-                                // Notify parent component of success
-                                onSuccess?.(details.id);
-                                router.push("/sign-up");
-                            });
+                        if (!actions) {
+                            return Promise.resolve();
                         }
-                        return Promise.resolve();
+                        
+                        return actions.order.capture().then((details: PayPalOrderDetails) => {
+                            console.log("Transaction completed by " + details.payer.name.given_name);
+                            
+                            // Close the modal
+                            setShowPayPalModal(false);
+                            
+                            // Notify parent component of success
+                            onSuccess?.(details.id);
+                            router.push("/sign-up");
+                        });
                     },
                     onCancel: () => {
                         console.log("Transaction was canceled");
                         closePayPalModal();
                     },
-                    onError: (err) => {
+                    onError: (err: Error) => {
                         console.error("PayPal Error:", err);
                         closePayPalModal();
                     }
-                };
+                });
+                
+                oneTimePaypalButtons.render(`#paypal-button-${modalContainerId}`);
             } else {
                 // Subscription payment logic
                 if (!planId) {
@@ -228,7 +235,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     return;
                 }
 
-                paypalButtonConfig = {
+                const subscriptionPaypalButtons = window.paypal.Buttons({
                     createSubscription: (_, actions) => {
                         return actions.subscription.create({
                             plan_id: planId,
@@ -240,7 +247,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                             }
                         });
                     },
-                    onApprove: (data: PayPalSubscriptionData | unknown) => {
+                    onApprove: (data: unknown) => {
                         // Type guard for subscription data
                         const subscriptionData = data as PayPalSubscriptionData;
                         
@@ -251,7 +258,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         setShowPayPalModal(false);
                         
                         // Notify parent component of success with the subscription ID
-                        if (subscriptionData.subscriptionID) {
+                        if (subscriptionData && subscriptionData.subscriptionID) {
                             onSuccess?.(subscriptionData.subscriptionID);
                         }
                         router.push("/sign-up");
@@ -262,19 +269,13 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         console.log("Subscription was canceled");
                         closePayPalModal();
                     },
-                    onError: (err) => {
+                    onError: (err: Error) => {
                         console.error("PayPal Error:", err);
                         closePayPalModal();
                     }
-                };
-            }
-
-            const paypalButtons = window.paypal.Buttons(paypalButtonConfig);
-            
-            if (paypalButtons && typeof paypalButtons.render === 'function') {
-                paypalButtons.render(`#paypal-button-${modalContainerId}`);
-            } else {
-                throw new Error("PayPal buttons render function not available");
+                });
+                
+                subscriptionPaypalButtons.render(`#paypal-button-${modalContainerId}`);
             }
         } catch (error) {
             console.error("Error setting up PayPal buttons:", error);
