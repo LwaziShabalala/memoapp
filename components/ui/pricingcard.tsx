@@ -3,18 +3,37 @@
 import React, { useEffect, useRef } from "react";
 import "../../app/styles/styles.css";
 
-// Define type for LemonSqueezy object
+// Define types for LemonSqueezy object
 declare global {
   interface Window {
     createLemonSqueezy?: () => void;
     LemonSqueezy?: {
-      setup: (options?: { eventHandler?: (data: any) => void }) => void;
+      setup: (options?: { eventHandler?: (data: LemonSqueezyEvent) => void }) => void;
       Url: {
         open: (url: string) => void;
       };
     }
   }
 }
+
+// Define specific types for LemonSqueezy events
+interface LemonSqueezyEventBase {
+  event: string;
+}
+
+interface CheckoutSuccessEvent extends LemonSqueezyEventBase {
+  event: 'Checkout.Success';
+  data: {
+    id: string;
+    [key: string]: unknown;
+  };
+}
+
+interface CheckoutClosedEvent extends LemonSqueezyEventBase {
+  event: 'Checkout.Closed';
+}
+
+type LemonSqueezyEvent = CheckoutSuccessEvent | CheckoutClosedEvent | (LemonSqueezyEventBase & { [key: string]: unknown });
 
 interface PricingCardProps {
     title: string;
@@ -59,7 +78,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 
                 if (window.LemonSqueezy) {
                     window.LemonSqueezy.setup({
-                        eventHandler: (data) => {
+                        eventHandler: (data: LemonSqueezyEvent) => {
                             // Handle events
                             if (data.event === 'Checkout.Success') {
                                 console.log('Purchase successful!', data);
@@ -83,7 +102,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         } else if (window.LemonSqueezy) {
             // If script already exists, just setup the event handler
             window.LemonSqueezy.setup({
-                eventHandler: (data) => {
+                eventHandler: (data: LemonSqueezyEvent) => {
                     if (data.event === 'Checkout.Success') {
                         console.log('Purchase successful!', data);
                         if (onSuccess) {
