@@ -46,26 +46,29 @@ const LandingPage = () => {
             Choose Your Plan
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <PricingCard
-              title="1-year access"
-              originalPrice="$150"
-              price="$99"
-              storage="Join now and get early access to exclusive updates and features."
-              users="Be among the first to experience advanced transcription tools and AI-powered features!"
-              sendUp={true}
-              onSuccess={handleSuccess}
-              onCancel={handleCancel}
-            />
-            <PricingCard
-              title="Lifetime Access"
-              originalPrice="$150"
-              price="$50"
-              storage="Secure lifetime access with exclusive perks and continuous updates."
-              users="Enjoy permanent access to new features, including priority support and more!"
-              sendUp={true}
-              onSuccess={handleSuccess}
-              onCancel={handleCancel}
-            />
+           <PricingCard
+  title="1-year access"
+  originalPrice="$150"
+  price="$99"
+  storage="Join now and get early access to exclusive updates and features."
+  users="Be among the first to experience advanced transcription tools and AI-powered features!"
+  sendUp={true}
+  planType="YEARLY" // Add this line
+  onSuccess={handleSuccess}
+  onCancel={handleCancel}
+/>
+
+<PricingCard
+  title="Lifetime Access"
+  originalPrice="$150"
+  price="$50"
+  storage="Secure lifetime access with exclusive perks and continuous updates."
+  users="Enjoy permanent access to new features, including priority support and more!"
+  sendUp={true}
+  planType="ONE_TIME" // Add this line
+  onSuccess={handleSuccess}
+  onCancel={handleCancel}
+/>
           </div>
         </section>
       </div>
