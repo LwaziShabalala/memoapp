@@ -1,78 +1,51 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// PayPal interfaces for Subscriptions
-interface PayPalOrderDetails {
-    payer: {
-        name: {
-            given_name: string;
+// PayPal interfaces
+interface PayPalButtonConfig {
+    createOrder: (data: unknown, actions: {
+        order: {
+            create: (details: {
+                purchase_units: Array<{
+                    amount: {
+                        value: string;
+                        currency_code: string;
+                    };
+                    description?: string;
+                    custom_id?: string;
+                }>
+            }) => Promise<string>
         }
-    };
-    id: string;
-}
-
-interface PayPalSubscriptionData {
-    subscriptionID: string;
-}
-
-interface PayPalOrderActions {
-    order: {
-        capture: () => Promise<PayPalOrderDetails>
-    }
-}
-
-interface PayPalSubscriptionActions {
-    subscription: {
-        create: (details: {
-            plan_id: string;
-            custom_id?: string;
-            application_context?: {
-                shipping_preference: string;
-                user_action: string;
-                return_url: string;
-                cancel_url: string;
-            };
-        }) => Promise<string>
-    }
-}
-
-interface PayPalOrderCreateActions {
-    order: {
-        create: (details: {
-            purchase_units: Array<{
-                amount: {
-                    value: string;
-                    currency_code: string;
-                };
-                description?: string;
-                custom_id?: string;
+    }) => Promise<string>;
+    onApprove: (data: unknown, actions: {
+        order: {
+            capture: () => Promise<{
+                payer: {
+                    name: {
+                        given_name: string;
+                    }
+                }
+                id: string;
             }>
-        }) => Promise<string>
-    }
+        }
+    }) => Promise<void>;
+    onCancel: () => void;
+    onError: (err: Error) => void;
 }
 
 // Declare global interface augmentation for window
 declare global {
     interface Window {
         paypal?: {
-            Buttons: (config: {
-                createSubscription?: (data: unknown, actions: PayPalSubscriptionActions) => Promise<string>;
-                createOrder?: (data: unknown, actions: PayPalOrderCreateActions) => Promise<string>;
-                onApprove: (data: PayPalSubscriptionData | unknown, actions?: PayPalOrderActions) => Promise<void>;
-                onCancel: () => void;
-                onError: (err: Error) => void;
-            }) => {
+            Buttons: (config: PayPalButtonConfig) => {
                 render: (selector: string) => Promise<void>
             }
         }
     }
 }
-
-// Plan Types
-type PlanType = 'MONTHLY' | 'YEARLY' | 'ONE_TIME';
 
 // PricingCard Props Interface
 interface PricingCardProps {
@@ -82,13 +55,10 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    planType: PlanType;
-    planId?: string; // PayPal subscription plan ID
-    onSuccess?: (subscriptionId: string) => void;
+    onSuccess?: (paymentId: string) => void;
     onCancel?: () => void;
 }
 
-// eslint-disable-next-line react/display-name
 export const PricingCard: React.FC<PricingCardProps> = ({
     title,
     price,
@@ -96,8 +66,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     storage,
     users, 
     sendUp,
-    planType,
-    planId,
     onSuccess,
     onCancel
 }) => {
@@ -108,18 +76,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     // Modal container ID
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
-    // Use useCallback to avoid dependency issues with useEffect
-    const closePayPalModal = useCallback(() => {
-        setShowPayPalModal(false);
-        onCancel?.();
-    }, [onCancel]);
-
     useEffect(() => {
-        // Dynamically load PayPal script with subscription capability
+        // Dynamically load PayPal script (only once)
         if (!window.paypal) {
             const script = document.createElement("script");
-            // Add vault=true for subscriptions and intent=subscription
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&intent=subscription&vault=true`;
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
             script.async = true;
             
             script.onload = () => {
@@ -152,7 +113,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             document.removeEventListener('keydown', handleEscKey);
             document.body.classList.remove('overflow-hidden');
         };
-    }, [showPayPalModal, closePayPalModal]);
+    }, [showPayPalModal]);
 
     const openPayPalModal = () => {
         if (!isPayPalReady || !window.paypal?.Buttons) return;
@@ -163,11 +124,25 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }, 100);
     };
 
+    const closePayPalModal = () => {
+        setShowPayPalModal(false);
+        onCancel?.();
+    };
+
     const initializePayPalButtons = () => {
         // Check if PayPal is defined
         if (!window.paypal || typeof window.paypal.Buttons !== 'function') {
             console.error("PayPal is not properly loaded");
             closePayPalModal();
+            return;
+        }
+        
+        // Parse the price
+        const numericPrice = price.replace(/[^0-9.-]+/g, "");
+        const amount = parseFloat(numericPrice);
+
+        if (isNaN(amount)) {
+            console.error("Invalid price format:", price);
             return;
         }
 
@@ -178,119 +153,48 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }
 
         try {
-            if (planType === 'ONE_TIME') {
-                // One-time payment logic (existing)
-                const numericPrice = price.replace(/[^0-9.-]+/g, "");
-                const amount = parseFloat(numericPrice);
-
-                if (isNaN(amount)) {
-                    console.error("Invalid price format:", price);
-                    return;
-                }
-
-                const oneTimePaypalButtons = window.paypal.Buttons({
-                    createOrder: (_, actions) => {
-                        return actions.order.create({
-                            purchase_units: [{
-                                amount: {
-                                    value: amount.toFixed(2),
-                                    currency_code: "USD"
-                                },
-                                description: `${title} - ${storage}`
-                            }]
-                        });
-                    },
-                    onApprove: (_, actions) => {
-                        if (!actions) {
-                            return Promise.resolve();
-                        }
-                        
-                        return actions.order.capture().then((details: PayPalOrderDetails) => {
-                            console.log("Transaction completed by " + details.payer.name.given_name);
-                            
-                            // Close the modal
-                            setShowPayPalModal(false);
-                            
-                            // Notify parent component of success
-                            onSuccess?.(details.id);
-                            router.push("/sign-up");
-                        });
-                    },
-                    onCancel: () => {
-                        console.log("Transaction was canceled");
-                        closePayPalModal();
-                    },
-                    onError: (err: Error) => {
-                        console.error("PayPal Error:", err);
-                        closePayPalModal();
-                    }
-                });
-                
-                oneTimePaypalButtons.render(`#paypal-button-${modalContainerId}`);
-            } else {
-                // Subscription payment logic
-                if (!planId) {
-                    console.error("Plan ID is required for subscriptions");
-                    closePayPalModal();
-                    return;
-                }
-
-                const subscriptionPaypalButtons = window.paypal.Buttons({
-                    createSubscription: (_, actions) => {
-                        return actions.subscription.create({
-                            plan_id: planId,
-                            application_context: {
-                                shipping_preference: "NO_SHIPPING",
-                                user_action: "SUBSCRIBE_NOW",
-                                return_url: window.location.href,
-                                cancel_url: window.location.href
-                            }
-                        });
-                    },
-                    onApprove: (data: unknown) => {
-                        // Type guard for subscription data
-                        const subscriptionData = data as PayPalSubscriptionData;
-                        
-                        // Subscription was approved
-                        console.log("Subscription approved: ", subscriptionData);
+            const paypalButtons = window.paypal.Buttons({
+                createOrder: (_, actions) => {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: amount.toFixed(2),
+                                currency_code: "USD"
+                            },
+                            description: `${title} - ${storage}`
+                        }]
+                    });
+                },
+                onApprove: (_, actions) => {
+                    return actions.order.capture().then((details) => {
+                        console.log("Transaction completed by " + details.payer.name.given_name);
                         
                         // Close the modal
                         setShowPayPalModal(false);
                         
-                        // Notify parent component of success with the subscription ID
-                        if (subscriptionData && subscriptionData.subscriptionID) {
-                            onSuccess?.(subscriptionData.subscriptionID);
-                        }
+                        // Notify parent component of success
+                        onSuccess?.(details.id);
                         router.push("/sign-up");
-                        
-                        return Promise.resolve();
-                    },
-                    onCancel: () => {
-                        console.log("Subscription was canceled");
-                        closePayPalModal();
-                    },
-                    onError: (err: Error) => {
-                        console.error("PayPal Error:", err);
-                        closePayPalModal();
-                    }
-                });
-                
-                subscriptionPaypalButtons.render(`#paypal-button-${modalContainerId}`);
+                    });
+                },
+                onCancel: () => {
+                    console.log("Transaction was canceled");
+                    closePayPalModal();
+                },
+                onError: (err) => {
+                    console.error("PayPal Error:", err);
+                    closePayPalModal();
+                }
+            });
+            
+            if (paypalButtons && typeof paypalButtons.render === 'function') {
+                paypalButtons.render(`#paypal-button-${modalContainerId}`);
+            } else {
+                throw new Error("PayPal buttons render function not available");
             }
         } catch (error) {
             console.error("Error setting up PayPal buttons:", error);
             closePayPalModal();
-        }
-    };
-
-    const getPlanTypeLabel = () => {
-        switch (planType) {
-            case 'MONTHLY':
-                return 'per month';
-            case 'YEARLY':
-                return 'per year';
-            default:
-                return '';
         }
     };
 
@@ -310,12 +214,10 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 </button>
                 
                 <div className="mb-8 pt-2">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">Complete Your {planType !== 'ONE_TIME' ? 'Subscription' : 'Payment'}</h3>
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">Complete Your Payment</h3>
                     <div className="text-center mb-4">
                         <h4 className="font-bold text-lg">{title}</h4>
-                        <p className="text-2xl font-bold">
-                            {price} {planType !== 'ONE_TIME' && <span className="text-sm font-normal">{getPlanTypeLabel()}</span>}
-                        </p>
+                        <p className="text-2xl font-bold">{price}</p>
                     </div>
                 </div>
                 
@@ -344,12 +246,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                                     {originalPrice}
                                 </span>
                             )}
-                            <div className="text-center">
-                                <p className="text-4xl font-extrabold text-white">{price}</p>
-                                {planType !== 'ONE_TIME' && 
-                                    <p className="text-sm text-gray-400">{getPlanTypeLabel()}</p>
-                                }
-                            </div>
+                            <p className="text-4xl font-extrabold text-white">{price}</p>
                         </div>
                     </header>
 
@@ -366,11 +263,10 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     <div className="w-full">
                         <button 
                             onClick={openPayPalModal}
-                            disabled={!isPayPalReady || (planType !== 'ONE_TIME' && !planId)}
+                            disabled={!isPayPalReady}
                             className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
                         >
-                            {!isPayPalReady ? "Loading..." : 
-                             (planType !== 'ONE_TIME' && !planId) ? "Plan ID Required" : "Get Started Now"}
+                            {!isPayPalReady ? "Loading..." : "Get Started Now"}
                         </button>
                     </div>
                 </div>
