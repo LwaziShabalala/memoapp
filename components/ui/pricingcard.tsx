@@ -17,6 +17,21 @@ interface PricingCardProps {
     onCancel?: () => void;
 }
 
+// Define the Gumroad event type
+interface GumroadPurchaseEvent extends CustomEvent {
+    detail: {
+        purchaseId: string;
+        productId: string;
+        [key: string]: any;
+    };
+}
+
+declare global {
+    interface WindowEventMap {
+        gumroadPurchase: GumroadPurchaseEvent;
+    }
+}
+
 export const PricingCard: React.FC<PricingCardProps> = ({
     title,
     price,
@@ -50,9 +65,13 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             document.body.appendChild(script);
             
             // Listen for Gumroad purchase events
-            window.addEventListener('gumroadPurchase', function(event) {
-                // @ts-ignore - Add a proper type if needed
+            window.addEventListener('gumroadPurchase', (event) => {
                 console.log('Purchase completed:', event.detail);
+                
+                // Call onSuccess callback if provided
+                if (onSuccess && event.detail.purchaseId) {
+                    onSuccess(event.detail.purchaseId);
+                }
                 
                 // Wait a moment to make sure Gumroad processes finish
                 setTimeout(() => {
@@ -60,7 +79,14 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 }, 1000);
             });
         }
-    }, [router]);
+        
+        // Cleanup event listener on unmount
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('gumroadPurchase', () => {});
+            }
+        };
+    }, [router, onSuccess]);
 
     const handlePurchase = () => {
         const productId = getProductId(gumroadUrl);
