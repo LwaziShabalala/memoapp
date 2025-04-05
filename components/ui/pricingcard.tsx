@@ -3,11 +3,15 @@
 import React, { useEffect, useRef } from "react";
 import "../../app/styles/styles.css";
 
-// Define the type for the GumroadOverlay object outside the component
+// Define type for LemonSqueezy object
 declare global {
   interface Window {
-    GumroadOverlay?: {
-      init: () => void;
+    createLemonSqueezy?: () => void;
+    LemonSqueezy?: {
+      setup: (options?: { eventHandler?: (data: any) => void }) => void;
+      Url: {
+        open: (url: string) => void;
+      };
     }
   }
 }
@@ -19,7 +23,7 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    gumroadProductId: string; // New prop for Gumroad product ID
+    checkoutUrl: string; // LemonSqueezy checkout URL
     onSuccess?: (paymentId: string) => void;
     onCancel?: () => void;
 }
@@ -31,34 +35,72 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     storage,
     users, 
     sendUp,
-    gumroadProductId,
+    checkoutUrl,
     onSuccess,
     onCancel
 }) => {
-    const gumroadButtonRef = useRef<HTMLDivElement>(null);
-    const buttonId = `gumroad-button-${title.replace(/\s+/g, '-').toLowerCase()}`;
+    const buttonRef = useRef<HTMLDivElement>(null);
+    const buttonId = `lemonsqueezy-button-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
     useEffect(() => {
-        // Add Gumroad script if it doesn't exist
-        if (!document.getElementById('gumroad-script')) {
+        // Add LemonSqueezy script if it doesn't exist
+        if (!document.getElementById('lemonsqueezy-script')) {
             const script = document.createElement("script");
-            script.src = "https://gumroad.com/js/gumroad.js";
+            script.src = "https://assets.lemonsqueezy.com/lemon.js";
             script.async = true;
-            script.id = "gumroad-script";
-            document.body.appendChild(script);
+            script.defer = true;
+            script.id = "lemonsqueezy-script";
             
-            // Initialize Gumroad after script is loaded
+            // Setup LemonSqueezy after script loads
             script.onload = () => {
-                if (window.GumroadOverlay) {
-                    // Initialize Gumroad overlay functionality
-                    window.GumroadOverlay.init();
+                if (window.createLemonSqueezy) {
+                    window.createLemonSqueezy();
+                }
+                
+                if (window.LemonSqueezy) {
+                    window.LemonSqueezy.setup({
+                        eventHandler: (data) => {
+                            // Handle events
+                            if (data.event === 'Checkout.Success') {
+                                console.log('Purchase successful!', data);
+                                if (onSuccess) {
+                                    onSuccess(data.data.id);
+                                }
+                            }
+                            
+                            if (data.event === 'Checkout.Closed') {
+                                console.log('Checkout closed without purchase');
+                                if (onCancel) {
+                                    onCancel();
+                                }
+                            }
+                        }
+                    });
                 }
             };
-        } else if (window.GumroadOverlay) {
-            // If script already exists, just initialize
-            window.GumroadOverlay.init();
+            
+            document.body.appendChild(script);
+        } else if (window.LemonSqueezy) {
+            // If script already exists, just setup the event handler
+            window.LemonSqueezy.setup({
+                eventHandler: (data) => {
+                    if (data.event === 'Checkout.Success') {
+                        console.log('Purchase successful!', data);
+                        if (onSuccess) {
+                            onSuccess(data.data.id);
+                        }
+                    }
+                    
+                    if (data.event === 'Checkout.Closed') {
+                        console.log('Checkout closed without purchase');
+                        if (onCancel) {
+                            onCancel();
+                        }
+                    }
+                }
+            });
         }
-    }, []);
+    }, [onSuccess, onCancel]);
 
     return (
         <div className="relative group">
@@ -89,13 +131,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     )}
                 </div>
 
-                <div ref={gumroadButtonRef} className="w-full">
+                <div ref={buttonRef} className="w-full">
                     <a 
                         id={buttonId}
-                        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg flex items-center justify-center cursor-pointer"
-                        href={`https://gumroad.com/l/${gumroadProductId}`}
-                        data-gumroad-overlay="true"
-                        data-gumroad-single-product="true"
+                        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg flex items-center justify-center cursor-pointer lemonsqueezy-button"
+                        href={checkoutUrl}
                     >
                         Get Started Now
                     </a>
