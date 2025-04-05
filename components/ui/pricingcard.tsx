@@ -69,10 +69,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const handleLemonSqueezyEvent = (data: LemonSqueezyEvent) => {
         if (data.event === 'Checkout.Success') {
             console.log('Purchase successful!', data);
-            if (onSuccess && data.data && typeof data.data === 'object' && 
+            if (onSuccess && 'data' in data && data.data && typeof data.data === 'object' && 
                 'data' in data.data && data.data.data && 
                 typeof data.data.data === 'object' && 'id' in data.data.data) {
-                onSuccess(data.data.data.id);
+                // Convert id to string to ensure type safety
+                const paymentId = String(data.data.data.id);
+                onSuccess(paymentId);
             }
         }
         
