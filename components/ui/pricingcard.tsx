@@ -64,7 +64,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     price,
     originalPrice,
     storage,
-    users, 
+    users,
     sendUp,
     onSuccess,
     onCancel
@@ -73,29 +73,23 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const [showPayPalModal, setShowPayPalModal] = useState(false);
     const router = useRouter();
 
-    // Modal container ID
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
     useEffect(() => {
-        // Dynamically load PayPal script (only once)
         if (!window.paypal) {
             const script = document.createElement("script");
             script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
             script.async = true;
-            
             script.onload = () => {
                 if (window.paypal?.Buttons) {
                     setIsPayPalReady(true);
                 }
             };
-
             document.body.appendChild(script);
         } else {
-            // If PayPal script is already loaded
             setIsPayPalReady(true);
         }
 
-        // Add event listener to handle escape key closing the modal
         const handleEscKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape' && showPayPalModal) {
                 closePayPalModal();
@@ -103,8 +97,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         };
 
         document.addEventListener('keydown', handleEscKey);
-        
-        // Add body class to prevent scrolling when modal is open
+
         if (showPayPalModal) {
             document.body.classList.add('overflow-hidden');
         }
@@ -118,7 +111,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const openPayPalModal = () => {
         if (!isPayPalReady || !window.paypal?.Buttons) return;
         setShowPayPalModal(true);
-        
+
         setTimeout(() => {
             initializePayPalButtons();
         }, 100);
@@ -130,7 +123,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     };
 
     const initializePayPalButtons = () => {
-        // Parse the price
         const numericPrice = price.replace(/[^0-9.-]+/g, "");
         const amount = parseFloat(numericPrice);
 
@@ -139,14 +131,13 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             return;
         }
 
-        // Clear any existing buttons in the container
         const container = document.getElementById(`paypal-button-${modalContainerId}`);
         if (container) {
             container.innerHTML = '';
         }
 
         try {
-            window.paypal.Buttons({
+            window.paypal!.Buttons({
                 createOrder: (_, actions) => {
                     return actions.order.create({
                         purchase_units: [{
@@ -161,11 +152,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 onApprove: (_, actions) => {
                     return actions.order.capture().then((details) => {
                         console.log("Transaction completed by " + details.payer.name.given_name);
-                        
-                        // Close the modal
                         setShowPayPalModal(false);
-                        
-                        // Notify parent component of success
                         onSuccess?.(details.id);
                         router.push("/sign-up");
                     });
@@ -185,11 +172,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }
     };
 
-    // Modal JSX
     const payPalModal = showPayPalModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
             <div className="relative min-h-[200px] bg-white rounded-lg p-6 w-full max-w-md">
-                {/* Close button - fixed to top right */}
                 <button 
                     onClick={closePayPalModal}
                     className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 z-10"
@@ -199,7 +184,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
-                
+
                 <div className="mb-8 pt-2">
                     <h3 className="text-xl font-bold text-gray-800 mb-4">Complete Your Payment</h3>
                     <div className="text-center mb-4">
@@ -207,11 +192,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         <p className="text-2xl font-bold">{price}</p>
                     </div>
                 </div>
-                
-                {/* PayPal button container - will expand to needed height */}
+
                 <div id={`paypal-button-${modalContainerId}`} className="w-full overflow-visible" style={{ minHeight: '200px' }}></div>
-                
-                {/* Extra space at the bottom to ensure visibility */}
                 <div className="h-6"></div>
             </div>
         </div>
@@ -259,7 +241,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 </div>
             </div>
 
-            {/* PayPal Modal */}
             {payPalModal}
         </>
     );
