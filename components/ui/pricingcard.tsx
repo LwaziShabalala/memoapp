@@ -21,10 +21,15 @@ interface LemonSqueezyEventBase {
   event: string;
 }
 
+interface CheckoutSuccessData {
+  id: string;
+  [key: string]: unknown;
+}
+
 interface CheckoutSuccessEvent extends LemonSqueezyEventBase {
   event: 'Checkout.Success';
   data: {
-    id: string;
+    data: CheckoutSuccessData;
     [key: string]: unknown;
   };
 }
@@ -61,6 +66,24 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const buttonRef = useRef<HTMLDivElement>(null);
     const buttonId = `lemonsqueezy-button-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
+    const handleLemonSqueezyEvent = (data: LemonSqueezyEvent) => {
+        if (data.event === 'Checkout.Success') {
+            console.log('Purchase successful!', data);
+            if (onSuccess && data.data && typeof data.data === 'object' && 
+                'data' in data.data && data.data.data && 
+                typeof data.data.data === 'object' && 'id' in data.data.data) {
+                onSuccess(data.data.data.id);
+            }
+        }
+        
+        if (data.event === 'Checkout.Closed') {
+            console.log('Checkout closed without purchase');
+            if (onCancel) {
+                onCancel();
+            }
+        }
+    };
+
     useEffect(() => {
         // Add LemonSqueezy script if it doesn't exist
         if (!document.getElementById('lemonsqueezy-script')) {
@@ -78,22 +101,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 
                 if (window.LemonSqueezy) {
                     window.LemonSqueezy.setup({
-                        eventHandler: (data: LemonSqueezyEvent) => {
-                            // Handle events
-                            if (data.event === 'Checkout.Success') {
-                                console.log('Purchase successful!', data);
-                                if (onSuccess) {
-                                    onSuccess(data.data.id);
-                                }
-                            }
-                            
-                            if (data.event === 'Checkout.Closed') {
-                                console.log('Checkout closed without purchase');
-                                if (onCancel) {
-                                    onCancel();
-                                }
-                            }
-                        }
+                        eventHandler: handleLemonSqueezyEvent
                     });
                 }
             };
@@ -102,21 +110,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         } else if (window.LemonSqueezy) {
             // If script already exists, just setup the event handler
             window.LemonSqueezy.setup({
-                eventHandler: (data: LemonSqueezyEvent) => {
-                    if (data.event === 'Checkout.Success') {
-                        console.log('Purchase successful!', data);
-                        if (onSuccess) {
-                            onSuccess(data.data.id);
-                        }
-                    }
-                    
-                    if (data.event === 'Checkout.Closed') {
-                        console.log('Checkout closed without purchase');
-                        if (onCancel) {
-                            onCancel();
-                        }
-                    }
-                }
+                eventHandler: handleLemonSqueezyEvent
             });
         }
     }, [onSuccess, onCancel]);
