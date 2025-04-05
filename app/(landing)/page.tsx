@@ -7,20 +7,21 @@ import VideoComponent from "@/components/landing-video";
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
+
 const LandingPage = () => {
   const { user } = useUser();
   const router = useRouter();
-
+  
   const handleSuccess = (paymentId: string) => {
     console.log("Payment successful, reference:", paymentId);
     router.push("/sign-up");
   };
-
+  
   const handleCancel = () => {
     console.log("Payment was canceled");
     // Handle cancellation logic if needed
   };
-
+  
   return (
     <VirtualizedWrapper>
       <div className="min-h-screen bg-gray-950">
@@ -28,7 +29,7 @@ const LandingPage = () => {
         <section className="py-16">
           <LandingHero />
         </section>
-        {/* Video Section 
+       
         <section className="-mt-8 w-full py-12">
           <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
             See how it works
@@ -38,8 +39,8 @@ const LandingPage = () => {
           </div>
         </section>
         <FeaturesSection />
-        /}
-        {/ Pricing Section */}
+        
+        {/* Pricing Section */}
         <section className="max-w-4xl mx-auto px-4 py-20">
           <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
             Choose Your Plan
@@ -47,8 +48,8 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <PricingCard
               title="1-year access"
-              originalPrice="$150"
-              price="$99"
+              originalPrice="$50"
+              price="$25"
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
@@ -71,4 +72,5 @@ const LandingPage = () => {
     </VirtualizedWrapper>
   );
 };
+
 export default LandingPage;
