@@ -4,9 +4,23 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// PayPal interfaces
+// PayPal interfaces for Subscriptions
 interface PayPalButtonConfig {
-    createOrder: (data: unknown, actions: {
+    createSubscription?: (data: unknown, actions: {
+        subscription: {
+            create: (details: {
+                plan_id: string;
+                custom_id?: string;
+                application_context?: {
+                    shipping_preference: string;
+                    user_action: string;
+                    return_url: string;
+                    cancel_url: string;
+                };
+            }) => Promise<string>
+        }
+    }) => Promise<string>;
+    createOrder?: (data: unknown, actions: {
         order: {
             create: (details: {
                 purchase_units: Array<{
@@ -20,18 +34,7 @@ interface PayPalButtonConfig {
             }) => Promise<string>
         }
     }) => Promise<string>;
-    onApprove: (data: unknown, actions: {
-        order: {
-            capture: () => Promise<{
-                payer: {
-                    name: {
-                        given_name: string;
-                    }
-                }
-                id: string;
-            }>
-        }
-    }) => Promise<void>;
+    onApprove: (data: unknown, actions: any) => Promise<void>;
     onCancel: () => void;
     onError: (err: Error) => void;
 }
@@ -47,6 +50,9 @@ declare global {
     }
 }
 
+// Plan Types
+type PlanType = 'MONTHLY' | 'YEARLY' | 'ONE_TIME';
+
 // PricingCard Props Interface
 interface PricingCardProps {
     title: string;
@@ -55,7 +61,9 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    onSuccess?: (paymentId: string) => void;
+    planType: PlanType;
+    planId?: string; // PayPal subscription plan ID
+    onSuccess?: (subscriptionId: string) => void;
     onCancel?: () => void;
 }
 
@@ -66,6 +74,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     storage,
     users, 
     sendUp,
+    planType,
+    planId,
     onSuccess,
     onCancel
 }) => {
@@ -77,10 +87,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
     useEffect(() => {
-        // Dynamically load PayPal script (only once)
+        // Dynamically load PayPal script with subscription capability
         if (!window.paypal) {
             const script = document.createElement("script");
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+            // Add vault=true for subscriptions and intent=subscription
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&intent=subscription&vault=true`;
             script.async = true;
             
             script.onload = () => {
@@ -136,15 +147,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             closePayPalModal();
             return;
         }
-        
-        // Parse the price
-        const numericPrice = price.replace(/[^0-9.-]+/g, "");
-        const amount = parseFloat(numericPrice);
-
-        if (isNaN(amount)) {
-            console.error("Invalid price format:", price);
-            return;
-        }
 
         // Clear any existing buttons in the container
         const container = document.getElementById(`paypal-button-${modalContainerId}`);
@@ -153,39 +155,96 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }
 
         try {
-            const paypalButtons = window.paypal.Buttons({
-                createOrder: (_, actions) => {
-                    return actions.order.create({
-                        purchase_units: [{
-                            amount: {
-                                value: amount.toFixed(2),
-                                currency_code: "USD"
-                            },
-                            description: `${title} - ${storage}`
-                        }]
-                    });
-                },
-                onApprove: (_, actions) => {
-                    return actions.order.capture().then((details) => {
-                        console.log("Transaction completed by " + details.payer.name.given_name);
+            let paypalButtonConfig: PayPalButtonConfig;
+
+            if (planType === 'ONE_TIME') {
+                // One-time payment logic (existing)
+                const numericPrice = price.replace(/[^0-9.-]+/g, "");
+                const amount = parseFloat(numericPrice);
+
+                if (isNaN(amount)) {
+                    console.error("Invalid price format:", price);
+                    return;
+                }
+
+                paypalButtonConfig = {
+                    createOrder: (_, actions) => {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: {
+                                    value: amount.toFixed(2),
+                                    currency_code: "USD"
+                                },
+                                description: `${title} - ${storage}`
+                            }]
+                        });
+                    },
+                    onApprove: (_, actions) => {
+                        return actions.order.capture().then((details: any) => {
+                            console.log("Transaction completed by " + details.payer.name.given_name);
+                            
+                            // Close the modal
+                            setShowPayPalModal(false);
+                            
+                            // Notify parent component of success
+                            onSuccess?.(details.id);
+                            router.push("/sign-up");
+                        });
+                    },
+                    onCancel: () => {
+                        console.log("Transaction was canceled");
+                        closePayPalModal();
+                    },
+                    onError: (err) => {
+                        console.error("PayPal Error:", err);
+                        closePayPalModal();
+                    }
+                };
+            } else {
+                // Subscription payment logic
+                if (!planId) {
+                    console.error("Plan ID is required for subscriptions");
+                    closePayPalModal();
+                    return;
+                }
+
+                paypalButtonConfig = {
+                    createSubscription: (_, actions) => {
+                        return actions.subscription.create({
+                            plan_id: planId,
+                            application_context: {
+                                shipping_preference: "NO_SHIPPING",
+                                user_action: "SUBSCRIBE_NOW",
+                                return_url: window.location.href,
+                                cancel_url: window.location.href
+                            }
+                        });
+                    },
+                    onApprove: (data) => {
+                        // Subscription was approved
+                        console.log("Subscription approved: ", data);
                         
                         // Close the modal
                         setShowPayPalModal(false);
                         
-                        // Notify parent component of success
-                        onSuccess?.(details.id);
+                        // Notify parent component of success with the subscription ID
+                        onSuccess?.(data.subscriptionID);
                         router.push("/sign-up");
-                    });
-                },
-                onCancel: () => {
-                    console.log("Transaction was canceled");
-                    closePayPalModal();
-                },
-                onError: (err) => {
-                    console.error("PayPal Error:", err);
-                    closePayPalModal();
-                }
-            });
+                        
+                        return Promise.resolve();
+                    },
+                    onCancel: () => {
+                        console.log("Subscription was canceled");
+                        closePayPalModal();
+                    },
+                    onError: (err) => {
+                        console.error("PayPal Error:", err);
+                        closePayPalModal();
+                    }
+                };
+            }
+
+            const paypalButtons = window.paypal.Buttons(paypalButtonConfig);
             
             if (paypalButtons && typeof paypalButtons.render === 'function') {
                 paypalButtons.render(`#paypal-button-${modalContainerId}`);
@@ -195,6 +254,17 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         } catch (error) {
             console.error("Error setting up PayPal buttons:", error);
             closePayPalModal();
+        }
+    };
+
+    const getPlanTypeLabel = () => {
+        switch (planType) {
+            case 'MONTHLY':
+                return 'per month';
+            case 'YEARLY':
+                return 'per year';
+            default:
+                return '';
         }
     };
 
@@ -214,10 +284,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 </button>
                 
                 <div className="mb-8 pt-2">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4">Complete Your Payment</h3>
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">Complete Your {planType !== 'ONE_TIME' ? 'Subscription' : 'Payment'}</h3>
                     <div className="text-center mb-4">
                         <h4 className="font-bold text-lg">{title}</h4>
-                        <p className="text-2xl font-bold">{price}</p>
+                        <p className="text-2xl font-bold">
+                            {price} {planType !== 'ONE_TIME' && <span className="text-sm font-normal">{getPlanTypeLabel()}</span>}
+                        </p>
                     </div>
                 </div>
                 
@@ -246,7 +318,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                                     {originalPrice}
                                 </span>
                             )}
-                            <p className="text-4xl font-extrabold text-white">{price}</p>
+                            <div className="text-center">
+                                <p className="text-4xl font-extrabold text-white">{price}</p>
+                                {planType !== 'ONE_TIME' && 
+                                    <p className="text-sm text-gray-400">{getPlanTypeLabel()}</p>
+                                }
+                            </div>
                         </div>
                     </header>
 
@@ -263,10 +340,11 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     <div className="w-full">
                         <button 
                             onClick={openPayPalModal}
-                            disabled={!isPayPalReady}
+                            disabled={!isPayPalReady || (planType !== 'ONE_TIME' && !planId)}
                             className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
                         >
-                            {!isPayPalReady ? "Loading..." : "Get Started Now"}
+                            {!isPayPalReady ? "Loading..." : 
+                             (planType !== 'ONE_TIME' && !planId) ? "Plan ID Required" : "Get Started Now"}
                         </button>
                     </div>
                 </div>
