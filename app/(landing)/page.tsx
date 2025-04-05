@@ -48,8 +48,8 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <PricingCard
               title="1-year access"
-              originalPrice="$50"
-              price="$25"
+              originalPrice="$150"
+              price="$99"
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
