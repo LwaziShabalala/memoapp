@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import PricingCard from "../../../components/ui/pricingcard";
+import { useRouter } from "next/navigation";
 
 const PaymentWall = () => {
     const { isLoaded } = useUser();
     const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
     
     useEffect(() => {
         if (isLoaded) {
@@ -13,12 +15,9 @@ const PaymentWall = () => {
         }
     }, [isLoaded]);
     
-    const handleSuccess = (reference: string) => {
-        console.log("Payment successful, reference:", reference);
-        // Here you can implement additional logic like:
-        // - Storing the payment information in your database
-        // - Redirecting to a thank you page
-        // - Updating user permissions/access
+    const handleSuccess = (paymentId: string) => {
+        console.log("Payment successful, reference:", paymentId);
+        router.push("/sign-up"); // Redirect to sign-up page after successful purchase
     };
     
     const handleCancel = () => {
@@ -49,7 +48,7 @@ const PaymentWall = () => {
                         storage="Join now and get early access to exclusive updates and features."
                         users="Be among the first to experience advanced transcription tools and AI-powered features!"
                         sendUp={true}
-                        gumroadProductId="YOUR_1YEAR_PRODUCT_ID" // Replace with your actual Gumroad product ID
+                        checkoutUrl="https://memoapp.lemonsqueezy.com/buy/816dd08c-0bca-4533-9d49-4f9a80793135?embed=1"
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
                     />
@@ -62,7 +61,7 @@ const PaymentWall = () => {
                         storage="Secure lifetime access with exclusive perks and continuous updates."
                         users="Enjoy permanent access to new features, including priority support and more!"
                         sendUp={true}
-                        gumroadProductId="YOUR_LIFETIME_PRODUCT_ID" // Replace with your actual Gumroad product ID
+                        checkoutUrl="YOUR_LIFETIME_CHECKOUT_URL" // Replace with your lifetime checkout URL
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
                     />
