@@ -1,69 +1,108 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import PricingCard from "../../../components/ui/pricingcard";
-const PaymentWall = () => {
-    const { isLoaded } = useUser();
-    const [isLoading, setIsLoading] = useState(true);
+
+import React, { useEffect, useRef } from "react";
+import "../../app/styles/styles.css";
+
+interface PricingCardProps {
+    title: string;
+    price: string;
+    originalPrice?: string;
+    storage: string;
+    users: string;
+    sendUp: boolean;
+    gumroadProductId: string; // New prop for Gumroad product ID
+    onSuccess?: (paymentId: string) => void;
+    onCancel?: () => void;
+}
+
+export const PricingCard: React.FC<PricingCardProps> = ({
+    title,
+    price,
+    originalPrice,
+    storage,
+    users, 
+    sendUp,
+    gumroadProductId,
+    onSuccess,
+    onCancel
+}) => {
+    const gumroadButtonRef = useRef<HTMLDivElement>(null);
+    const buttonId = `gumroad-button-${title.replace(/\s+/g, '-').toLowerCase()}`;
+
     useEffect(() => {
-        if (isLoaded) {
-            setIsLoading(false);
+        // Add Gumroad script if it doesn't exist
+        if (!document.getElementById('gumroad-script')) {
+            const script = document.createElement("script");
+            script.src = "https://gumroad.com/js/gumroad.js";
+            script.async = true;
+            script.id = "gumroad-script";
+            document.body.appendChild(script);
+            
+            // Initialize Gumroad after script is loaded
+            script.onload = () => {
+                if (window.GumroadOverlay) {
+                    // Initialize Gumroad overlay functionality
+                    window.GumroadOverlay.init();
+                }
+            };
+        } else if (window.GumroadOverlay) {
+            // If script already exists, just initialize
+            window.GumroadOverlay.init();
         }
-    }, [isLoaded]);
-    const handleSuccess = (reference: string) => {
-        console.log("Payment successful, reference:", reference);
-        // Here you can implement additional logic like:
-        // - Storing the payment information in your database
-        // - Redirecting to a thank you page
-        // - Updating user permissions/access
-    };
-    const handleCancel = () => {
-        console.log("Payment was canceled");
-        // Handle cancellation logic if needed
-    };
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-            </div>
-        );
+    }, []);
+
+    // Define the type for the GumroadOverlay object
+    declare global {
+        interface Window {
+            GumroadOverlay?: {
+                init: () => void;
+            }
+        }
     }
+
     return (
-        <div className="text-center py-20 space-y-8">
-            <h1 className="text-4xl font-bold text-gray-800">Choose Your Payment Option</h1>
-            <p className="text-xl text-gray-600">
-                Please choose one of the following payment options to proceed.
-            </p>
-            <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                <div className="flex flex-col h-full">
-                    <PricingCard
-                        title="1-year access"
-                        originalPrice="$50"
-                        price="$25"
-                        storage="Join now and get early access to exclusive updates and features."
-                        users="Be among the first to experience advanced transcription tools and AI-powered features!"
-                        sendUp={true}
-                        onSuccess={handleSuccess}
-                        onCancel={handleCancel}
-                    />
+        <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
+
+            <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
+                <header className="text-center space-y-4">
+                    <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                        {title}
+                    </h2>
+                    <div className="flex items-center justify-center gap-4">
+                        {originalPrice && (
+                            <span className="text-xl text-gray-400 line-through">
+                                {originalPrice}
+                            </span>
+                        )}
+                        <p className="text-4xl font-extrabold text-white">{price}</p>
+                    </div>
+                </header>
+
+                <div className="space-y-4 text-base text-gray-300">
+                    <p className="leading-relaxed">{storage}</p>
+                    <p className="leading-relaxed text-sm text-gray-400">{users}</p>
+                    {sendUp && title !== "1 Year Access" && (
+                        <p className="leading-relaxed">
+                            Exclusive features and priority updates coming soon!
+                        </p>
+                    )}
                 </div>
-                <div className="flex flex-col h-full">
-                    <PricingCard
-                        title="Lifetime Access"
-                        originalPrice="$150"
-                        price="$50"
-                        storage="Secure lifetime access with exclusive perks and continuous updates."
-                        users="Enjoy permanent access to new features, including priority support and more!"
-                        sendUp={true}
-                        onSuccess={handleSuccess}
-                        onCancel={handleCancel}
-                    />
+
+                <div ref={gumroadButtonRef} className="w-full">
+                    <a 
+                        id={buttonId}
+                        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg flex items-center justify-center cursor-pointer"
+                        href={`https://gumroad.com/l/${gumroadProductId}`}
+                        data-gumroad-overlay="true"
+                        data-gumroad-single-product="true"
+                    >
+                        Get Started Now
+                    </a>
                 </div>
             </div>
-            <p className="text-sm text-gray-400 mt-8">
-                By selecting a plan, you agree to our terms of service and privacy policy.
-            </p>
         </div>
     );
 };
-export default PaymentWall;
+
+export default PricingCard;
