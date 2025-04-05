@@ -1,45 +1,57 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// Define types for LemonSqueezy object
-declare global {
-  interface Window {
-    createLemonSqueezy?: () => void;
-    LemonSqueezy?: {
-      setup: (options?: { eventHandler?: (data: LemonSqueezyEvent) => void }) => void;
-      Url: {
-        open: (url: string) => void;
-      };
+// Detailed type definition for PayPal
+interface PayPalButtonConfig {
+    createOrder: (data: unknown, actions: {
+        order: {
+            create: (details: {
+                purchase_units: Array<{
+                    amount: {
+                        value: string;
+                        currency_code: string;
+                    };
+                    description?: string;
+                    custom_id?: string;
+                }>
+            }) => Promise<string>
+        }
+    }) => Promise<string>;
+    onApprove: (data: unknown, actions: {
+        order: {
+            capture: () => Promise<{
+                payer: {
+                    name: {
+                        given_name: string;
+                    }
+                }
+                id: string;
+            }>
+        }
+    }) => Promise<void>;
+    onCancel: () => void;
+    onError: (err: Error) => void;
+}
+
+interface PayPalButtons {
+    (config: PayPalButtonConfig): {
+        render: (selector: string) => Promise<void>
     }
-  }
 }
 
-// Define specific types for LemonSqueezy events
-interface LemonSqueezyEventBase {
-  event: string;
+// Declare global interface augmentation for window
+declare global {
+    interface Window {
+        paypal?: {
+            Buttons: PayPalButtons
+        }
+    }
 }
 
-interface CheckoutSuccessData {
-  id: string;
-  [key: string]: unknown;
-}
-
-interface CheckoutSuccessEvent extends LemonSqueezyEventBase {
-  event: 'Checkout.Success';
-  data: {
-    data: CheckoutSuccessData;
-    [key: string]: unknown;
-  };
-}
-
-interface CheckoutClosedEvent extends LemonSqueezyEventBase {
-  event: 'Checkout.Closed';
-}
-
-type LemonSqueezyEvent = CheckoutSuccessEvent | CheckoutClosedEvent | (LemonSqueezyEventBase & { [key: string]: unknown });
-
+// PricingCard Props Interface - email removed
 interface PricingCardProps {
     title: string;
     price: string;
@@ -47,7 +59,6 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    checkoutUrl: string; // LemonSqueezy checkout URL
     onSuccess?: (paymentId: string) => void;
     onCancel?: () => void;
 }
@@ -59,63 +70,99 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     storage,
     users, 
     sendUp,
-    checkoutUrl,
     onSuccess,
     onCancel
 }) => {
-    const buttonRef = useRef<HTMLDivElement>(null);
-    const buttonId = `lemonsqueezy-button-${title.replace(/\s+/g, '-').toLowerCase()}`;
+    const [isPayPalReady, setIsPayPalReady] = useState(false);
+    const router = useRouter();
+    const paypalButtonRef = useRef<boolean>(false);
 
-    const handleLemonSqueezyEvent = (data: LemonSqueezyEvent) => {
-        if (data.event === 'Checkout.Success') {
-            console.log('Purchase successful!', data);
-            if (onSuccess && 'data' in data && data.data && typeof data.data === 'object' && 
-                'data' in data.data && data.data.data && 
-                typeof data.data.data === 'object' && 'id' in data.data.data) {
-                // Convert id to string to ensure type safety
-                const paymentId = String(data.data.data.id);
-                onSuccess(paymentId);
-            }
-        }
-        
-        if (data.event === 'Checkout.Closed') {
-            console.log('Checkout closed without purchase');
-            if (onCancel) {
-                onCancel();
-            }
-        }
-    };
+    // Generate a unique ID for each card's PayPal button container
+    const paypalContainerId = `paypal-button-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
     useEffect(() => {
-        // Add LemonSqueezy script if it doesn't exist
-        if (!document.getElementById('lemonsqueezy-script')) {
+        // Dynamically load PayPal script (only once)
+        if (!window.paypal) {
             const script = document.createElement("script");
-            script.src = "https://assets.lemonsqueezy.com/lemon.js";
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
             script.async = true;
-            script.defer = true;
-            script.id = "lemonsqueezy-script";
-            
-            // Setup LemonSqueezy after script loads
+            script.id = "paypal-script"; // Add an ID for easier reference
+
             script.onload = () => {
-                if (window.createLemonSqueezy) {
-                    window.createLemonSqueezy();
-                }
-                
-                if (window.LemonSqueezy) {
-                    window.LemonSqueezy.setup({
-                        eventHandler: handleLemonSqueezyEvent
-                    });
+                if (window.paypal?.Buttons) {
+                    setIsPayPalReady(true);
                 }
             };
-            
+
             document.body.appendChild(script);
-        } else if (window.LemonSqueezy) {
-            // If script already exists, just setup the event handler
-            window.LemonSqueezy.setup({
-                eventHandler: handleLemonSqueezyEvent
-            });
+
+            // No cleanup function - we want PayPal to stay loaded
+            // This avoids the "removeChild" error
+        } else {
+            // If PayPal script is already loaded
+            setIsPayPalReady(true);
         }
-    }, [onSuccess, onCancel]);
+    }, []);
+
+    const payWithPayPal = () => {
+        // Prevent multiple button renders
+        if (!isPayPalReady || !window.paypal?.Buttons || paypalButtonRef.current) return;
+
+        // Parse the price - handle both $ and R currency symbols
+        const numericPrice = price.replace(/[^0-9.-]+/g, "");
+        const amount = parseFloat(numericPrice);
+
+        if (isNaN(amount)) {
+            console.error("Invalid price format:", price);
+            return;
+        }
+
+        // Clear any existing buttons in the container
+        const container = document.getElementById(paypalContainerId);
+        if (container) {
+            container.innerHTML = '';
+        }
+
+        try {
+            window.paypal.Buttons({
+                createOrder: (_, actions) => {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: amount.toFixed(2),
+                                currency_code: "USD"
+                            },
+                            description: `${title} - ${storage}`
+                        }]
+                    });
+                },
+                onApprove: (_, actions) => {
+                    return actions.order.capture().then((details) => {
+                        console.log("Transaction completed by " + details.payer.name.given_name);
+                        
+                        onSuccess?.(details.id);
+                        router.push("/sign-up");
+                    });
+                },
+                onCancel: () => {
+                    console.log("Transaction was canceled");
+                    paypalButtonRef.current = false;
+                    onCancel?.();
+                },
+                onError: (err) => {
+                    console.error("PayPal Error:", err);
+                    paypalButtonRef.current = false;
+                    onCancel?.();
+                }
+            }).render(`#${paypalContainerId}`);
+
+            // Mark as rendered
+            paypalButtonRef.current = true;
+        } catch (error) {
+            console.error("Error setting up PayPal buttons:", error);
+            paypalButtonRef.current = false;
+        }
+    };
 
     return (
         <div className="relative group">
@@ -146,14 +193,25 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     )}
                 </div>
 
-                <div ref={buttonRef} className="w-full">
-                    <a 
-                        id={buttonId}
-                        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg flex items-center justify-center cursor-pointer lemonsqueezy-button"
-                        href={checkoutUrl}
-                    >
-                        Get Started Now
-                    </a>
+                <div 
+                    id={paypalContainerId} 
+                    className="w-full"
+                    onClick={payWithPayPal}
+                >
+                    {!isPayPalReady ? (
+                        <button 
+                            disabled 
+                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
+                        >
+                            Loading...
+                        </button>
+                    ) : (
+                        <button 
+                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
+                        >
+                            Get Started Now
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
