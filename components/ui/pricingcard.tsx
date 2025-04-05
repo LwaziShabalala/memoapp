@@ -1,57 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useRef } from "react";
 import "../../app/styles/styles.css";
 
-// Detailed type definition for PayPal
-interface PayPalButtonConfig {
-    createOrder: (data: unknown, actions: {
-        order: {
-            create: (details: {
-                purchase_units: Array<{
-                    amount: {
-                        value: string;
-                        currency_code: string;
-                    };
-                    description?: string;
-                    custom_id?: string;
-                }>
-            }) => Promise<string>
-        }
-    }) => Promise<string>;
-    onApprove: (data: unknown, actions: {
-        order: {
-            capture: () => Promise<{
-                payer: {
-                    name: {
-                        given_name: string;
-                    }
-                }
-                id: string;
-            }>
-        }
-    }) => Promise<void>;
-    onCancel: () => void;
-    onError: (err: Error) => void;
-}
-
-interface PayPalButtons {
-    (config: PayPalButtonConfig): {
-        render: (selector: string) => Promise<void>
-    }
-}
-
-// Declare global interface augmentation for window
-declare global {
-    interface Window {
-        paypal?: {
-            Buttons: PayPalButtons
-        }
-    }
-}
-
-// PricingCard Props Interface - email removed
 interface PricingCardProps {
     title: string;
     price: string;
@@ -59,6 +10,7 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
+    gumroadProductId: string; // New prop for Gumroad product ID
     onSuccess?: (paymentId: string) => void;
     onCancel?: () => void;
 }
@@ -70,99 +22,43 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     storage,
     users, 
     sendUp,
+    gumroadProductId,
     onSuccess,
     onCancel
 }) => {
-    const [isPayPalReady, setIsPayPalReady] = useState(false);
-    const router = useRouter();
-    const paypalButtonRef = useRef<boolean>(false);
-
-    // Generate a unique ID for each card's PayPal button container
-    const paypalContainerId = `paypal-button-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
+    const gumroadButtonRef = useRef<HTMLDivElement>(null);
+    const buttonId = `gumroad-button-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
     useEffect(() => {
-        // Dynamically load PayPal script (only once)
-        if (!window.paypal) {
+        // Add Gumroad script if it doesn't exist
+        if (!document.getElementById('gumroad-script')) {
             const script = document.createElement("script");
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+            script.src = "https://gumroad.com/js/gumroad.js";
             script.async = true;
-            script.id = "paypal-script"; // Add an ID for easier reference
-
+            script.id = "gumroad-script";
+            document.body.appendChild(script);
+            
+            // Initialize Gumroad after script is loaded
             script.onload = () => {
-                if (window.paypal?.Buttons) {
-                    setIsPayPalReady(true);
+                if (window.GumroadOverlay) {
+                    // Initialize Gumroad overlay functionality
+                    window.GumroadOverlay.init();
                 }
             };
-
-            document.body.appendChild(script);
-
-            // No cleanup function - we want PayPal to stay loaded
-            // This avoids the "removeChild" error
-        } else {
-            // If PayPal script is already loaded
-            setIsPayPalReady(true);
+        } else if (window.GumroadOverlay) {
+            // If script already exists, just initialize
+            window.GumroadOverlay.init();
         }
     }, []);
 
-    const payWithPayPal = () => {
-        // Prevent multiple button renders
-        if (!isPayPalReady || !window.paypal?.Buttons || paypalButtonRef.current) return;
-
-        // Parse the price - handle both $ and R currency symbols
-        const numericPrice = price.replace(/[^0-9.-]+/g, "");
-        const amount = parseFloat(numericPrice);
-
-        if (isNaN(amount)) {
-            console.error("Invalid price format:", price);
-            return;
+    // Define the type for the GumroadOverlay object
+    declare global {
+        interface Window {
+            GumroadOverlay?: {
+                init: () => void;
+            }
         }
-
-        // Clear any existing buttons in the container
-        const container = document.getElementById(paypalContainerId);
-        if (container) {
-            container.innerHTML = '';
-        }
-
-        try {
-            window.paypal.Buttons({
-                createOrder: (_, actions) => {
-                    return actions.order.create({
-                        purchase_units: [{
-                            amount: {
-                                value: amount.toFixed(2),
-                                currency_code: "USD"
-                            },
-                            description: `${title} - ${storage}`
-                        }]
-                    });
-                },
-                onApprove: (_, actions) => {
-                    return actions.order.capture().then((details) => {
-                        console.log("Transaction completed by " + details.payer.name.given_name);
-                        
-                        onSuccess?.(details.id);
-                        router.push("/sign-up");
-                    });
-                },
-                onCancel: () => {
-                    console.log("Transaction was canceled");
-                    paypalButtonRef.current = false;
-                    onCancel?.();
-                },
-                onError: (err) => {
-                    console.error("PayPal Error:", err);
-                    paypalButtonRef.current = false;
-                    onCancel?.();
-                }
-            }).render(`#${paypalContainerId}`);
-
-            // Mark as rendered
-            paypalButtonRef.current = true;
-        } catch (error) {
-            console.error("Error setting up PayPal buttons:", error);
-            paypalButtonRef.current = false;
-        }
-    };
+    }
 
     return (
         <div className="relative group">
@@ -193,25 +89,16 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                     )}
                 </div>
 
-                <div 
-                    id={paypalContainerId} 
-                    className="w-full"
-                    onClick={payWithPayPal}
-                >
-                    {!isPayPalReady ? (
-                        <button 
-                            disabled 
-                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
-                        >
-                            Loading...
-                        </button>
-                    ) : (
-                        <button 
-                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg"
-                        >
-                            Get Started Now
-                        </button>
-                    )}
+                <div ref={gumroadButtonRef} className="w-full">
+                    <a 
+                        id={buttonId}
+                        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg flex items-center justify-center cursor-pointer"
+                        href={`https://gumroad.com/l/${gumroadProductId}`}
+                        data-gumroad-overlay="true"
+                        data-gumroad-single-product="true"
+                    >
+                        Get Started Now
+                    </a>
                 </div>
             </div>
         </div>
