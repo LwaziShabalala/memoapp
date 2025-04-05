@@ -2,28 +2,25 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import PricingCard from "../../../components/ui/pricingcard";
-
 const PaymentWall = () => {
     const { isLoaded } = useUser();
     const [isLoading, setIsLoading] = useState(true);
-    
     useEffect(() => {
         if (isLoaded) {
             setIsLoading(false);
         }
     }, [isLoaded]);
-    
     const handleSuccess = (reference: string) => {
         console.log("Payment successful, reference:", reference);
-        // With Gumroad, these callbacks won't be called automatically
-        // They're kept for potential future use with webhooks
+        // Here you can implement additional logic like:
+        // - Storing the payment information in your database
+        // - Redirecting to a thank you page
+        // - Updating user permissions/access
     };
-    
     const handleCancel = () => {
         console.log("Payment was canceled");
-        // This won't be called automatically with Gumroad
+        // Handle cancellation logic if needed
     };
-    
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -31,7 +28,6 @@ const PaymentWall = () => {
             </div>
         );
     }
-    
     return (
         <div className="text-center py-20 space-y-8">
             <h1 className="text-4xl font-bold text-gray-800">Choose Your Payment Option</h1>
@@ -49,7 +45,6 @@ const PaymentWall = () => {
                         sendUp={true}
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
-                        gumroadUrl="https://your-username.gumroad.com/l/your-yearly-product" // Replace with your actual Gumroad yearly product URL
                     />
                 </div>
                 <div className="flex flex-col h-full">
@@ -62,7 +57,6 @@ const PaymentWall = () => {
                         sendUp={true}
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
-                        gumroadUrl="https://your-username.gumroad.com/l/your-lifetime-product" // Replace with your actual Gumroad lifetime product URL
                     />
                 </div>
             </div>
@@ -72,5 +66,4 @@ const PaymentWall = () => {
         </div>
     );
 };
-
 export default PaymentWall;
