@@ -48,7 +48,6 @@ const PaymentWall = () => {
                         storage="Join now and get early access to exclusive updates and features."
                         users="Be among the first to experience advanced transcription tools and AI-powered features!"
                         sendUp={true}
-                        checkoutUrl="https://memoapp.lemonsqueezy.com/buy/816dd08c-0bca-4533-9d49-4f9a80793135?embed=1"
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
                     />
@@ -61,7 +60,6 @@ const PaymentWall = () => {
                         storage="Secure lifetime access with exclusive perks and continuous updates."
                         users="Enjoy permanent access to new features, including priority support and more!"
                         sendUp={true}
-                        checkoutUrl="YOUR_LIFETIME_CHECKOUT_URL" // Replace with your lifetime checkout URL
                         onSuccess={handleSuccess}
                         onCancel={handleCancel}
                     />
