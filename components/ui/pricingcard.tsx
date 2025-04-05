@@ -3,6 +3,15 @@
 import React, { useEffect, useRef } from "react";
 import "../../app/styles/styles.css";
 
+// Define the type for the GumroadOverlay object outside the component
+declare global {
+  interface Window {
+    GumroadOverlay?: {
+      init: () => void;
+    }
+  }
+}
+
 interface PricingCardProps {
     title: string;
     price: string;
@@ -50,15 +59,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             window.GumroadOverlay.init();
         }
     }, []);
-
-    // Define the type for the GumroadOverlay object
-    declare global {
-        interface Window {
-            GumroadOverlay?: {
-                init: () => void;
-            }
-        }
-    }
 
     return (
         <div className="relative group">
