@@ -40,7 +40,13 @@ interface PayPalButtonConfig {
     }) => Promise<void>;
     onCancel: () => void;
     onError: (err: Error) => void;
-    fundingSource?: string;
+    style?: {
+        layout?: string;
+        color?: string;
+        shape?: string;
+        label?: string;
+        height?: number;
+    };
 }
 
 // Declare global interface augmentation for window
@@ -49,10 +55,6 @@ declare global {
         paypal?: {
             Buttons: (config: PayPalButtonConfig) => {
                 render: (selector: string) => Promise<void>
-            },
-            FUNDING: {
-                CARD: string;
-                PAYPAL: string;
             }
         }
     }
@@ -87,24 +89,21 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
     useEffect(() => {
-        // Clean up any existing PayPal scripts to avoid conflicts
-        const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
-        if (existingScript) {
-            existingScript.remove();
+        if (!window.paypal) {
+            const script = document.createElement("script");
+            // Add commit=true parameter to force PayPal to use the redirected flow
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&commit=true`;
+            script.async = true;
+            script.onload = () => {
+                if (window.paypal?.Buttons) {
+                    setIsPayPalReady(true);
+                }
+            };
+            document.body.appendChild(script);
+        } else {
+            setIsPayPalReady(true);
         }
-        
-        // Add the script with parameters that force redirect
-        const script = document.createElement("script");
-        script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&commit=true&components=buttons,funding-eligibility`;
-        script.async = true;
-        script.onload = () => {
-            if (window.paypal?.Buttons) {
-                setIsPayPalReady(true);
-            }
-        };
-        document.body.appendChild(script);
 
-        // Event handlers
         const handleEscKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape' && showPayPalModal) {
                 closePayPalModal();
@@ -152,9 +151,15 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }
 
         try {
-            // Force card funding source to guarantee redirect
             window.paypal!.Buttons({
-                fundingSource: window.paypal?.FUNDING?.CARD,
+                // Style configuration to show the debit/credit card button prominently
+                style: {
+                    layout: 'vertical',  // vertical layout shows all payment options
+                    color: 'blue',
+                    shape: 'rect',
+                    label: 'paypal',
+                    height: 45
+                },
                 createOrder: (_, actions) => {
                     return actions.order.create({
                         purchase_units: [{
@@ -164,11 +169,10 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                             },
                             description: `${title} - ${storage}`
                         }],
+                        // This configuration forces PayPal to use the redirect flow
                         application_context: {
                             shipping_preference: 'NO_SHIPPING',
-                            user_action: 'PAY_NOW', // This encourages redirect
-                            return_url: `${window.location.origin}/sign-up`,
-                            cancel_url: window.location.href
+                            user_action: 'CONTINUE', // Prompts the user to click the "Continue" button
                         }
                     });
                 },
@@ -214,7 +218,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         <h4 className="font-bold text-lg">{title}</h4>
                         <p className="text-2xl font-bold">{price}</p>
                     </div>
-                    <p className="text-center text-gray-500 mb-4">Click "Debit or Credit Card" below to continue to PayPal's secure checkout page</p>
                 </div>
 
                 <div id={`paypal-button-${modalContainerId}`} className="w-full overflow-visible" style={{ minHeight: '200px' }}></div>
