@@ -17,6 +17,12 @@ interface PayPalButtonConfig {
                     description?: string;
                     custom_id?: string;
                 }>
+                application_context?: {
+                    shipping_preference?: string;
+                    user_action?: string;
+                    return_url?: string;
+                    cancel_url?: string;
+                }
             }) => Promise<string>
         }
     }) => Promise<string>;
@@ -34,6 +40,13 @@ interface PayPalButtonConfig {
     }) => Promise<void>;
     onCancel: () => void;
     onError: (err: Error) => void;
+    style?: {
+        layout?: string;
+        color?: string;
+        shape?: string;
+        label?: string;
+        height?: number;
+    };
 }
 
 // Declare global interface augmentation for window
@@ -78,7 +91,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     useEffect(() => {
         if (!window.paypal) {
             const script = document.createElement("script");
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD`;
+            // Add commit=true parameter to force PayPal to use the redirected flow
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&commit=true`;
             script.async = true;
             script.onload = () => {
                 if (window.paypal?.Buttons) {
@@ -138,6 +152,14 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
         try {
             window.paypal!.Buttons({
+                // Style configuration to show the debit/credit card button prominently
+                style: {
+                    layout: 'vertical',  // vertical layout shows all payment options
+                    color: 'blue',
+                    shape: 'rect',
+                    label: 'paypal',
+                    height: 45
+                },
                 createOrder: (_, actions) => {
                     return actions.order.create({
                         purchase_units: [{
@@ -146,7 +168,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                                 currency_code: "USD"
                             },
                             description: `${title} - ${storage}`
-                        }]
+                        }],
+                        // This configuration forces PayPal to use the redirect flow
+                        application_context: {
+                            shipping_preference: 'NO_SHIPPING',
+                            user_action: 'CONTINUE', // Prompts the user to click the "Continue" button
+                        }
                     });
                 },
                 onApprove: (_, actions) => {
