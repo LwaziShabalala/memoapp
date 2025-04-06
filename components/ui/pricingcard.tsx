@@ -81,28 +81,63 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     onCancel
 }) => {
     const [isPayPalReady, setIsPayPalReady] = useState(false);
+    const [showPayPalModal, setShowPayPalModal] = useState(false);
     const router = useRouter();
 
-    // Direct checkout without modal
-    useEffect(() => {
-        if (!window.paypal) {
-            const script = document.createElement("script");
-            // Adding important parameters for redirect behavior
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&commit=true&intent=capture`;
-            script.async = true;
-            script.onload = () => {
-                if (window.paypal?.Buttons) {
-                    setIsPayPalReady(true);
-                }
-            };
-            document.body.appendChild(script);
-        } else {
-            setIsPayPalReady(true);
-        }
-    }, []);
+    const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
-    const handlePurchase = () => {
-        // Get the numeric value from price string
+    useEffect(() => {
+        // Clean up any existing PayPal scripts to avoid conflicts
+        const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
+        if (existingScript) {
+            existingScript.remove();
+        }
+        
+        // Add the script with parameters that force redirect
+        const script = document.createElement("script");
+        script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&commit=true&components=buttons,funding-eligibility`;
+        script.async = true;
+        script.onload = () => {
+            if (window.paypal?.Buttons) {
+                setIsPayPalReady(true);
+            }
+        };
+        document.body.appendChild(script);
+
+        // Event handlers
+        const handleEscKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && showPayPalModal) {
+                closePayPalModal();
+            }
+        };
+
+        document.addEventListener('keydown', handleEscKey);
+
+        if (showPayPalModal) {
+            document.body.classList.add('overflow-hidden');
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscKey);
+            document.body.classList.remove('overflow-hidden');
+        };
+    }, [showPayPalModal]);
+
+    const openPayPalModal = () => {
+        if (!isPayPalReady || !window.paypal?.Buttons) return;
+        setShowPayPalModal(true);
+
+        setTimeout(() => {
+            initializePayPalButtons();
+        }, 100);
+    };
+
+    const closePayPalModal = () => {
+        setShowPayPalModal(false);
+        onCancel?.();
+    };
+
+    const initializePayPalButtons = () => {
         const numericPrice = price.replace(/[^0-9.-]+/g, "");
         const amount = parseFloat(numericPrice);
 
@@ -111,74 +146,127 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             return;
         }
 
-        // Create a direct form submission to PayPal checkout
-        const form = document.createElement('form');
-        form.method = 'post';
-        form.action = 'https://www.paypal.com/cgi-bin/webscr';
-        
-        // Create hidden fields
-        const addField = (name: string, value: string) => {
-            const hiddenField = document.createElement('input');
-            hiddenField.type = 'hidden';
-            hiddenField.name = name;
-            hiddenField.value = value;
-            form.appendChild(hiddenField);
-        };
-        
-        // Add required PayPal fields
-        addField('cmd', '_xclick');
-        addField('business', process.env.NEXT_PUBLIC_PAYPAL_BUSINESS_EMAIL || ''); // Your PayPal email
-        addField('item_name', `${title} - ${storage}`);
-        addField('amount', amount.toFixed(2));
-        addField('currency_code', 'USD');
-        addField('return', `${window.location.origin}/sign-up`); // Success URL
-        addField('cancel_return', window.location.href); // Cancel URL
-        
-        // Add to document, submit, and remove
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
+        const container = document.getElementById(`paypal-button-${modalContainerId}`);
+        if (container) {
+            container.innerHTML = '';
+        }
+
+        try {
+            // Force card funding source to guarantee redirect
+            window.paypal!.Buttons({
+                fundingSource: window.paypal?.FUNDING?.CARD,
+                createOrder: (_, actions) => {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: amount.toFixed(2),
+                                currency_code: "USD"
+                            },
+                            description: `${title} - ${storage}`
+                        }],
+                        application_context: {
+                            shipping_preference: 'NO_SHIPPING',
+                            user_action: 'PAY_NOW', // This encourages redirect
+                            return_url: `${window.location.origin}/sign-up`,
+                            cancel_url: window.location.href
+                        }
+                    });
+                },
+                onApprove: (_, actions) => {
+                    return actions.order.capture().then((details) => {
+                        console.log("Transaction completed by " + details.payer.name.given_name);
+                        setShowPayPalModal(false);
+                        onSuccess?.(details.id);
+                        router.push("/sign-up");
+                    });
+                },
+                onCancel: () => {
+                    console.log("Transaction was canceled");
+                    closePayPalModal();
+                },
+                onError: (err) => {
+                    console.error("PayPal Error:", err);
+                    closePayPalModal();
+                }
+            }).render(`#paypal-button-${modalContainerId}`);
+        } catch (error) {
+            console.error("Error setting up PayPal buttons:", error);
+            closePayPalModal();
+        }
     };
 
-    return (
-        <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
+    const payPalModal = showPayPalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="relative min-h-[200px] bg-white rounded-lg p-6 w-full max-w-md">
+                <button 
+                    onClick={closePayPalModal}
+                    className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 z-10"
+                    aria-label="Close modal"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
 
-            <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
-                <header className="text-center space-y-4">
-                    <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                        {title}
-                    </h2>
-                    <div className="flex items-center justify-center gap-4">
-                        {originalPrice && (
-                            <span className="text-xl text-gray-400 line-through">
-                                {originalPrice}
-                            </span>
-                        )}
-                        <p className="text-4xl font-extrabold text-white">{price}</p>
+                <div className="mb-8 pt-2">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">Complete Your Payment</h3>
+                    <div className="text-center mb-4">
+                        <h4 className="font-bold text-lg">{title}</h4>
+                        <p className="text-2xl font-bold">{price}</p>
                     </div>
-                </header>
-
-                <div className="space-y-4 text-base text-gray-300">
-                    <p className="leading-relaxed">{storage}</p>
-                    <p className="leading-relaxed text-sm text-gray-400">{users}</p>
-                    {sendUp && title !== "1 Year Access" && (
-                        <p className="leading-relaxed">
-                            Exclusive features and priority updates coming soon!
-                        </p>
-                    )}
+                    <p className="text-center text-gray-500 mb-4">Click "Debit or Credit Card" below to continue to PayPal's secure checkout page</p>
                 </div>
 
-                <div className="w-full">
-                    <button 
-                        onClick={handlePurchase}
-                        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
-                    >
-                        {!isPayPalReady ? "Loading..." : "Get Started Now"}
-                    </button>
-                </div>
+                <div id={`paypal-button-${modalContainerId}`} className="w-full overflow-visible" style={{ minHeight: '200px' }}></div>
+                <div className="h-6"></div>
             </div>
         </div>
+    );
+
+    return (
+        <>
+            <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
+
+                <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
+                    <header className="text-center space-y-4">
+                        <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                            {title}
+                        </h2>
+                        <div className="flex items-center justify-center gap-4">
+                            {originalPrice && (
+                                <span className="text-xl text-gray-400 line-through">
+                                    {originalPrice}
+                                </span>
+                            )}
+                            <p className="text-4xl font-extrabold text-white">{price}</p>
+                        </div>
+                    </header>
+
+                    <div className="space-y-4 text-base text-gray-300">
+                        <p className="leading-relaxed">{storage}</p>
+                        <p className="leading-relaxed text-sm text-gray-400">{users}</p>
+                        {sendUp && title !== "1 Year Access" && (
+                            <p className="leading-relaxed">
+                                Exclusive features and priority updates coming soon!
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="w-full">
+                        <button 
+                            onClick={openPayPalModal}
+                            disabled={!isPayPalReady}
+                            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
+                        >
+                            {!isPayPalReady ? "Loading..." : "Get Started Now"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {payPalModal}
+        </>
     );
 };
 
