@@ -31,7 +31,7 @@ interface PayPalButtonConfig {
                 payer: {
                     name: {
                         given_name: string;
-                    }
+                    };
                 }
                 id: string;
             }>
