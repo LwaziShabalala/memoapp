@@ -92,7 +92,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         if (!window.paypal) {
             const script = document.createElement("script");
             // Add commit=true parameter to force PayPal to use the redirected flow
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&commit=true`;
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID}&currency=USD&commit=true`;
             script.async = true;
             script.onload = () => {
                 if (window.paypal?.Buttons) {
