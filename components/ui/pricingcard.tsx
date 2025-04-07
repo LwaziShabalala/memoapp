@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
+// PayPal interfaces
 interface PayPalButtonConfig {
     createOrder: (data: unknown, actions: {
         order: {
@@ -31,7 +32,7 @@ interface PayPalButtonConfig {
                 payer: {
                     name: {
                         given_name: string;
-                    };
+                    }
                 }
                 id: string;
             }>
@@ -48,6 +49,7 @@ interface PayPalButtonConfig {
     };
 }
 
+// Declare global interface augmentation for window
 declare global {
     interface Window {
         paypal?: {
@@ -58,6 +60,7 @@ declare global {
     }
 }
 
+// PricingCard Props Interface
 interface PricingCardProps {
     title: string;
     price: string;
@@ -82,25 +85,14 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const [isPayPalReady, setIsPayPalReady] = useState(false);
     const [showPayPalModal, setShowPayPalModal] = useState(false);
     const router = useRouter();
+
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
-    const closePayPalModal = useCallback(() => {
-        setShowPayPalModal(false);
-        onCancel?.();
-    }, [onCancel]);
-
     useEffect(() => {
-        const clientId = process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID;
-        console.log("PayPal Client ID:", clientId);
-
-        if (!clientId) {
-            console.error("❌ PayPal Client ID is missing.");
-            return;
-        }
-
         if (!window.paypal) {
             const script = document.createElement("script");
-            script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&commit=true&intent=capture&env=sandbox&debug=true`;
+            // Add commit=true parameter to force PayPal to use the redirected flow
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID}&currency=USD&commit=true`;
             script.async = true;
             script.onload = () => {
                 if (window.paypal?.Buttons) {
@@ -119,6 +111,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         };
 
         document.addEventListener('keydown', handleEscKey);
+
         if (showPayPalModal) {
             document.body.classList.add('overflow-hidden');
         }
@@ -127,14 +120,20 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             document.removeEventListener('keydown', handleEscKey);
             document.body.classList.remove('overflow-hidden');
         };
-    }, [showPayPalModal, closePayPalModal]);
+    }, [showPayPalModal]);
 
     const openPayPalModal = () => {
         if (!isPayPalReady || !window.paypal?.Buttons) return;
         setShowPayPalModal(true);
+
         setTimeout(() => {
             initializePayPalButtons();
         }, 100);
+    };
+
+    const closePayPalModal = () => {
+        setShowPayPalModal(false);
+        onCancel?.();
     };
 
     const initializePayPalButtons = () => {
@@ -147,12 +146,15 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }
 
         const container = document.getElementById(`paypal-button-${modalContainerId}`);
-        if (container) container.innerHTML = '';
+        if (container) {
+            container.innerHTML = '';
+        }
 
         try {
             window.paypal!.Buttons({
+                // Style configuration to show the debit/credit card button prominently
                 style: {
-                    layout: 'vertical',
+                    layout: 'vertical',  // vertical layout shows all payment options
                     color: 'blue',
                     shape: 'rect',
                     label: 'paypal',
@@ -167,26 +169,27 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                             },
                             description: `${title} - ${storage}`
                         }],
+                        // This configuration forces PayPal to use the redirect flow
                         application_context: {
                             shipping_preference: 'NO_SHIPPING',
-                            user_action: 'CONTINUE',
+                            user_action: 'CONTINUE', // Prompts the user to click the "Continue" button
                         }
                     });
                 },
                 onApprove: (_, actions) => {
                     return actions.order.capture().then((details) => {
-                        console.log("✅ Transaction completed by " + details.payer.name.given_name);
+                        console.log("Transaction completed by " + details.payer.name.given_name);
                         setShowPayPalModal(false);
                         onSuccess?.(details.id);
                         router.push("/sign-up");
                     });
                 },
                 onCancel: () => {
-                    console.log("⚠️ Transaction was canceled");
+                    console.log("Transaction was canceled");
                     closePayPalModal();
                 },
                 onError: (err) => {
-                    console.error("❌ PayPal Error:", err);
+                    console.error("PayPal Error:", err);
                     closePayPalModal();
                 }
             }).render(`#paypal-button-${modalContainerId}`);
