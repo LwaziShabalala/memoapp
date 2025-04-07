@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
-// PayPal interfaces
 interface PayPalButtonConfig {
     createOrder: (data: unknown, actions: {
         order: {
@@ -49,7 +48,6 @@ interface PayPalButtonConfig {
     };
 }
 
-// Declare global interface augmentation for window
 declare global {
     interface Window {
         paypal?: {
@@ -60,7 +58,6 @@ declare global {
     }
 }
 
-// PricingCard Props Interface
 interface PricingCardProps {
     title: string;
     price: string;
@@ -85,7 +82,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const [isPayPalReady, setIsPayPalReady] = useState(false);
     const [showPayPalModal, setShowPayPalModal] = useState(false);
     const router = useRouter();
-
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
     const closePayPalModal = useCallback(() => {
@@ -96,9 +92,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     useEffect(() => {
         if (!window.paypal) {
             const script = document.createElement("script");
-            const clientId = process.env.NODE_ENV === 'production'
-                ? process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
-                : process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID;
+            const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
 
             script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&commit=true`;
             script.async = true;
