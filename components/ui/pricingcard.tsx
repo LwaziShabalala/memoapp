@@ -96,11 +96,10 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     useEffect(() => {
         if (!window.paypal) {
             const script = document.createElement("script");
-            // Use sandbox client ID for testing
-            const clientId = process.env.NODE_ENV === 'production' 
-                ? process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID 
+            const clientId = process.env.NODE_ENV === 'production'
+                ? process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
                 : process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID;
-                
+
             script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&commit=true`;
             script.async = true;
             script.onload = () => {
@@ -112,25 +111,27 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         } else {
             setIsPayPalReady(true);
         }
+
         const handleEscKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape' && showPayPalModal) {
                 closePayPalModal();
             }
         };
+
         document.addEventListener('keydown', handleEscKey);
         if (showPayPalModal) {
             document.body.classList.add('overflow-hidden');
         }
+
         return () => {
             document.removeEventListener('keydown', handleEscKey);
             document.body.classList.remove('overflow-hidden');
         };
-    }, [showPayPalModal, closePayPalModal]); // Added closePayPalModal as dependency
+    }, [showPayPalModal, closePayPalModal]);
 
     const openPayPalModal = () => {
         if (!isPayPalReady || !window.paypal?.Buttons) return;
         setShowPayPalModal(true);
-
         setTimeout(() => {
             initializePayPalButtons();
         }, 100);
@@ -146,15 +147,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         }
 
         const container = document.getElementById(`paypal-button-${modalContainerId}`);
-        if (container) {
-            container.innerHTML = '';
-        }
+        if (container) container.innerHTML = '';
 
         try {
             window.paypal!.Buttons({
-                // Style configuration to show the debit/credit card button prominently
                 style: {
-                    layout: 'vertical',  // vertical layout shows all payment options
+                    layout: 'vertical',
                     color: 'blue',
                     shape: 'rect',
                     label: 'paypal',
@@ -169,10 +167,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                             },
                             description: `${title} - ${storage}`
                         }],
-                        // This configuration forces PayPal to use the redirect flow
                         application_context: {
                             shipping_preference: 'NO_SHIPPING',
-                            user_action: 'CONTINUE', // Prompts the user to click the "Continue" button
+                            user_action: 'CONTINUE',
                         }
                     });
                 },
