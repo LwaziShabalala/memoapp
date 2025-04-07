@@ -90,11 +90,16 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }, [onCancel]);
 
     useEffect(() => {
+        const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+        console.log("PayPal Client ID:", clientId);
+
+        if (!clientId) {
+            console.error("❌ PayPal Client ID is missing.");
+            return;
+        }
+
         if (!window.paypal) {
             const script = document.createElement("script");
-            const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
-
-            // ✅ Force sandbox environment here
             script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&commit=true&intent=capture&env=sandbox&debug=true`;
             script.async = true;
             script.onload = () => {
@@ -170,18 +175,18 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 },
                 onApprove: (_, actions) => {
                     return actions.order.capture().then((details) => {
-                        console.log("Transaction completed by " + details.payer.name.given_name);
+                        console.log("✅ Transaction completed by " + details.payer.name.given_name);
                         setShowPayPalModal(false);
                         onSuccess?.(details.id);
                         router.push("/sign-up");
                     });
                 },
                 onCancel: () => {
-                    console.log("Transaction was canceled");
+                    console.log("⚠️ Transaction was canceled");
                     closePayPalModal();
                 },
                 onError: (err) => {
-                    console.error("PayPal Error:", err);
+                    console.error("❌ PayPal Error:", err);
                     closePayPalModal();
                 }
             }).render(`#paypal-button-${modalContainerId}`);
