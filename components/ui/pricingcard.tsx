@@ -90,7 +90,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }, [onCancel]);
 
     useEffect(() => {
-        const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+        const clientId = process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID;
         console.log("PayPal Client ID:", clientId);
 
         if (!clientId) {
