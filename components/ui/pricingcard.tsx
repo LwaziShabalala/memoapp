@@ -94,7 +94,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             const script = document.createElement("script");
             const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
 
-            script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&commit=true`;
+            // ✅ Force sandbox environment here
+            script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&commit=true&intent=capture&env=sandbox&debug=true`;
             script.async = true;
             script.onload = () => {
                 if (window.paypal?.Buttons) {
