@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
@@ -88,11 +88,20 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
+    const closePayPalModal = useCallback(() => {
+        setShowPayPalModal(false);
+        onCancel?.();
+    }, [onCancel]);
+
     useEffect(() => {
         if (!window.paypal) {
             const script = document.createElement("script");
-            // Add commit=true parameter to force PayPal to use the redirected flow
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID}&currency=USD&commit=true`;
+            // Use sandbox client ID for testing
+            const clientId = process.env.NODE_ENV === 'production' 
+                ? process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID 
+                : process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID;
+                
+            script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&commit=true`;
             script.async = true;
             script.onload = () => {
                 if (window.paypal?.Buttons) {
@@ -103,24 +112,20 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         } else {
             setIsPayPalReady(true);
         }
-
         const handleEscKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape' && showPayPalModal) {
                 closePayPalModal();
             }
         };
-
         document.addEventListener('keydown', handleEscKey);
-
         if (showPayPalModal) {
             document.body.classList.add('overflow-hidden');
         }
-
         return () => {
             document.removeEventListener('keydown', handleEscKey);
             document.body.classList.remove('overflow-hidden');
         };
-    }, [showPayPalModal]);
+    }, [showPayPalModal, closePayPalModal]); // Added closePayPalModal as dependency
 
     const openPayPalModal = () => {
         if (!isPayPalReady || !window.paypal?.Buttons) return;
@@ -129,11 +134,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         setTimeout(() => {
             initializePayPalButtons();
         }, 100);
-    };
-
-    const closePayPalModal = () => {
-        setShowPayPalModal(false);
-        onCancel?.();
     };
 
     const initializePayPalButtons = () => {
