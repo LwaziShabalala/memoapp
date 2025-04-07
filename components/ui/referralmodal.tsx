@@ -41,7 +41,7 @@ const ReferralModal = ({ onSubmit }: ReferralModalProps) => {
             Who referred you to us?
           </h3>
           <p className="text-zinc-400 mb-6 text-sm">
-            We'd love to know how you found out about our service!
+            We&apos;d love to know how you found out about our service!
           </p>
           
           <div className="space-y-3 mb-6">
