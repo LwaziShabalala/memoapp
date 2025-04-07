@@ -2,15 +2,27 @@
 import { useAuth, RedirectToSignIn } from "@clerk/nextjs";
 import RecordButton from "@/components/recordbutton";
 import UploadButton, { handlePdfFile } from "@/components/uploadbutton";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useTranscription } from "@/app/transcriptioncontext";
 import FilenameModal from "@/components/ui/filenamemodal";
+import ReferralModal from "@/components/ui/referralmodal";
 
 const DashboardPage: React.FC = () => {
   const { isLoaded, isSignedIn } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [showFilenameModal, setShowFilenameModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
   const { setTranscription, setFilename } = useTranscription();
+  
+  // Check localStorage on component mount to determine if we should show the referral modal
+  useEffect(() => {
+    if (isSignedIn) {
+      const hasAnsweredReferral = localStorage.getItem("hasAnsweredReferral");
+      if (!hasAnsweredReferral) {
+        setShowReferralModal(true);
+      }
+    }
+  }, [isSignedIn]);
 
   // Handle drag events
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -18,18 +30,17 @@ const DashboardPage: React.FC = () => {
     e.stopPropagation();
     setIsDragging(true);
   }, []);
-
+  
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   }, []);
-
+  
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-
     const files = Array.from(e.dataTransfer.files);
     const pdfFile = files.find(file => file.type === 'application/pdf');
     
@@ -37,15 +48,26 @@ const DashboardPage: React.FC = () => {
       await handlePdfFile(pdfFile, setTranscription, setShowFilenameModal);
     }
   }, [setTranscription]);
-
+  
   const handleSave = (filename: string) => {
     setFilename(filename);
     setShowFilenameModal(false);
   };
-
+  
+  const handleReferralSubmit = (referrerName: string) => {
+    // Save the referrer information - you could send this to your backend
+    console.log("User was referred by:", referrerName);
+    
+    // Mark that the user has answered the referral question
+    localStorage.setItem("hasAnsweredReferral", "true");
+    
+    // Close the modal
+    setShowReferralModal(false);
+  };
+  
   if (!isLoaded) return null;
   if (!isSignedIn) return <RedirectToSignIn />;
-
+  
   return (
     <div
       className={`bg-gray-950 flex flex-col items-center justify-start min-h-screen pt-16 relative
@@ -63,25 +85,30 @@ const DashboardPage: React.FC = () => {
       )}
       
       <div className="mb-8 space-y-4 text-center">
-  <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-    Quick Text from Audio & PDFs
-  </h2>
-  <p className="text-zinc-400 font-light text-sm md:text-lg">
-    Fast, accurate transcription when you need it
-  </p>
-</div>
+        <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+          Quick Text from Audio & PDFs
+        </h2>
+        <p className="text-zinc-400 font-light text-sm md:text-lg">
+          Fast, accurate transcription when you need it
+        </p>
+      </div>
       
       {/* Buttons Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         <RecordButton />
         <UploadButton />
       </div>
-
+      
       <FilenameModal
         open={showFilenameModal}
         onClose={() => setShowFilenameModal(false)}
         onSave={handleSave}
       />
+      
+      {/* Non-dismissible Referral Modal */}
+      {showReferralModal && (
+        <ReferralModal onSubmit={handleReferralSubmit} />
+      )}
     </div>
   );
 };
