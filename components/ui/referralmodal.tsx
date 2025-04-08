@@ -1,29 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
+import emailjs from "@emailjs/browser";
 
 interface ReferralModalProps {
   onSubmit: (referrerName: string) => void;
 }
 
 const ReferralModal = ({ onSubmit }: ReferralModalProps) => {
-  const [referrer, setReferrer] = useState("");
-  const [options] = useState([
-    "Friend/Family",
-    "Social Media",
-    "Google",
-    "YouTube",
-    "Other"
-  ]);
-  const [customOption, setCustomOption] = useState("");
-  const [selectedOption, setSelectedOption] = useState("");
-
-  const handleSubmit = () => {
-    if (selectedOption === "Other" && customOption.trim() !== "") {
-      onSubmit(customOption);
-    } else if (selectedOption) {
-      onSubmit(selectedOption);
-    }
-  };
+  const [influencer, setInfluencer] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     // Disable scrolling while modal is open
@@ -33,6 +19,33 @@ const ReferralModal = ({ onSubmit }: ReferralModalProps) => {
     };
   }, []);
 
+  const handleSubmit = async () => {
+    if (!influencer.trim()) return;
+    
+    setIsSubmitting(true);
+    setError("");
+    
+    try {
+      // Send the referral data via EmailJS
+      await emailjs.send(
+        "YOUR_SERVICE_ID", // Replace with your EmailJS service ID
+        "YOUR_TEMPLATE_ID", // Replace with your EmailJS template ID
+        {
+          influencer_name: influencer,
+          timestamp: new Date().toString()
+        },
+        "YOUR_PUBLIC_KEY" // Replace with your EmailJS public key
+      );
+      
+      // Call the onSubmit function to close the modal
+      onSubmit(influencer);
+    } catch (err) {
+      console.error("Failed to send email:", err);
+      setError("Failed to submit. Please try again.");
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center">
       <div className="bg-gray-900 rounded-lg shadow-xl p-6 max-w-md mx-4 relative">
@@ -41,47 +54,37 @@ const ReferralModal = ({ onSubmit }: ReferralModalProps) => {
             Who referred you to us?
           </h3>
           <p className="text-zinc-400 mb-6 text-sm">
-            We&apos;d love to know how you found out about our service!
+            If an influencer or content creator brought you here, please let us know who they are!
           </p>
           
-          <div className="space-y-3 mb-6">
-            {options.map((option) => (
-              <div 
-                key={option}
-                onClick={() => setSelectedOption(option)}
-                className={`p-3 rounded-md cursor-pointer transition-all ${
-                  selectedOption === option 
-                    ? "bg-violet-500 text-white" 
-                    : "bg-gray-800 text-zinc-300 hover:bg-gray-700"
-                }`}
-              >
-                {option}
-              </div>
-            ))}
-          </div>
+          <input
+            type="text"
+            value={influencer}
+            onChange={(e) => setInfluencer(e.target.value)}
+            className="w-full p-3 rounded-md mb-6 bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+            placeholder="Influencer or referrer name"
+            autoFocus
+          />
           
-          {selectedOption === "Other" && (
-            <input
-              type="text"
-              value={customOption}
-              onChange={(e) => setCustomOption(e.target.value)}
-              className="w-full p-3 rounded-md mb-6 bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
-              placeholder="Please specify"
-              autoFocus
-            />
+          {error && (
+            <p className="text-red-500 mb-4 text-sm">{error}</p>
           )}
           
           <button 
             onClick={handleSubmit}
-            disabled={!selectedOption || (selectedOption === "Other" && !customOption.trim())}
+            disabled={!influencer.trim() || isSubmitting}
             className={`w-full px-4 py-3 rounded-md bg-violet-500 text-white transition-colors ${
-              (!selectedOption || (selectedOption === "Other" && !customOption.trim())) 
+              (!influencer.trim() || isSubmitting) 
                 ? "opacity-50 cursor-not-allowed" 
                 : "hover:bg-violet-600"
             }`}
           >
-            Continue
+            {isSubmitting ? "Submitting..." : "Continue"}
           </button>
+          
+          <p className="text-zinc-500 mt-4 text-xs">
+            Not referred by anyone? You can just submit "None".
+          </p>
         </div>
       </div>
     </div>
