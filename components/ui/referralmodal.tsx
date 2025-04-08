@@ -83,8 +83,8 @@ const ReferralModal = ({ onSubmit }: ReferralModalProps) => {
           </button>
           
           <p className="text-zinc-500 mt-4 text-xs">
-            Not referred by anyone? You can just submit "None".
-          </p>
+  Not referred by anyone? You can just submit &quot;None&quot;.
+</p>
         </div>
       </div>
     </div>
