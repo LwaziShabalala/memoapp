@@ -1,14 +1,21 @@
 "use client";
-import { useAuth, RedirectToSignIn } from "@clerk/nextjs";
+import { useAuth, RedirectToSignIn, useUser } from "@clerk/nextjs";
 import RecordButton from "@/components/recordbutton";
 import UploadButton, { handlePdfFile } from "@/components/uploadbutton";
 import React, { useCallback, useState, useEffect } from "react";
 import { useTranscription } from "@/app/transcriptioncontext";
 import FilenameModal from "@/components/ui/filenamemodal";
 import ReferralModal from "@/components/ui/referralmodal";
+import emailjs from "@emailjs/browser";
+
+// Initialize EmailJS with your public key
+// You should do this once in your app
+// This could be in a separate file like lib/emailjs.ts
+emailjs.init("YOUR_PUBLIC_KEY"); // Replace with your actual EmailJS public key
 
 const DashboardPage: React.FC = () => {
   const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
   const [isDragging, setIsDragging] = useState(false);
   const [showFilenameModal, setShowFilenameModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
@@ -55,10 +62,14 @@ const DashboardPage: React.FC = () => {
   };
   
   const handleReferralSubmit = (referrerName: string) => {
-    // Save the referrer information - you could send this to your backend
     console.log("User was referred by:", referrerName);
     
-    // Mark that the user has answered the referral question
+    // Additional user info to include in the email
+    const userEmail = user?.primaryEmailAddress?.emailAddress || "Unknown email";
+    const userId = user?.id || "Unknown ID";
+    
+    // The email is sent from the ReferralModal component
+    // We just need to mark that the user has answered
     localStorage.setItem("hasAnsweredReferral", "true");
     
     // Close the modal
