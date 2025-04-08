@@ -9,9 +9,7 @@ import ReferralModal from "@/components/ui/referralmodal";
 import emailjs from "@emailjs/browser";
 
 // Initialize EmailJS with your public key
-// You should do this once in your app
-// This could be in a separate file like lib/emailjs.ts
-emailjs.init("YOUR_PUBLIC_KEY"); // Replace with your actual EmailJS public key
+emailjs.init("OZmeuEFrsHTm_D2yQ");
 
 const DashboardPage: React.FC = () => {
   const { isLoaded, isSignedIn } = useAuth();
@@ -64,12 +62,7 @@ const DashboardPage: React.FC = () => {
   const handleReferralSubmit = (referrerName: string) => {
     console.log("User was referred by:", referrerName);
     
-    // Additional user info to include in the email
-    const userEmail = user?.primaryEmailAddress?.emailAddress || "Unknown email";
-    const userId = user?.id || "Unknown ID";
-    
-    // The email is sent from the ReferralModal component
-    // We just need to mark that the user has answered
+    // Mark that the user has answered the referral question
     localStorage.setItem("hasAnsweredReferral", "true");
     
     // Close the modal
