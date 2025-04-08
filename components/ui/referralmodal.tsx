@@ -28,13 +28,13 @@ const ReferralModal = ({ onSubmit }: ReferralModalProps) => {
     try {
       // Send the referral data via EmailJS
       await emailjs.send(
-        "YOUR_SERVICE_ID", // Replace with your EmailJS service ID
-        "YOUR_TEMPLATE_ID", // Replace with your EmailJS template ID
+        "service_9cx86v8",
+        "template_y9rqnlk",
         {
           influencer_name: influencer,
           timestamp: new Date().toString()
         },
-        "YOUR_PUBLIC_KEY" // Replace with your EmailJS public key
+        "OZmeuEFrsHTm_D2yQ"
       );
       
       // Call the onSubmit function to close the modal
