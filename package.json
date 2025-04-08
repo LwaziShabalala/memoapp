@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.9.12",
+    "@emailjs/browser": "^3.11.0",
     "@headlessui/react": "^2.1.10",
     "@hookform/resolvers": "^3.9.0",
     "@langchain/community": "^0.3.20",
