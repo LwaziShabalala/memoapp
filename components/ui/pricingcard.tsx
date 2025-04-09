@@ -6,7 +6,7 @@ import Script from "next/script";
 import "../../app/styles/styles.css";
 
 // LemonSqueezy interfaces
-interface LemonSqueezyCheckoutOptions {
+export interface LemonSqueezyCheckoutOptions {
   checkoutUrl?: string;
   buyButtonTarget?: string;
   storeId?: string;
@@ -17,7 +17,7 @@ interface LemonSqueezyCheckoutOptions {
   onError?: (error: LemonSqueezyError) => void;
 }
 
-interface LemonSqueezySuccessData {
+export interface LemonSqueezySuccessData {
   order?: {
     id: string;
     identifier: string;
@@ -35,7 +35,7 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-interface LemonSqueezyError {
+export interface LemonSqueezyError {
   message: string;
   code?: string;
   [key: string]: unknown;
