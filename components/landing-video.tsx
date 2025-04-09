@@ -10,12 +10,25 @@ const VideoComponent = () => {
     setIsLoading(false);
   };
 
+  // Define inline styles
+  const videoStyle = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const
+  };
+
+  const containerStyle = {
+    position: 'relative' as const,
+    width: '100%',
+    height: '100%'
+  };
+
   return (
     <div className="relative group w-full">
       {/* Gradient Glow */}
       <div className="absolute inset-0 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 rounded-xl blur-3xl opacity-75 group-hover:opacity-100 transition duration-1000 -z-10"></div>
       
-      {/* Video Container - Simplified */}
+      {/* Video Container */}
       <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-gray-800/50 shadow-lg">
         {/* Loading Spinner */}
         {isLoading && (
@@ -24,11 +37,11 @@ const VideoComponent = () => {
           </div>
         )}
         
-        {/* Direct Video without container ref */}
-        <div className="aspect-video w-full h-full">
+        {/* Video with inline styles */}
+        <div className="aspect-video" style={containerStyle}>
           <Video
             src={landingvideo}
-            className="!w-full !h-full !object-cover"
+            style={videoStyle}
             onLoadedData={handleVideoLoad}
             controls={false}
             autoPlay
