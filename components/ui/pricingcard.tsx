@@ -12,9 +12,33 @@ interface LemonSqueezyCheckoutOptions {
   storeId?: string;
   variantId?: string;
   productId?: string;
-  checkoutData?: Record<string, string>;
-  onSuccess?: (data: any) => void;
-  onError?: (error: any) => void;
+  checkoutData?: Record<string, unknown>;
+  onSuccess?: (data: LemonSqueezySuccessData) => void;
+  onError?: (error: LemonSqueezyError) => void;
+}
+
+interface LemonSqueezySuccessData {
+  order?: {
+    id: string;
+    identifier: string;
+    store_id: string;
+    customer_id: string;
+    total: string;
+    status: string;
+    [key: string]: unknown;
+  };
+  customer?: {
+    id: string;
+    email: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface LemonSqueezyError {
+  message: string;
+  code?: string;
+  [key: string]: unknown;
 }
 
 declare global {
@@ -40,7 +64,7 @@ interface PricingCardProps {
   users: string;
   sendUp: boolean;
   lemonSqueezyVariantId: string;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: LemonSqueezySuccessData) => void;
   onCancel?: () => void;
 }
 
@@ -88,7 +112,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             email: ""  // Can be pre-filled if user is logged in
           }
         },
-        onSuccess: (data) => {
+        onSuccess: (data: LemonSqueezySuccessData) => {
           console.log("Payment successful:", data);
           
           // You can add server verification here similar to the PayPal implementation
@@ -119,7 +143,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
           onSuccess?.(data);
           router.push(`/sign-up?payment=success&order=${data.order?.id}`);
         },
-        onError: (error) => {
+        onError: (error: LemonSqueezyError) => {
           console.error("LemonSqueezy Error:", error);
           setPaymentError("Payment processing error. Please try again later.");
           onCancel?.();
