@@ -12,6 +12,19 @@ interface PricingCardProps {
   lemonSqueezyVariantId: string;
 }
 
+// Define the types for success and error callback data
+interface LemonSqueezySuccessData {
+  orderId: string;
+  variantId: string;
+  amount: number;
+  currency: string;
+}
+
+interface LemonSqueezyErrorData {
+  errorMessage: string;
+  errorCode: string;
+}
+
 export const PricingCard: React.FC<PricingCardProps> = ({
   title,
   price,
@@ -37,12 +50,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
     window.LemonSqueezy.EmbedCheckout.Open({
       variantId: lemonSqueezyVariantId,
-      onSuccess: (data: any) => {
+      onSuccess: (data: LemonSqueezySuccessData) => {
         console.log("Payment successful", data);
         // Redirect user to the success page or handle it however you want
         window.location.href = "/success";
       },
-      onError: (error: any) => {
+      onError: (error: LemonSqueezyErrorData) => {
         console.error("Payment error", error);
         alert("Something went wrong. Please try again.");
       },
