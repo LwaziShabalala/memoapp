@@ -3,25 +3,24 @@ import { useUser } from "@clerk/nextjs";
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
 import PricingCard from "@/components/ui/pricingcard";
-import VideoComponent from "@/components/landing-video"; // Use your existing component
+import VideoComponent from "@/components/landing-video";
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
-
 const LandingPage = () => {
   const { user } = useUser();
   const router = useRouter();
-  
+
   const handleSuccess = (paymentId: string) => {
     console.log("Payment successful, reference:", paymentId);
     router.push("/sign-up");
   };
-  
+
   const handleCancel = () => {
     console.log("Payment was canceled");
     // Handle cancellation logic if needed
   };
-  
+
   return (
     <VirtualizedWrapper>
       <div className="min-h-screen bg-gray-950">
@@ -29,7 +28,7 @@ const LandingPage = () => {
         <section className="py-16">
           <LandingHero />
         </section>
-       
+
         <section className="-mt-8 w-full py-12">
           <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
             See how it works
@@ -39,7 +38,7 @@ const LandingPage = () => {
           </div>
         </section>
         <FeaturesSection />
-        
+
         {/* Pricing Section */}
         <section className="max-w-4xl mx-auto px-4 py-20">
           <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
@@ -72,5 +71,4 @@ const LandingPage = () => {
     </VirtualizedWrapper>
   );
 };
-
 export default LandingPage;
