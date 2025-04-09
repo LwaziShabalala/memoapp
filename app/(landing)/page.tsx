@@ -7,6 +7,7 @@ import VideoComponent from "@/components/landing-video";
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
+
 const LandingPage = () => {
   const { user } = useUser();
   const router = useRouter();
@@ -25,18 +26,20 @@ const LandingPage = () => {
     <VirtualizedWrapper>
       <div className="min-h-screen bg-gray-950">
         <LandingNavbar />
+        
         <section className="py-16">
           <LandingHero />
         </section>
 
         <section className="-mt-8 w-full py-12">
           <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
-            See how it works
+            **Crush your exams. Save your time. For the lazy students.**
           </h2>
           <div className="max-w-4xl mx-auto px-8">
             <VideoComponent />
           </div>
         </section>
+
         <FeaturesSection />
 
         {/* Pricing Section */}
