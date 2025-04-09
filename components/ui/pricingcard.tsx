@@ -35,10 +35,23 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
 
   useEffect(() => {
-    // Initialize LemonSqueezy when the script is loaded
+    const loadLemonSqueezy = () => {
+      if (window.LemonSqueezy) {
+        window.LemonSqueezy.Setup({ activePopup: true });
+        setIsLemonSqueezyReady(true);
+      }
+    };
+
+    // Check if LemonSqueezy is already loaded, otherwise load the script
     if (window.LemonSqueezy) {
-      window.LemonSqueezy.Setup({ activePopup: true });
-      setIsLemonSqueezyReady(true);
+      loadLemonSqueezy();
+    } else {
+      // This ensures LemonSqueezy is loaded and setup is called when the script is ready
+      const script = document.createElement("script");
+      script.src = "https://assets.lemonsqueezy.com/lemon.js";
+      script.async = true;
+      script.onload = loadLemonSqueezy;
+      document.body.appendChild(script);
     }
   }, []);
 
@@ -52,8 +65,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       variantId: lemonSqueezyVariantId,
       onSuccess: (data: LemonSqueezySuccessData) => {
         console.log("Payment successful", data);
-        // Redirect user to the success page or handle it however you want
-        window.location.href = "/success";
+        // Use a better method for redirection, preserving application state
+        window.location.href = "/success";  // Adjust this as needed
       },
       onError: (error: LemonSqueezyErrorData) => {
         console.error("Payment error", error);
@@ -69,12 +82,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         src="https://assets.lemonsqueezy.com/lemon.js"
         strategy="afterInteractive"
         onLoad={() => {
-          if (window.createLemonSqueezy) {
-            window.createLemonSqueezy();
-            if (window.LemonSqueezy) {
-              window.LemonSqueezy.Setup({ activePopup: true });
-              setIsLemonSqueezyReady(true);
-            }
+          if (window.LemonSqueezy) {
+            window.LemonSqueezy.Setup({ activePopup: true });
+            setIsLemonSqueezyReady(true);
           }
         }}
       />
