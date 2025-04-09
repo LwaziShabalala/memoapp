@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import PricingCard from "@/components/ui/pricing-card";
+import PricingCard from "@/components/ui/pricingcard";
 
 const PaymentWall = () => {
   const router = useRouter();
