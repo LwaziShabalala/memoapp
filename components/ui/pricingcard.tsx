@@ -68,7 +68,7 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    onSuccess?: (paymentId: string) => void;
+    onSuccess?: (paymentId: string, orderDetails: any) => void;
     onCancel?: () => void;
 }
 
@@ -84,6 +84,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 }) => {
     const [isPayPalReady, setIsPayPalReady] = useState(false);
     const [showPayPalModal, setShowPayPalModal] = useState(false);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
     const router = useRouter();
 
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
@@ -91,13 +92,16 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     useEffect(() => {
         if (!window.paypal) {
             const script = document.createElement("script");
-            // Add commit=true parameter to force PayPal to use the redirected flow
-            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_SANDBOX_CLIENT_ID}&currency=USD&commit=true`;
+            // IMPORTANT: Use LIVE client ID for production payments
+            script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_LIVE_CLIENT_ID}&currency=USD&commit=true`;
             script.async = true;
             script.onload = () => {
                 if (window.paypal?.Buttons) {
                     setIsPayPalReady(true);
                 }
+            };
+            script.onerror = () => {
+                setPaymentError("Failed to load PayPal SDK. Please try again later.");
             };
             document.body.appendChild(script);
         } else {
@@ -125,6 +129,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const openPayPalModal = () => {
         if (!isPayPalReady || !window.paypal?.Buttons) return;
         setShowPayPalModal(true);
+        setPaymentError(null);
 
         setTimeout(() => {
             initializePayPalButtons();
@@ -142,6 +147,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
         if (isNaN(amount)) {
             console.error("Invalid price format:", price);
+            setPaymentError("Invalid price format. Please contact support.");
             return;
         }
 
@@ -167,22 +173,55 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                                 value: amount.toFixed(2),
                                 currency_code: "USD"
                             },
-                            description: `${title} - ${storage}`
+                            description: `${title} - ${storage}`,
+                            custom_id: `plan_${title.replace(/\s+/g, '_').toLowerCase()}`
                         }],
-                        // This configuration forces PayPal to use the redirect flow
                         application_context: {
                             shipping_preference: 'NO_SHIPPING',
-                            user_action: 'CONTINUE', // Prompts the user to click the "Continue" button
+                            user_action: 'PAY_NOW', // Use PAY_NOW instead of CONTINUE for production
                         }
                     });
                 },
-                onApprove: (_, actions) => {
-                    return actions.order.capture().then((details) => {
-                        console.log("Transaction completed by " + details.payer.name.given_name);
+                onApprove: async (data, actions) => {
+                    try {
+                        // Capture the payment to finalize the transaction
+                        const orderDetails = await actions.order.capture();
+                        console.log("Payment successful:", orderDetails);
+                        
+                        // Send payment information to your backend
+                        try {
+                            const response = await fetch('/api/payment/verify', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    orderId: orderDetails.id,
+                                    paymentDetails: orderDetails,
+                                    planTitle: title,
+                                    planStorage: storage
+                                }),
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error('Failed to verify payment with server');
+                            }
+                            
+                            const result = await response.json();
+                            console.log("Payment verified with server:", result);
+                        } catch (error) {
+                            console.error("Error verifying payment with server:", error);
+                            // Continue the flow even if server verification fails
+                            // Your webhook should handle this case
+                        }
+                        
                         setShowPayPalModal(false);
-                        onSuccess?.(details.id);
-                        router.push("/sign-up");
-                    });
+                        onSuccess?.(orderDetails.id, orderDetails);
+                        router.push("/sign-up?payment=success&order=" + orderDetails.id);
+                    } catch (error) {
+                        console.error("Error capturing payment:", error);
+                        setPaymentError("There was a problem processing your payment. Please try again.");
+                    }
                 },
                 onCancel: () => {
                     console.log("Transaction was canceled");
@@ -190,12 +229,13 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                 },
                 onError: (err) => {
                     console.error("PayPal Error:", err);
-                    closePayPalModal();
+                    setPaymentError("Payment processing error. Please try again later.");
+                    // Don't close modal automatically to show the error
                 }
             }).render(`#paypal-button-${modalContainerId}`);
         } catch (error) {
             console.error("Error setting up PayPal buttons:", error);
-            closePayPalModal();
+            setPaymentError("Failed to load payment options. Please try again later.");
         }
     };
 
@@ -218,6 +258,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
                         <h4 className="font-bold text-lg">{title}</h4>
                         <p className="text-2xl font-bold">{price}</p>
                     </div>
+                    
+                    {paymentError && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                            {paymentError}
+                        </div>
+                    )}
                 </div>
 
                 <div id={`paypal-button-${modalContainerId}`} className="w-full overflow-visible" style={{ minHeight: '200px' }}></div>
