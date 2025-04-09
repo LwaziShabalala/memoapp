@@ -3,7 +3,7 @@ import { useUser } from "@clerk/nextjs";
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
 import PricingCard from "@/components/ui/pricingcard";
-import VideoComponent from "@/components/landing-video"; // Import the new component
+import VideoComponent from "@/components/landing-video"; // Use your existing component
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
@@ -35,7 +35,7 @@ const LandingPage = () => {
             See how it works
           </h2>
           <div className="max-w-4xl mx-auto px-8">
-            <CustomVideoComponent />
+            <VideoComponent />
           </div>
         </section>
         <FeaturesSection />
