@@ -33,7 +33,9 @@ const LandingPage = () => {
 
         <section className="-mt-8 w-full py-12">
           <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
-            **Crush your exams. Save your time. For the lazy students.**
+            Stop wasting time on endless note-taking.  
+            **Get smarter, not busier.**  
+            Study less, retain more, and still crush your exams.
           </h2>
           <div className="max-w-4xl mx-auto px-8">
             <VideoComponent />
