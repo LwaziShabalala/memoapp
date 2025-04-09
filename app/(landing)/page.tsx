@@ -8,8 +8,24 @@ import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
 
-// Import the LemonSqueezy interface
-import type { LemonSqueezySuccessData } from "@/types/lemonsqueezy"; // You'll need to create this file
+// Define the interface here or import it directly from the PricingCard component
+interface LemonSqueezySuccessData {
+  order?: {
+    id: string;
+    identifier: string;
+    store_id: string;
+    customer_id: string;
+    total: string;
+    status: string;
+    [key: string]: unknown;
+  };
+  customer?: {
+    id: string;
+    email: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
 
 const LandingPage = () => {
   const { user } = useUser();
@@ -55,7 +71,7 @@ const LandingPage = () => {
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
-              lemonSqueezyVariantId="variant_1year_access"
+              lemonSqueezyVariantId="var_123" // Replace with your actual variant ID
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
@@ -66,7 +82,7 @@ const LandingPage = () => {
               storage="Secure lifetime access with exclusive perks and continuous updates."
               users="Enjoy permanent access to new features, including priority support and more!"
               sendUp={true}
-              lemonSqueezyVariantId="variant_lifetime_access"
+              lemonSqueezyVariantId="var_456" // Replace with your actual variant ID
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
