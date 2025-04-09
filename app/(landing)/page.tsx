@@ -3,7 +3,7 @@ import { useUser } from "@clerk/nextjs";
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
 import PricingCard from "@/components/ui/pricingcard";
-import CustomVideoComponent from "@/components/custom-video-component"; // Import the new component
+import CustomVideoComponent from "@/components/landing-video"; // Import the new component
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
