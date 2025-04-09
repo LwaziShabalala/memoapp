@@ -8,12 +8,16 @@ import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
 
+// Import the LemonSqueezy interface
+import type { LemonSqueezySuccessData } from "@/types/lemonsqueezy"; // You'll need to create this file
+
 const LandingPage = () => {
   const { user } = useUser();
   const router = useRouter();
 
-  const handleSuccess = (paymentId: string) => {
-    console.log("Payment successful, reference:", paymentId);
+  // Updated to accept LemonSqueezySuccessData instead of string
+  const handleSuccess = (data: LemonSqueezySuccessData) => {
+    console.log("Payment successful, order:", data.order?.id);
     router.push("/sign-up");
   };
 
@@ -25,11 +29,9 @@ const LandingPage = () => {
     <VirtualizedWrapper>
       <div className="min-h-screen bg-gray-950">
         <LandingNavbar />
-
         <section className="py-12">
           <LandingHero />
         </section>
-
         {/* Video Section */}
         <section className="w-full bg-gray-950 px-4 py-12">
           <div className="max-w-4xl mx-auto">
@@ -39,9 +41,7 @@ const LandingPage = () => {
             <VideoComponent />
           </div>
         </section>
-
         <FeaturesSection />
-
         {/* Pricing Section */}
         <section className="max-w-4xl mx-auto px-4 py-20">
           <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
@@ -55,6 +55,7 @@ const LandingPage = () => {
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
+              lemonSqueezyVariantId="variant_1year_access"
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
@@ -65,6 +66,7 @@ const LandingPage = () => {
               storage="Secure lifetime access with exclusive perks and continuous updates."
               users="Enjoy permanent access to new features, including priority support and more!"
               sendUp={true}
+              lemonSqueezyVariantId="variant_lifetime_access"
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
