@@ -19,35 +19,29 @@ const LandingPage = () => {
 
   const handleCancel = () => {
     console.log("Payment was canceled");
-    // Handle cancellation logic if needed
   };
 
   return (
     <VirtualizedWrapper>
       <div className="min-h-screen bg-gray-950">
         <LandingNavbar />
-        
+
         <section className="py-12">
           <LandingHero />
         </section>
-        
-        {/* Video Section - Improved structure */}
-        <section className="w-full">
-          {/* Video Heading - Positioned absolutely relative to container */}
-          <div className="relative max-w-4xl mx-auto px-4">
-            <h2 className="text-2xl font-bold text-gray-200 mb-2 text-center sticky z-20">
+
+        {/* Video Section */}
+        <section className="w-full bg-gray-950 px-4 py-12">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-200 mb-4 text-center">
               See how it works
             </h2>
-            
-            {/* Video Component with top padding reduced */}
-            <div className="pt-2">
-              <VideoComponent />
-            </div>
+            <VideoComponent />
           </div>
         </section>
-        
+
         <FeaturesSection />
-        
+
         {/* Pricing Section */}
         <section className="max-w-4xl mx-auto px-4 py-20">
           <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
