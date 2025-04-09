@@ -49,7 +49,7 @@ const LandingPage = () => {
             <PricingCard
               title="1-year access"
               originalPrice="$50"
-              price="$0.1"
+              price="$0.01"
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
