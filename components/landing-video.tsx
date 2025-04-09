@@ -1,40 +1,34 @@
 "use client";
-import { useState, useEffect } from "react";
-import Video from "next-video";
-import landingvideo from "@/videos/memoappvideo.mp4";
+import { useState, useRef, useEffect } from "react";
 
-const VideoComponent = () => {
+const CustomVideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleVideoLoad = () => {
     setIsLoading(false);
   };
 
-  // Add effect to directly manipulate the DOM after rendering
-  useEffect(() => {
-    // Function to apply styles to video elements
-    const applyVideoStyles = () => {
-      // Target all video elements in the document or in a specific container
-      const videos = document.querySelectorAll('.next-video-container video');
-      videos.forEach(video => {
-        // Apply inline styles directly to the video element
-        video.setAttribute('style', 'width: 100% !important; height: 100% !important; object-fit: cover !important; position: absolute !important; top: 0 !important; left: 0 !important;');
-      });
-      
-      // Target the container elements
-      const containers = document.querySelectorAll('.next-video-container');
-      containers.forEach(container => {
-        container.setAttribute('style', 'width: 100% !important; height: 100% !important; position: relative !important;');
-      });
-    };
+  // Optional: Add play/pause functionality on click
+  const handleVideoClick = () => {
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  };
 
-    // Apply styles immediately and after a delay to ensure they apply after next-video renders
-    applyVideoStyles();
-    const timeoutId = setTimeout(applyVideoStyles, 500);
-    
-    // Clean up timeout
-    return () => clearTimeout(timeoutId);
-  }, [isLoading]); // Re-run when loading state changes
+  // Ensure video is properly loaded
+  useEffect(() => {
+    if (videoRef.current) {
+      // If video metadata is already loaded, update loading state
+      if (videoRef.current.readyState >= 2) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
 
   return (
     <div className="relative group w-full">
@@ -51,10 +45,13 @@ const VideoComponent = () => {
         )}
         
         {/* Video wrapper with fixed aspect ratio */}
-        <div className="w-full" style={{ aspectRatio: '16/9', position: 'relative' }}>
-          <Video
-            src={landingvideo}
+        <div className="w-full aspect-video relative">
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover"
+            src="/videos/memoappvideo.mp4" 
             onLoadedData={handleVideoLoad}
+            onClick={handleVideoClick}
             controls={false}
             autoPlay
             muted
@@ -67,4 +64,4 @@ const VideoComponent = () => {
   );
 };
 
-export default VideoComponent;
+export default CustomVideoComponent;
