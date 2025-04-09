@@ -7,11 +7,12 @@ import VideoComponent from "@/components/landing-video";
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 const LandingPage = () => {
   const { user } = useUser();
   const router = useRouter();
-
+  
   const handleSuccess = (paymentId: string) => {
     console.log("Payment successful, reference:", paymentId);
     router.push("/sign-up");
@@ -31,13 +32,15 @@ const LandingPage = () => {
           <LandingHero />
         </section>
         
-        {/* Video Section - Adjusted spacing */}
-        <section className="w-full py-6">
-          <div className="max-w-4xl mx-auto px-8">
+        {/* Video Section - Combined in a single container with fixed layout */}
+        <section className="w-full py-8">
+          <div className="max-w-4xl mx-auto px-8 flex flex-col">
             <h2 className="text-2xl font-bold text-gray-200 mb-4 text-center">
               See how it works
             </h2>
-            <VideoComponent />
+            <div className="w-full">
+              <VideoComponent />
+            </div>
           </div>
         </section>
         
