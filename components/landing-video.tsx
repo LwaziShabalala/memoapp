@@ -1,14 +1,25 @@
 "use client";
-import { useState } from "react";
-import Video from "next-video";
+import { useState, useEffect } from "react";
+// Import your video file the way it was originally imported
 import landingvideo from "@/videos/memoappvideo.mp4";
 
 const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
 
+  // Handle video load
   const handleVideoLoad = () => {
     setIsLoading(false);
   };
+
+  // Use useEffect to set a timeout to prevent infinite loading
+  useEffect(() => {
+    // Safety timeout to prevent infinite loading state
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); // Force loading to end after 3 seconds
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
     <div className="relative group w-full">
@@ -24,12 +35,13 @@ const VideoComponent = () => {
           </div>
         )}
         
-        {/* Basic HTML video approach */}
+        {/* Video Container */}
         <div className="w-full aspect-video relative">
           <video
             className="absolute inset-0 w-full h-full object-cover"
-            src="/videos/memoappvideo.mp4" 
+            src={landingvideo} // Use the imported video
             onLoadedData={handleVideoLoad}
+            onError={() => setIsLoading(false)} // Handle errors by removing loading screen
             controls={false}
             autoPlay
             muted
