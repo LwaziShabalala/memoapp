@@ -5,24 +5,15 @@ import LandingNavbar from "@/components/landing-navbar";
 import PricingCard from "@/components/ui/pricingcard";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
-
-// Define the LemonSqueezy success data interface with more specific types
-interface LemonSqueezySuccessData {
-  paymentId?: string;
-  // Add other potential properties with specific types
-  // Use Record for the dynamic properties instead of any
-  [key: string]: string | number | boolean | undefined;
-}
+import type { LemonSqueezySuccessData } from "@/components/ui/pricingcard";
 
 const PaymentWall = () => {
   const { isLoaded } = useUser();
   const router = useRouter();
   
-  // Updated to accept LemonSqueezySuccessData
+  // Use the imported type from the PricingCard component
   const handleSuccess = (data: LemonSqueezySuccessData) => {
-    // Extract paymentId from data or use a string representation
-    const paymentId = data.paymentId || JSON.stringify(data);
-    console.log("Payment successful, reference:", paymentId);
+    console.log("Payment successful, reference:", data);
     router.push("/sign-up");
   };
   
