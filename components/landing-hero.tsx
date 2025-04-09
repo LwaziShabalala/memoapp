@@ -14,7 +14,7 @@ export const LandingHero = () => {
                 ></div>
                 <div className="relative z-10 text-4xl sm:text-5xl md:text-6xl lg:text-7xl space-y-4 font-extrabold">
                     <h1 className="tracking-tight capitalize">
-                        crush <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">every exam</span>
+                        master <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">every exam</span>
                     </h1>
                     <div className="relative">
                         <div className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
