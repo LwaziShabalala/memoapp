@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import "../../app/styles/styles.css";
 
@@ -28,14 +28,7 @@ interface PayPalButtonConfig {
     }) => Promise<string>;
     onApprove: (data: unknown, actions: {
         order: {
-            capture: () => Promise<{
-                payer: {
-                    name: {
-                        given_name: string;
-                    }
-                }
-                id: string;
-            }>
+            capture: () => Promise<PayPalOrderDetails>
         }
     }) => Promise<void>;
     onCancel: () => void;
@@ -47,6 +40,25 @@ interface PayPalButtonConfig {
         label?: string;
         height?: number;
     };
+}
+
+// PayPal order details interface
+interface PayPalOrderDetails {
+    payer: {
+        name: {
+            given_name: string;
+            surname?: string;
+        };
+        email_address?: string;
+    };
+    id: string;
+    purchase_units: Array<{
+        amount: {
+            value: string;
+            currency_code: string;
+        };
+    }>;
+    status: string;
 }
 
 // Declare global interface augmentation for window
@@ -68,7 +80,7 @@ interface PricingCardProps {
     storage: string;
     users: string;
     sendUp: boolean;
-    onSuccess?: (paymentId: string, orderDetails: any) => void;
+    onSuccess?: (paymentId: string, orderDetails: PayPalOrderDetails) => void;
     onCancel?: () => void;
 }
 
@@ -88,6 +100,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const router = useRouter();
 
     const modalContainerId = `paypal-modal-container-${title.replace(/\s+/g, '-').toLowerCase()}`;
+
+    // Define closePayPalModal as a useCallback to avoid dependency issues
+    const closePayPalModal = useCallback(() => {
+        setShowPayPalModal(false);
+        onCancel?.();
+    }, [onCancel]);
 
     useEffect(() => {
         if (!window.paypal) {
@@ -124,7 +142,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             document.removeEventListener('keydown', handleEscKey);
             document.body.classList.remove('overflow-hidden');
         };
-    }, [showPayPalModal]);
+    }, [showPayPalModal, closePayPalModal]);
 
     const openPayPalModal = () => {
         if (!isPayPalReady || !window.paypal?.Buttons) return;
@@ -134,11 +152,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         setTimeout(() => {
             initializePayPalButtons();
         }, 100);
-    };
-
-    const closePayPalModal = () => {
-        setShowPayPalModal(false);
-        onCancel?.();
     };
 
     const initializePayPalButtons = () => {
