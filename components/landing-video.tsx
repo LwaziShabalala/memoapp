@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Video from "next-video";
 import landingvideo from "@/videos/memoappvideo.mp4";
 
 const VideoComponent = () => {
@@ -8,19 +7,6 @@ const VideoComponent = () => {
 
   const handleVideoLoad = () => {
     setIsLoading(false);
-  };
-
-  // Define inline styles
-  const videoStyle = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover' as const
-  };
-
-  const containerStyle = {
-    position: 'relative' as const,
-    width: '100%',
-    height: '100%'
   };
 
   return (
@@ -37,11 +23,11 @@ const VideoComponent = () => {
           </div>
         )}
         
-        {/* Video with inline styles */}
-        <div className="aspect-video" style={containerStyle}>
-          <Video
-            src={landingvideo}
-            style={videoStyle}
+        {/* Direct HTML video element */}
+        <div className="aspect-video w-full">
+          <video
+            src={landingvideo.src}
+            className="w-full h-full object-cover"
             onLoadedData={handleVideoLoad}
             controls={false}
             autoPlay
