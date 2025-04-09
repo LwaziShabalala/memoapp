@@ -2,10 +2,9 @@
 import { useAuth, RedirectToSignIn, useUser } from "@clerk/nextjs";
 import RecordButton from "@/components/recordbutton";
 import UploadButton, { handlePdfFile } from "@/components/uploadbutton";
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState } from "react";
 import { useTranscription } from "@/app/transcriptioncontext";
 import FilenameModal from "@/components/ui/filenamemodal";
-import ReferralModal from "@/components/ui/referralmodal";
 import emailjs from "@emailjs/browser";
 
 // Initialize EmailJS with your public key
@@ -16,18 +15,7 @@ const DashboardPage: React.FC = () => {
   const { user } = useUser();
   const [isDragging, setIsDragging] = useState(false);
   const [showFilenameModal, setShowFilenameModal] = useState(false);
-  const [showReferralModal, setShowReferralModal] = useState(false);
   const { setTranscription, setFilename } = useTranscription();
-  
-  // Check localStorage on component mount to determine if we should show the referral modal
-  useEffect(() => {
-    if (isSignedIn) {
-      const hasAnsweredReferral = localStorage.getItem("hasAnsweredReferral");
-      if (!hasAnsweredReferral) {
-        setShowReferralModal(true);
-      }
-    }
-  }, [isSignedIn]);
 
   // Handle drag events
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -57,16 +45,6 @@ const DashboardPage: React.FC = () => {
   const handleSave = (filename: string) => {
     setFilename(filename);
     setShowFilenameModal(false);
-  };
-  
-  const handleReferralSubmit = (referrerName: string) => {
-    console.log("User was referred by:", referrerName);
-    
-    // Mark that the user has answered the referral question
-    localStorage.setItem("hasAnsweredReferral", "true");
-    
-    // Close the modal
-    setShowReferralModal(false);
   };
   
   if (!isLoaded) return null;
@@ -108,11 +86,6 @@ const DashboardPage: React.FC = () => {
         onClose={() => setShowFilenameModal(false)}
         onSave={handleSave}
       />
-      
-      {/* Non-dismissible Referral Modal */}
-      {showReferralModal && (
-        <ReferralModal onSubmit={handleReferralSubmit} />
-      )}
     </div>
   );
 };
