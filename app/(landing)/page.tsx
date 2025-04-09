@@ -3,7 +3,7 @@ import { useUser } from "@clerk/nextjs";
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
 import PricingCard from "@/components/ui/pricingcard";
-import VideoComponent from "@/components/landing-video";
+import CustomVideoComponent from "@/components/custom-video-component"; // Import the new component
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
@@ -35,7 +35,7 @@ const LandingPage = () => {
             See how it works
           </h2>
           <div className="max-w-4xl mx-auto px-8">
-            <VideoComponent />
+            <CustomVideoComponent />
           </div>
         </section>
         <FeaturesSection />
@@ -49,7 +49,7 @@ const LandingPage = () => {
             <PricingCard
               title="1-year access"
               originalPrice="$50"
-              price="$0.01"
+              price="$0.1"
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
