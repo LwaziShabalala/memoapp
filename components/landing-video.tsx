@@ -15,7 +15,7 @@ const VideoComponent = () => {
       {/* Gradient Glow */}
       <div className="absolute inset-0 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 rounded-xl blur-3xl opacity-75 group-hover:opacity-100 transition duration-1000 -z-10"></div>
       
-      {/* This is the main video container - no padding/margin */}
+      {/* Video Container */}
       <div className="relative w-full rounded-xl overflow-hidden ring-1 ring-gray-800/50 shadow-lg">
         {/* Loading Spinner */}
         {isLoading && (
@@ -24,45 +24,18 @@ const VideoComponent = () => {
           </div>
         )}
         
-        {/* 
-          Override the Next Video component's default styles 
-          The key is removing any default padding/margin that might be creating space
-        */}
-        <div className="w-full aspect-video" style={{ margin: 0, padding: 0 }}>
-          {/* 
-            Apply style overrides directly to next-video
-            The surrounding div should have no padding or margin
-            We force the video to take up 100% height/width
-          */}
-          <div style={{ 
-            width: '100%', 
-            height: '100%', 
-            margin: 0, 
-            padding: 0, 
-            overflow: 'hidden',
-            position: 'relative'
-          }}>
-            <Video
-              src={landingvideo}
-              onLoadedData={handleVideoLoad}
-              controls={false}
-              autoPlay
-              muted
-              loop
-              playsInline
-              // Apply custom styles directly to the video component
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                margin: 0,
-                padding: 0
-              }}
-            />
-          </div>
+        {/* Basic HTML video approach */}
+        <div className="w-full aspect-video relative">
+          <video
+            className="absolute inset-0 w-full h-full object-cover"
+            src="/videos/memoappvideo.mp4" 
+            onLoadedData={handleVideoLoad}
+            controls={false}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
         </div>
       </div>
     </div>
