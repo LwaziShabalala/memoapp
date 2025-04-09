@@ -1,4 +1,5 @@
 "use client";
+
 import { useUser } from "@clerk/nextjs";
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
@@ -8,7 +9,7 @@ import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
 
-// Define the interface here or import it directly from the PricingCard component
+// Define the interface here for LemonSqueezy success data
 interface LemonSqueezySuccessData {
   order?: {
     id: string;
