@@ -6,11 +6,12 @@ import PricingCard from "@/components/ui/pricingcard";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
 
-// Define the LemonSqueezy success data interface
+// Define the LemonSqueezy success data interface with more specific types
 interface LemonSqueezySuccessData {
   paymentId?: string;
-  // Add other potential properties as needed
-  [key: string]: any;
+  // Add other potential properties with specific types
+  // Use Record for the dynamic properties instead of any
+  [key: string]: string | number | boolean | undefined;
 }
 
 const PaymentWall = () => {
@@ -19,7 +20,7 @@ const PaymentWall = () => {
   
   // Updated to accept LemonSqueezySuccessData
   const handleSuccess = (data: LemonSqueezySuccessData) => {
-    // Extract paymentId from data or use the entire object
+    // Extract paymentId from data or use a string representation
     const paymentId = data.paymentId || JSON.stringify(data);
     console.log("Payment successful, reference:", paymentId);
     router.push("/sign-up");
