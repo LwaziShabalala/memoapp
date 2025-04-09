@@ -1,23 +1,34 @@
 "use client";
+
 import { useUser } from "@clerk/nextjs";
 import LandingNavbar from "@/components/landing-navbar";
 import PricingCard from "@/components/ui/pricingcard";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
 
+// Define the LemonSqueezy success data interface
+interface LemonSqueezySuccessData {
+  paymentId?: string;
+  // Add other potential properties as needed
+  [key: string]: any;
+}
+
 const PaymentWall = () => {
   const { isLoaded } = useUser();
   const router = useRouter();
-
-  const handleSuccess = (paymentId: string) => {
+  
+  // Updated to accept LemonSqueezySuccessData
+  const handleSuccess = (data: LemonSqueezySuccessData) => {
+    // Extract paymentId from data or use the entire object
+    const paymentId = data.paymentId || JSON.stringify(data);
     console.log("Payment successful, reference:", paymentId);
     router.push("/sign-up");
   };
-
+  
   const handleCancel = () => {
     console.log("Payment was canceled");
   };
-
+  
   if (!isLoaded) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-950">
@@ -25,7 +36,7 @@ const PaymentWall = () => {
       </div>
     );
   }
-
+  
   return (
     <VirtualizedWrapper>
       <div className="min-h-screen bg-gray-950">
