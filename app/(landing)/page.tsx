@@ -7,6 +7,7 @@ import VideoComponent from "@/components/landing-video";
 import FeaturesSection from "@/components/landing-features";
 import VirtualizedWrapper from "@/components/virtualized-wrapper";
 import { useRouter } from "next/navigation";
+
 const LandingPage = () => {
   const { user } = useUser();
   const router = useRouter();
@@ -25,20 +26,23 @@ const LandingPage = () => {
     <VirtualizedWrapper>
       <div className="min-h-screen bg-gray-950">
         <LandingNavbar />
-        <section className="py-16">
+        
+        <section className="py-12">
           <LandingHero />
         </section>
-
-        <section className="-mt-8 w-full py-12">
-          <h2 className="text-2xl font-bold text-gray-200 mb-8 text-center">
-            See how it works
-          </h2>
+        
+        {/* Video Section - Adjusted spacing */}
+        <section className="w-full py-6">
           <div className="max-w-4xl mx-auto px-8">
+            <h2 className="text-2xl font-bold text-gray-200 mb-4 text-center">
+              See how it works
+            </h2>
             <VideoComponent />
           </div>
         </section>
+        
         <FeaturesSection />
-
+        
         {/* Pricing Section */}
         <section className="max-w-4xl mx-auto px-4 py-20">
           <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
@@ -71,4 +75,5 @@ const LandingPage = () => {
     </VirtualizedWrapper>
   );
 };
+
 export default LandingPage;
