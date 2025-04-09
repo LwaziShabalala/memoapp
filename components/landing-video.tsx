@@ -8,45 +8,39 @@ const VideoComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleVideoLoad = () => {
-    setIsLoading(false);
-  };
+  const handleVideoLoad = () => setIsLoading(false);
 
   useEffect(() => {
     if (!isLoading && containerRef.current) {
-      const videoElements = containerRef.current.querySelectorAll("video");
-      videoElements.forEach((video) => {
-        video.style.width = "100%";
-        video.style.height = "100%";
-        video.style.objectFit = "cover";
-      });
+      const video = containerRef.current.querySelector("video");
+      if (video) {
+        video.classList.add("w-full", "h-full", "object-cover");
+      }
     }
   }, [isLoading]);
 
   return (
-    <div className="relative group w-full h-[500px] sm:h-[600px] md:h-[700px] lg:h-[800px] rounded-xl overflow-hidden mt-2">
-      {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 blur-3xl opacity-75 group-hover:opacity-100 transition duration-1000 -z-10" />
-
-      {/* Video Container with Overlay */}
-      <div className="relative w-full h-full ring-1 ring-gray-800/50 shadow-lg before:absolute before:inset-0 before:bg-gradient-to-b before:from-indigo-500/40 before:to-transparent before:blur-3xl before:-z-10">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg z-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500" />
-          </div>
-        )}
-        <div ref={containerRef} className="w-full h-full">
-          <Video
-            src={landingvideo}
-            className="w-full h-full"
-            onLoadedData={handleVideoLoad}
-            controls={false}
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
+    <div className="relative group w-full h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] rounded-xl overflow-hidden">
+      {/* Loading Spinner */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 z-10">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500" />
         </div>
+      )}
+
+      {/* Video background gradients */}
+      <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/30 to-violet-600/30 blur-2xl opacity-60 -z-10" />
+
+      <div ref={containerRef} className="w-full h-full">
+        <Video
+          src={landingvideo}
+          onLoadedData={handleVideoLoad}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        />
       </div>
     </div>
   );
