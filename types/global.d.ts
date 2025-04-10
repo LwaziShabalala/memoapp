@@ -1,18 +1,5 @@
-// types/global.d.ts
-
 declare global {
   interface Window {
-    webkitAudioContext?: typeof AudioContext;
-    gtag: (
-      command: string,
-      targetId: string,
-      config?: {
-        page_path?: string;
-        [key: string]: any;
-      }
-    ) => void;
-    dataLayer: any[];
-
     LemonSqueezy?: {
       Setup: (options: {
         activePopup?: boolean;
@@ -29,11 +16,6 @@ declare global {
         }) => void;
       };
     };
-  }
-
-  interface LemonSqueezyEventData {
-    event: string;
-    data?: any;
   }
 }
 
