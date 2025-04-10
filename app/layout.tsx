@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs"
+import { ClerkProvider } from "@clerk/nextjs";
 import Script from "next/script";
 
 const geistSans = localFont({
@@ -14,6 +14,7 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900",
 });
+
 export const metadata: Metadata = {
   title: "memo",
   description: "AI platform",
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
   }
 };
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,13 +34,6 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <GoogleAnalytics /> {/* Add this component */}
-          <Script
-            defer
-            data-website-id="67c9482c5891e85373d3e90b"
-            data-domain="memoapp-tawny.vercel.app"
-            src="https://datafa.st/js/script.js"
-          />
           {children}
         </body>
       </html>
