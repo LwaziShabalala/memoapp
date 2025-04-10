@@ -53,17 +53,35 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (window?.LemonSqueezy?.EmbedCheckout) {
-        window.LemonSqueezy.Setup({ activePopup: true });
-        setIsLemonSqueezyReady(true);
-        console.log("✅ LemonSqueezy ready");
-        clearInterval(interval);
-      }
-    }, 300);
+    const loadLemonSqueezy = () => {
+      // Add LemonSqueezy Setup and event handler
+      if (window?.LemonSqueezy) {
+        window.LemonSqueezy.Setup({
+          eventHandler: (data: any) => {
+            if (data.event === "Checkout.Success") {
+              console.log("Checkout was successful:", data);
+              if (onSuccess) onSuccess(data);
+            }
+          },
+        });
 
-    return () => clearInterval(interval);
-  }, []);
+        // Mark LemonSqueezy as ready
+        setIsLemonSqueezyReady(true);
+      }
+    };
+
+    // Load LemonSqueezy script and call loadLemonSqueezy on load
+    const script = document.createElement("script");
+    script.src = "https://assets.lemonsqueezy.com/lemon.js";
+    script.defer = true;
+    script.onload = loadLemonSqueezy;
+    document.body.appendChild(script);
+
+    return () => {
+      // Clean up script when the component unmounts
+      document.body.removeChild(script);
+    };
+  }, [onSuccess]);
 
   const handlePurchase = () => {
     console.log("🛒 Starting purchase for variant:", lemonSqueezyVariantId);
@@ -73,68 +91,43 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       return;
     }
 
-    window.LemonSqueezy.EmbedCheckout.Open({
-      variantId: lemonSqueezyVariantId,
-      onSuccess: (data: LemonSqueezySuccessData) => {
-        console.log("Payment successful", data);
-        if (onSuccess) onSuccess(data);
-        window.location.href = "/success";
-      },
-      onError: (error: LemonSqueezyErrorData) => {
-        console.error("Payment error", error);
-        alert("Something went wrong. Please try again.");
-        if (onCancel) onCancel();
-      },
-    });
+    // Open the checkout using the LemonSqueezy.Url.Open method
+    const checkoutUrl = `https://lwazistore.lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
+    window.LemonSqueezy.Url.Open(checkoutUrl);
   };
 
   return (
-    <>
-      <Script
-        src="https://assets.lemonsqueezy.com/lemon.js"
-        strategy="afterInteractive"
-        onLoad={() => {
-          if (window.createLemonSqueezy) {
-            window.createLemonSqueezy();
-            if (window.LemonSqueezy) {
-              window.LemonSqueezy.Setup({ activePopup: true });
-              setIsLemonSqueezyReady(true);
-            }
-          }
-        }}
-      />
-      <div className="relative group">
-        <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
-        <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
-          <header className="text-center space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-              {title}
-            </h2>
-            <div className="flex items-center justify-center gap-2">
-              {originalPrice && (
-                <p className="text-lg text-gray-400 line-through">
-                  {originalPrice}
-                </p>
-              )}
-              <p className="text-4xl font-extrabold text-white">{price}</p>
-            </div>
-          </header>
-          <div className="space-y-4 text-base text-gray-300">
-            <p className="leading-relaxed">{storage}</p>
-            <p className="leading-relaxed text-sm text-gray-400">{users}</p>
+    <div className="relative group">
+      <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition duration-500"></div>
+      <div className="relative bg-gray-900 text-white rounded-xl shadow-lg p-8 space-y-8 min-h-[400px]">
+        <header className="text-center space-y-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+            {title}
+          </h2>
+          <div className="flex items-center justify-center gap-2">
+            {originalPrice && (
+              <p className="text-lg text-gray-400 line-through">
+                {originalPrice}
+              </p>
+            )}
+            <p className="text-4xl font-extrabold text-white">{price}</p>
           </div>
-          <div className="w-full">
-            <button
-              onClick={handlePurchase}
-              disabled={!isLemonSqueezyReady}
-              className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
-            >
-              {!isLemonSqueezyReady ? "Loading..." : "Get Started Now"}
-            </button>
-          </div>
+        </header>
+        <div className="space-y-4 text-base text-gray-300">
+          <p className="leading-relaxed">{storage}</p>
+          <p className="leading-relaxed text-sm text-gray-400">{users}</p>
+        </div>
+        <div className="w-full">
+          <button
+            onClick={handlePurchase}
+            disabled={!isLemonSqueezyReady}
+            className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
+          >
+            {!isLemonSqueezyReady ? "Loading..." : "Get Started Now"}
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
