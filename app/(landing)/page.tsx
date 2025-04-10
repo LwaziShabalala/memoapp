@@ -33,7 +33,7 @@ const LandingPage = () => {
 
   const handleSuccess = (data: LemonSqueezySuccessData) => {
     console.log("Payment successful, order:", data.order?.id);
-    router.push("/sign-up");
+    router.push("/sign-up"); // Redirect user to sign-up page after successful payment
   };
 
   const handleCancel = () => {
@@ -68,13 +68,13 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <PricingCard
               title="1-year access"
-              originalPrice="$50"
-              price="$0.1"
+              originalPrice="$150"
+              price="$99"
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
-              lemonSqueezyVariantId="var_756234"
-              storeUrl="yourstore" // Add your Lemon Squeezy store URL here
+              lemonSqueezyVariantId="487630" // Your actual variant ID
+              storeUrl="lwazistore" // Replace with your store URL
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
@@ -85,8 +85,8 @@ const LandingPage = () => {
               storage="Secure lifetime access with exclusive perks and continuous updates."
               users="Enjoy permanent access to new features, including priority support and more!"
               sendUp={true}
-              lemonSqueezyVariantId="var_456"
-              storeUrl="yourstore" // Add your Lemon Squeezy store URL here
+              lemonSqueezyVariantId="487630" // Your actual variant ID
+              storeUrl="lwazistore" // Replace with your store URL
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
