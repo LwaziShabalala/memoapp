@@ -33,10 +33,16 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-// Define error callback data type
-interface LemonSqueezyErrorData {
-  error: string;
-  [key: string]: unknown;
+// Define the LemonSqueezy global type to match documentation
+declare global {
+  interface Window {
+    LemonSqueezy?: {
+      Url: {
+        Open: (url: string) => void;
+      };
+      // Other potential properties based on documentation
+    };
+  }
 }
 
 export const PricingCard: React.FC<PricingCardProps> = ({
@@ -58,42 +64,39 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       if (window.LemonSqueezy) {
         clearInterval(checkInterval);
         setIsLemonSqueezyReady(true);
-        console.log("Lemon Squeezy is ready");
-        
-        // Setup with the activePopup option
-        window.LemonSqueezy.Setup({
-          activePopup: true
-        });
+        console.log("Lemon Squeezy is ready", window.LemonSqueezy);
       }
     }, 500); // Check every 500ms
 
     // Attach a global event listener for Lemon Squeezy events
-    const handleLemonSqueezyEvents = (event: Event) => {
-      // Check if this is a custom event from Lemon Squeezy
-      if (event instanceof CustomEvent && event.detail) {
-        if (onSuccess) {
-          onSuccess(event.detail);
-        }
+    const handleCheckoutSuccess = (event: Event) => {
+      console.log("Checkout success event received", event);
+      if (onSuccess && event instanceof CustomEvent) {
+        onSuccess(event.detail);
       }
     };
 
-    // Add event listener for Lemon Squeezy checkout success
-    window.addEventListener('lemonSqueezy:checkout:success', handleLemonSqueezyEvents);
+    // Add event listener based on documentation
+    window.addEventListener('lemonSqueezyPurchaseComplete', handleCheckoutSuccess);
 
-    // Dynamically load the Lemon.js script if it's not already loaded
-    if (!document.querySelector('script[src="https://assets.lemonsqueezy.com/lemon.js"]')) {
+    // Dynamically load the correct Lemon.js script
+    if (!document.querySelector('script[src="https://app.lemonsqueezy.com/js/lemon.js"]')) {
+      console.log("Loading Lemon Squeezy script");
       const script = document.createElement("script");
-      script.src = "https://assets.lemonsqueezy.com/lemon.js";
+      script.src = "https://app.lemonsqueezy.com/js/lemon.js";
       script.defer = true;
+      script.onload = () => {
+        console.log("Lemon Squeezy script loaded");
+        if (window.LemonSqueezy) {
+          setIsLemonSqueezyReady(true);
+          console.log("Lemon Squeezy is ready after script load");
+        }
+      };
       document.body.appendChild(script);
-    } else {
-      // If script already exists, check if Lemon Squeezy is already loaded
-      if (window.LemonSqueezy) {
-        setIsLemonSqueezyReady(true);
-        window.LemonSqueezy.Setup({
-          activePopup: true
-        });
-      }
+    } else if (window.LemonSqueezy) {
+      // If script already exists and LemonSqueezy is loaded
+      setIsLemonSqueezyReady(true);
+      console.log("Lemon Squeezy already loaded");
     }
 
     return () => {
@@ -101,7 +104,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       clearInterval(checkInterval);
       
       // Remove event listener
-      window.removeEventListener('lemonSqueezy:checkout:success', handleLemonSqueezyEvents);
+      window.removeEventListener('lemonSqueezyPurchaseComplete', handleCheckoutSuccess);
     };
   }, [onSuccess]);
 
@@ -114,17 +117,13 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }
 
     try {
-      // Use EmbedCheckout.Open to match the existing type definition
-      window.LemonSqueezy.EmbedCheckout.Open({
-        variantId: lemonSqueezyVariantId,
-        onSuccess: (data) => {
-          if (onSuccess) onSuccess(data);
-        },
-        onError: (error) => {
-          console.error("Checkout error:", error);
-          if (onCancel) onCancel();
-        }
-      });
+      // Use the store URL and variant ID to create the checkout URL
+      // Replace [STORE] with your actual store subdomain
+      const checkoutUrl = `https://[STORE].lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
+      console.log("Opening checkout URL:", checkoutUrl);
+      
+      // Use the correct method according to documentation
+      window.LemonSqueezy.Url.Open(checkoutUrl);
     } catch (error) {
       console.error("Failed to open checkout:", error);
       alert("There was an error opening the checkout. Please try again later.");
