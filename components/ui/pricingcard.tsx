@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import "@/types/lemonsqueezy";
 
 // Props interface
 interface PricingCardProps {
