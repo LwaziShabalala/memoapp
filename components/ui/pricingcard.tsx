@@ -28,7 +28,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(true);
 
   const handlePurchase = () => {
-    const checkoutUrl = `https://${storeUrl}.lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
+    const checkoutUrl = `https://lwazistore.lemonsqueezy.com/checkout/custom/487630`;
     window.location.href = checkoutUrl; // Redirects the user to the checkout page
 
     if (onSuccess) {
