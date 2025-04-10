@@ -40,7 +40,7 @@ interface LemonSqueezyEventData {
   data?: LemonSqueezySuccessData;
 }
 
-// Merging the global `Window` interface with the existing type (if any)
+// Correct way to augment the existing type in TypeScript
 declare global {
   interface Window {
     LemonSqueezy?: {
@@ -50,9 +50,13 @@ declare global {
       }) => void;
       Url?: {
         Open: (url: string) => void;
-        EmbedCheckout?: {
-          Open: (options: { variantId: string }) => void;
-        };
+      };
+      EmbedCheckout?: {
+        Open: (options: {
+          variantId: string;
+          onSuccess: (data: unknown) => void;
+          onError: (error: unknown) => void;
+        }) => void;
       };
     };
   }
