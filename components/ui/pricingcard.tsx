@@ -40,28 +40,6 @@ interface LemonSqueezyEventData {
   data?: LemonSqueezySuccessData;
 }
 
-// Correct way to augment the existing type in TypeScript
-declare global {
-  interface Window {
-    LemonSqueezy?: {
-      Setup: (options: {
-        activePopup?: boolean;
-        eventHandler?: (data: LemonSqueezyEventData) => void;
-      }) => void;
-      Url?: {
-        Open: (url: string) => void;
-      };
-      EmbedCheckout?: {
-        Open: (options: {
-          variantId: string;
-          onSuccess: (data: unknown) => void;
-          onError: (error: unknown) => void;
-        }) => void;
-      };
-    };
-  }
-}
-
 export const PricingCard: React.FC<PricingCardProps> = ({
   title,
   price,
