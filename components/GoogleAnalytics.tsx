@@ -4,12 +4,6 @@ import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-  }
-}
-
 function Analytics(): JSX.Element {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -22,7 +16,7 @@ function Analytics(): JSX.Element {
     }
   }, [pathname, searchParams]);
 
-  return <></>; // Return an empty fragment instead of null
+  return <></>;
 }
 
 export default function GoogleAnalytics(): JSX.Element {
@@ -44,7 +38,6 @@ export default function GoogleAnalytics(): JSX.Element {
           `,
         }}
       />
-      {/* Wrap in Suspense to avoid pre-rendering issues */}
       <Suspense fallback={<></>}>
         <Analytics />
       </Suspense>
