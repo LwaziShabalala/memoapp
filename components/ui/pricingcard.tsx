@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 
-// Props interface
 interface PricingCardProps {
   title: string;
   price: string;
@@ -8,10 +7,7 @@ interface PricingCardProps {
   storage: string;
   users: string;
   sendUp?: boolean;
-  lemonSqueezyVariantId: string;
-  storeUrl: string;
-  onSuccess?: (data: LemonSqueezySuccessData) => void; // Added onSuccess
-  onCancel?: () => void; // Added onCancel
+  checkoutUrl: string; // <- use direct link
 }
 
 export const PricingCard: React.FC<PricingCardProps> = ({
@@ -20,20 +16,10 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   originalPrice,
   storage,
   users,
-  lemonSqueezyVariantId,
-  storeUrl,
-  onSuccess,  // Added onSuccess
-  onCancel,   // Added onCancel
+  checkoutUrl,
 }) => {
-  const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(true);
-
   const handlePurchase = () => {
-    const checkoutUrl = `https://lwazistore.lemonsqueezy.com/checkout/custom/487630`;
-    window.location.href = checkoutUrl; // Redirects the user to the checkout page
-
-    if (onSuccess) {
-      onSuccess({ /* success data */ });
-    }
+    window.location.href = checkoutUrl;
   };
 
   return (
@@ -46,9 +32,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
           </h2>
           <div className="flex items-center justify-center gap-2">
             {originalPrice && (
-              <p className="text-lg text-gray-400 line-through">
-                {originalPrice}
-              </p>
+              <p className="text-lg text-gray-400 line-through">{originalPrice}</p>
             )}
             <p className="text-4xl font-extrabold text-white">{price}</p>
           </div>
@@ -60,10 +44,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         <div className="w-full">
           <button
             onClick={handlePurchase}
-            disabled={!isLemonSqueezyReady}
             className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
           >
-            {isLemonSqueezyReady ? "Get Started Now" : "Loading..."}
+            Get Started Now
           </button>
         </div>
       </div>
