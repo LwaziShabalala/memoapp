@@ -55,31 +55,29 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
   useEffect(() => {
     const loadLemonSqueezy = () => {
-      // Ensure that LemonSqueezy is available
       if (window?.LemonSqueezy) {
-        // Setup the LemonSqueezy event listener
-        window.LemonSqueezy.Setup();
+        // Set up the event handler
+        window.LemonSqueezy.Setup({
+          eventHandler: (event: LemonSqueezyEvent) => {
+            // Handle specific events
+            if (event.event === "Checkout.Success") {
+              console.log("Checkout was successful:", event.data);
+              if (onSuccess) {
+                onSuccess(event.data);
+              }
+            }
 
-        // Register event listener for "Checkout.Success"
-        window.LemonSqueezy.Event.addEventListener("Checkout.Success", (event: LemonSqueezyEvent) => {
-          // This is a callback that gets called when the checkout is successful
-          if (event?.data) {
-            console.log("Checkout was successful:", event);
-            if (onSuccess) onSuccess(event.data);
-          }
+            if (event.event === "PaymentMethodUpdate.Updated") {
+              console.log("Payment method updated:", event.data);
+            }
+          },
         });
 
-        // Register event listener for other events if needed
-        window.LemonSqueezy.Event.addEventListener("PaymentMethodUpdate.Updated", (event: LemonSqueezyEvent) => {
-          console.log("Payment method updated:", event);
-        });
-
-        // Mark LemonSqueezy as ready
         setIsLemonSqueezyReady(true);
       }
     };
 
-    // Load the Lemon.js script dynamically
+    // Dynamically load the Lemon.js script
     const script = document.createElement("script");
     script.src = "https://assets.lemonsqueezy.com/lemon.js";
     script.defer = true;
@@ -87,7 +85,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     document.body.appendChild(script);
 
     return () => {
-      // Clean up script when the component unmounts
+      // Clean up the script when the component unmounts
       document.body.removeChild(script);
     };
   }, [onSuccess]);
