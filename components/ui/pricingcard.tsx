@@ -54,15 +54,22 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
   useEffect(() => {
     const loadLemonSqueezy = () => {
-      // Add LemonSqueezy Setup and event handler
+      // Ensure that LemonSqueezy is available
       if (window?.LemonSqueezy) {
-        window.LemonSqueezy.Setup({
-          eventHandler: (data: LemonSqueezyEventData) => {
-            if (data.event === "Checkout.Success" && data.data) {
-              console.log("Checkout was successful:", data);
-              if (onSuccess) onSuccess(data.data);
-            }
-          },
+        // Setup event listeners
+        window.LemonSqueezy.Setup();
+
+        // Register event listener for "Checkout.Success"
+        window.LemonSqueezy.Event.addEventListener('Checkout.Success', (event: LemonSqueezyEventData) => {
+          if (event.data) {
+            console.log("Checkout was successful:", event);
+            if (onSuccess) onSuccess(event.data);
+          }
+        });
+
+        // Register other event listeners as needed
+        window.LemonSqueezy.Event.addEventListener('PaymentMethodUpdate.Updated', () => {
+          console.log("Payment method updated successfully");
         });
 
         // Mark LemonSqueezy as ready
@@ -70,7 +77,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       }
     };
 
-    // Load LemonSqueezy script and call loadLemonSqueezy on load
+    // Load the Lemon.js script dynamically
     const script = document.createElement("script");
     script.src = "https://assets.lemonsqueezy.com/lemon.js";
     script.defer = true;
