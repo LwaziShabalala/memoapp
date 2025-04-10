@@ -1,23 +1,9 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import PricingCard from "@/components/ui/pricingcard";
 
 const PaymentWall = () => {
-  const router = useRouter();
-
-  const handleSuccess = () => {
-    toast.success("Payment successful!");
-    router.refresh(); // Refresh the page or user data
-  };
-
-  const handleCancel = () => {
-    toast.error("Payment cancelled.");
-    router.refresh(); // Optional: handle UI rollback
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-10 px-4 bg-gray-50 dark:bg-background">
       <h1 className="text-4xl font-bold text-center mb-10 text-primary">
@@ -32,10 +18,7 @@ const PaymentWall = () => {
           storage="Join now and get early access to exclusive updates and features."
           users="Be among the first to experience advanced transcription tools and AI-powered features!"
           sendUp={true}
-          lemonSqueezyVariantId="12345" // ✅ Replace with your actual variant ID
-          storeUrl="https://[STORE].lemonsqueezy.com/checkout/custom/12345" // ✅ Add your actual store URL here
-          onSuccess={handleSuccess}
-          onCancel={handleCancel}
+          checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
         />
 
         <PricingCard
@@ -45,10 +28,7 @@ const PaymentWall = () => {
           storage="Secure lifetime access with exclusive perks and continuous updates."
           users="Enjoy permanent access to new features, including priority support and more!"
           sendUp={true}
-          lemonSqueezyVariantId="67890" // ✅ Replace with your actual variant ID
-          storeUrl="https://[STORE].lemonsqueezy.com/checkout/custom/67890" // ✅ Add your actual store URL here
-          onSuccess={handleSuccess}
-          onCancel={handleCancel}
+          checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/ccfe9bd3-63b3-4c5e-afe8-c53860441e7b"
         />
       </div>
     </div>
