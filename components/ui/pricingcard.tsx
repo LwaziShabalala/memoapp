@@ -1,5 +1,4 @@
-"use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 // Props interface
 interface PricingCardProps {
@@ -11,33 +10,6 @@ interface PricingCardProps {
   sendUp?: boolean;
   lemonSqueezyVariantId: string;
   storeUrl: string;
-  onSuccess?: (data: LemonSqueezySuccessData) => void;
-  onCancel?: () => void;
-}
-
-// Lemon Squeezy success data interface
-interface LemonSqueezySuccessData {
-  order?: {
-    id: string;
-    identifier: string;
-    store_id: string;
-    customer_id: string;
-    total: string;
-    status: string;
-    [key: string]: unknown;
-  };
-  customer?: {
-    id: string;
-    email: string;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
-
-// Lemon Squeezy event data interface
-interface LemonSqueezyEventData {
-  event: string;
-  data?: LemonSqueezySuccessData;
 }
 
 export const PricingCard: React.FC<PricingCardProps> = ({
@@ -46,58 +18,15 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   originalPrice,
   storage,
   users,
-  sendUp,
   lemonSqueezyVariantId,
   storeUrl,
-  onSuccess,
-  onCancel,
 }) => {
-  const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
-
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://app.lemonsqueezy.com/js/lemon.js";
-    script.defer = true;
-    script.async = true;
-
-    script.onload = () => {
-      if (window.LemonSqueezy) {
-        window.LemonSqueezy.Setup({
-          eventHandler: (data) => {
-            if (data.event === "Checkout.Success" && onSuccess) {
-              onSuccess(data.data || {});
-            }
-          },
-        });
-        setIsLemonSqueezyReady(true);
-      }
-    };
-
-    script.onerror = () => {
-      console.error("Failed to load Lemon.js");
-      alert("Payment system failed to load. Please refresh and try again.");
-    };
-
-    document.body.appendChild(script);
-
-    return () => {
-      script.remove(); // Cleanup script
-    };
-  }, [onSuccess]);
+  const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(true); // We don’t need to wait for the SDK
 
   const handlePurchase = () => {
-    if (!isLemonSqueezyReady || !window.LemonSqueezy) {
-      alert("Payment system is not ready yet. Please refresh and try again.");
-      return;
-    }
-
-    try {
-      const checkoutUrl = `https://${storeUrl}.lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
-      window.LemonSqueezy.Url.Open(checkoutUrl);
-    } catch (error) {
-      console.error("Failed to open checkout:", error);
-      if (onCancel) onCancel();
-    }
+    // Directly open the LemonSqueezy checkout page
+    const checkoutUrl = `https://${storeUrl}.lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
+    window.location.href = checkoutUrl; // Redirects the user to the checkout page
   };
 
   return (
@@ -127,7 +56,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             disabled={!isLemonSqueezyReady}
             className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
           >
-            {!isLemonSqueezyReady ? "Loading..." : "Get Started Now"}
+            {isLemonSqueezyReady ? "Get Started Now" : "Loading..."}
           </button>
         </div>
       </div>
