@@ -1,5 +1,4 @@
 "use client";
-
 import { useUser } from "@clerk/nextjs";
 import { LandingHero } from "@/components/landing-hero";
 import LandingNavbar from "@/components/landing-navbar";
@@ -48,7 +47,7 @@ const LandingPage = () => {
         <section className="py-12">
           <LandingHero />
         </section>
-
+        
         {/* Video Section */}
         <section className="w-full bg-gray-950 px-4 py-12">
           <div className="max-w-4xl mx-auto">
@@ -58,9 +57,9 @@ const LandingPage = () => {
             <VideoComponent />
           </div>
         </section>
-
+        
         <FeaturesSection />
-
+        
         {/* Pricing Section */}
         <section className="max-w-4xl mx-auto px-4 py-20">
           <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
@@ -75,6 +74,7 @@ const LandingPage = () => {
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
               lemonSqueezyVariantId="var_756234"
+              storeUrl="yourstore" // Add your Lemon Squeezy store URL here
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
@@ -86,6 +86,7 @@ const LandingPage = () => {
               users="Enjoy permanent access to new features, including priority support and more!"
               sendUp={true}
               lemonSqueezyVariantId="var_456"
+              storeUrl="yourstore" // Add your Lemon Squeezy store URL here
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
