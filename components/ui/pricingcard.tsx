@@ -40,7 +40,7 @@ interface LemonSqueezyEventData {
   data?: LemonSqueezySuccessData;
 }
 
-// ✅ Correct way to augment the global `Window` interface
+// Merging the global `Window` interface with the existing type (if any)
 declare global {
   interface Window {
     LemonSqueezy?: {
