@@ -7,9 +7,13 @@ import Script from "next/script";
 interface PricingCardProps {
   title: string;
   price: string;
+  originalPrice?: string;
   storage: string;
   users: string;
+  sendUp?: boolean;
   lemonSqueezyVariantId: string;
+  onSuccess?: (data: LemonSqueezySuccessData) => void;
+  onCancel?: () => void;
 }
 
 // Define the types for success and error callback data
@@ -28,30 +32,20 @@ interface LemonSqueezyErrorData {
 export const PricingCard: React.FC<PricingCardProps> = ({
   title,
   price,
+  originalPrice,
   storage,
   users,
+  sendUp,
   lemonSqueezyVariantId,
+  onSuccess,
+  onCancel,
 }) => {
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
 
   useEffect(() => {
-    const loadLemonSqueezy = () => {
-      if (window.LemonSqueezy) {
-        window.LemonSqueezy.Setup({ activePopup: true });
-        setIsLemonSqueezyReady(true);
-      }
-    };
-
-    // Check if LemonSqueezy is already loaded, otherwise load the script
     if (window.LemonSqueezy) {
-      loadLemonSqueezy();
-    } else {
-      // This ensures LemonSqueezy is loaded and setup is called when the script is ready
-      const script = document.createElement("script");
-      script.src = "https://assets.lemonsqueezy.com/lemon.js";
-      script.async = true;
-      script.onload = loadLemonSqueezy;
-      document.body.appendChild(script);
+      window.LemonSqueezy.Setup({ activePopup: true });
+      setIsLemonSqueezyReady(true);
     }
   }, []);
 
@@ -65,12 +59,13 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       variantId: lemonSqueezyVariantId,
       onSuccess: (data: LemonSqueezySuccessData) => {
         console.log("Payment successful", data);
-        // Use a better method for redirection, preserving application state
-        window.location.href = "/success";  // Adjust this as needed
+        if (onSuccess) onSuccess(data);
+        window.location.href = "/success";
       },
       onError: (error: LemonSqueezyErrorData) => {
         console.error("Payment error", error);
         alert("Something went wrong. Please try again.");
+        if (onCancel) onCancel();
       },
     });
   };
@@ -82,9 +77,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         src="https://assets.lemonsqueezy.com/lemon.js"
         strategy="afterInteractive"
         onLoad={() => {
-          if (window.LemonSqueezy) {
-            window.LemonSqueezy.Setup({ activePopup: true });
-            setIsLemonSqueezyReady(true);
+          if (window.createLemonSqueezy) {
+            window.createLemonSqueezy();
+            if (window.LemonSqueezy) {
+              window.LemonSqueezy.Setup({ activePopup: true });
+              setIsLemonSqueezyReady(true);
+            }
           }
         }}
       />
@@ -97,7 +95,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             <h2 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
               {title}
             </h2>
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-2">
+              {originalPrice && (
+                <p className="text-lg text-gray-400 line-through">
+                  {originalPrice}
+                </p>
+              )}
               <p className="text-4xl font-extrabold text-white">{price}</p>
             </div>
           </header>
