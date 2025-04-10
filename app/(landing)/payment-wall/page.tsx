@@ -33,6 +33,7 @@ const PaymentWall = () => {
           users="Be among the first to experience advanced transcription tools and AI-powered features!"
           sendUp={true}
           lemonSqueezyVariantId="12345" // ✅ Replace with your actual variant ID
+          storeUrl="https://[STORE].lemonsqueezy.com/checkout/custom/12345" // ✅ Add your actual store URL here
           onSuccess={handleSuccess}
           onCancel={handleCancel}
         />
@@ -45,6 +46,7 @@ const PaymentWall = () => {
           users="Enjoy permanent access to new features, including priority support and more!"
           sendUp={true}
           lemonSqueezyVariantId="67890" // ✅ Replace with your actual variant ID
+          storeUrl="https://[STORE].lemonsqueezy.com/checkout/custom/67890" // ✅ Add your actual store URL here
           onSuccess={handleSuccess}
           onCancel={handleCancel}
         />
