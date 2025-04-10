@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
-// Define types for the props
+// Props interface
 interface PricingCardProps {
   title: string;
   price: string;
@@ -10,12 +10,12 @@ interface PricingCardProps {
   users: string;
   sendUp?: boolean;
   lemonSqueezyVariantId: string;
-  storeUrl: string; // Add store URL as a required prop
+  storeUrl: string;
   onSuccess?: (data: LemonSqueezySuccessData) => void;
   onCancel?: () => void;
 }
 
-// Define success callback data type
+// Lemon Squeezy success data interface
 interface LemonSqueezySuccessData {
   order?: {
     id: string;
@@ -34,12 +34,13 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-// Define LemonSqueezy event data interface
+// Lemon Squeezy event data interface
 interface LemonSqueezyEventData {
   event: string;
   data?: LemonSqueezySuccessData;
 }
 
+// ✅ Correct way to augment the global `Window` interface
 declare global {
   interface Window {
     LemonSqueezy?: {
@@ -69,44 +70,32 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
 
   useEffect(() => {
-    // Create and insert the script tag
     const script = document.createElement("script");
     script.src = "https://app.lemonsqueezy.com/js/lemon.js";
     script.defer = true;
     script.async = true;
-    
-    // Define what happens on script load
+
     script.onload = () => {
       if (window.LemonSqueezy) {
-        console.log("Lemon.js loaded successfully");
-        
-        // Set up event handling
         window.LemonSqueezy.Setup({
           eventHandler: (data) => {
-            console.log("Lemon Squeezy event:", data);
             if (data.event === "Checkout.Success" && onSuccess) {
-              console.log("Checkout success:", data.data);
-              onSuccess(data.data);
+              onSuccess(data.data || {});
             }
-          }
+          },
         });
-        
         setIsLemonSqueezyReady(true);
       }
     };
-    
-    // Handle errors
+
     script.onerror = () => {
       console.error("Failed to load Lemon.js");
       alert("Payment system failed to load. Please refresh and try again.");
     };
-    
-    // Add the script to the document
+
     document.body.appendChild(script);
-    
-    // Cleanup function
+
     return () => {
-      // Only remove if it exists and has a parent
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
@@ -114,24 +103,17 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   }, [onSuccess]);
 
   const handlePurchase = () => {
-    console.log("🛒 Starting purchase for variant:", lemonSqueezyVariantId);
-
     if (!isLemonSqueezyReady || !window.LemonSqueezy) {
       alert("Payment system is not ready yet. Please refresh and try again.");
       return;
     }
 
     try {
-      // Construct the checkout URL according to the docs
       const checkoutUrl = `https://${storeUrl}.lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
-      console.log("Opening checkout URL:", checkoutUrl);
-      
-      // Use the Url.Open method as shown in the documentation
       window.LemonSqueezy.Url.Open(checkoutUrl);
     } catch (error) {
       console.error("Failed to open checkout:", error);
       if (onCancel) onCancel();
-      alert("There was an error opening the checkout. Please try again later.");
     }
   };
 
