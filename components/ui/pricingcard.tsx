@@ -103,9 +103,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     document.body.appendChild(script);
 
     return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
+      script.remove(); // Cleanup script
     };
   }, [onSuccess]);
 
