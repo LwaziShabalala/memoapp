@@ -74,7 +74,7 @@ const LandingPage = () => {
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
-              lemonSqueezyVariantId="756234"
+              lemonSqueezyVariantId="var_756234"
               onSuccess={handleSuccess}
               onCancel={handleCancel}
             />
