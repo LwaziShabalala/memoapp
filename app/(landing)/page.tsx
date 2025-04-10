@@ -73,7 +73,7 @@ const LandingPage = () => {
               storage="Join now and get early access to exclusive updates and features."
               users="Be among the first to experience advanced transcription tools and AI-powered features!"
               sendUp={true}
-              lemonSqueezyVariantId="487630" // Your actual variant ID
+              lemonSqueezyVariantId="757449" // Your actual variant ID
               storeUrl="lwazistore" // Replace with your store URL
               onSuccess={handleSuccess}
               onCancel={handleCancel}
