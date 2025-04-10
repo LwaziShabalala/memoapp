@@ -34,6 +34,12 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
+// Define the event structure for LemonSqueezy events
+interface LemonSqueezyEvent {
+  event: string;
+  data?: LemonSqueezySuccessData; // For events like 'Checkout.Success'
+}
+
 export const PricingCard: React.FC<PricingCardProps> = ({
   title,
   price,
@@ -55,7 +61,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         window.LemonSqueezy.Setup();
 
         // Register event listener for "Checkout.Success"
-        window.LemonSqueezy.Event.addEventListener("Checkout.Success", (event: any) => {
+        window.LemonSqueezy.Event.addEventListener("Checkout.Success", (event: LemonSqueezyEvent) => {
           // This is a callback that gets called when the checkout is successful
           if (event?.data) {
             console.log("Checkout was successful:", event);
@@ -64,7 +70,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         });
 
         // Register event listener for other events if needed
-        window.LemonSqueezy.Event.addEventListener("PaymentMethodUpdate.Updated", (event: any) => {
+        window.LemonSqueezy.Event.addEventListener("PaymentMethodUpdate.Updated", (event: LemonSqueezyEvent) => {
           console.log("Payment method updated:", event);
         });
 
