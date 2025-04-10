@@ -34,11 +34,6 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-interface LemonSqueezyEventData {
-  event: string;
-  data?: LemonSqueezySuccessData;
-}
-
 export const PricingCard: React.FC<PricingCardProps> = ({
   title,
   price,
@@ -56,20 +51,21 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     const loadLemonSqueezy = () => {
       // Ensure that LemonSqueezy is available
       if (window?.LemonSqueezy) {
-        // Setup event listeners
+        // Setup the LemonSqueezy event listener
         window.LemonSqueezy.Setup();
 
         // Register event listener for "Checkout.Success"
-        window.LemonSqueezy.Event.addEventListener('Checkout.Success', (event: LemonSqueezyEventData) => {
-          if (event.data) {
+        window.LemonSqueezy.Event.addEventListener("Checkout.Success", (event: any) => {
+          // This is a callback that gets called when the checkout is successful
+          if (event?.data) {
             console.log("Checkout was successful:", event);
             if (onSuccess) onSuccess(event.data);
           }
         });
 
-        // Register other event listeners as needed
-        window.LemonSqueezy.Event.addEventListener('PaymentMethodUpdate.Updated', () => {
-          console.log("Payment method updated successfully");
+        // Register event listener for other events if needed
+        window.LemonSqueezy.Event.addEventListener("PaymentMethodUpdate.Updated", (event: any) => {
+          console.log("Payment method updated:", event);
         });
 
         // Mark LemonSqueezy as ready
@@ -99,7 +95,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }
 
     // Open the checkout using the LemonSqueezy.Url.Open method
-    const checkoutUrl = `https://lwazistore.lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
+    const checkoutUrl = `https://[STORE].lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
     window.LemonSqueezy.Url.Open(checkoutUrl);
   };
 
