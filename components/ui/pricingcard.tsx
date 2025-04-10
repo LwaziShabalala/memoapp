@@ -10,6 +10,8 @@ interface PricingCardProps {
   sendUp?: boolean;
   lemonSqueezyVariantId: string;
   storeUrl: string;
+  onSuccess?: (data: LemonSqueezySuccessData) => void; // Added onSuccess
+  onCancel?: () => void; // Added onCancel
 }
 
 export const PricingCard: React.FC<PricingCardProps> = ({
@@ -20,13 +22,18 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   users,
   lemonSqueezyVariantId,
   storeUrl,
+  onSuccess,  // Added onSuccess
+  onCancel,   // Added onCancel
 }) => {
-  const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(true); // We don’t need to wait for the SDK
+  const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(true);
 
   const handlePurchase = () => {
-    // Directly open the LemonSqueezy checkout page
     const checkoutUrl = `https://${storeUrl}.lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
     window.location.href = checkoutUrl; // Redirects the user to the checkout page
+
+    if (onSuccess) {
+      onSuccess({ /* success data */ });
+    }
   };
 
   return (
