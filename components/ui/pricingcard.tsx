@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import "@/types/lemonsqueezy";
+import "../../types/lemonsqueezy"; // adjust this based on where pricingcard.tsx lives
+
 
 // Props interface
 interface PricingCardProps {
