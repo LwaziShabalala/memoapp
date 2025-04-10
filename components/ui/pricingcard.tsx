@@ -34,12 +34,18 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
+// Define LemonSqueezy event data interface
+interface LemonSqueezyEventData {
+  event: string;
+  data?: LemonSqueezySuccessData;
+}
+
 declare global {
   interface Window {
     LemonSqueezy?: {
       Setup: (options: {
         activePopup?: boolean;
-        eventHandler?: (data: { event: string; data?: any }) => void;
+        eventHandler?: (data: LemonSqueezyEventData) => void;
       }) => void;
       Url: {
         Open: (url: string) => void;
