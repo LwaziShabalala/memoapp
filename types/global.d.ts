@@ -1,3 +1,4 @@
+// types/global.d.ts
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
@@ -10,7 +11,29 @@ declare global {
       }
     ) => void;
     dataLayer: any[];
+
+    LemonSqueezy?: {
+      Setup: (options: {
+        activePopup?: boolean;
+        eventHandler?: (data: LemonSqueezyEventData) => void;
+      }) => void;
+      Url?: {
+        Open: (url: string) => void;
+      };
+      EmbedCheckout?: {
+        Open: (options: {
+          variantId: string;
+          onSuccess: (data: unknown) => void;
+          onError: (error: unknown) => void;
+        }) => void;
+      };
+    };
+  }
+
+  interface LemonSqueezyEventData {
+    event: string;
+    data?: any;
   }
 }
 
-
+export {};
