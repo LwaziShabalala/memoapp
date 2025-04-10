@@ -52,20 +52,22 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       if (window?.LemonSqueezy) {
         setIsLemonSqueezyReady(true);
 
-        // Adding event listeners for events
-        window.LemonSqueezy.Event.addEventListener("Checkout.Success", (event: LemonSqueezyEvent) => {
-          if (event.data && onSuccess) {
-            onSuccess(event.data);
-          }
+        // Call Setup to configure event handling (if Setup is the right method)
+        window.LemonSqueezy.Setup({
+          activePopup: true,
         });
 
-        window.LemonSqueezy.Event.addEventListener("PaymentMethodUpdate.Updated", (event: LemonSqueezyEvent) => {
-          console.log("Payment method updated:", event);
-        });
-
-        window.LemonSqueezy.Event.addEventListener("PaymentMethodUpdate.Closed", (event: LemonSqueezyEvent) => {
-          console.log("Payment method update overlay closed:", event);
-        });
+        // Handling Checkout.Success event using Setup
+        if (onSuccess) {
+          window.LemonSqueezy.Setup({
+            eventHandler: (data) => {
+              if (data.event === "Checkout.Success") {
+                // Passing the data when the checkout is successful
+                onSuccess(data.data);
+              }
+            },
+          });
+        }
       }
     };
 
