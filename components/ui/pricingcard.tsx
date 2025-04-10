@@ -33,25 +33,10 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-// Define event data types
-interface LemonSqueezyEvent {
-  event: string;
-  data: LemonSqueezySuccessData;
-}
-
-// Define the LemonSqueezy global type
-declare global {
-  interface Window {
-    LemonSqueezy?: {
-      Setup: (options: { 
-        activePopup?: boolean;
-        eventHandler?: (data: LemonSqueezyEvent) => void;
-      }) => void;
-      Url: {
-        Open: (url: string) => void;
-      };
-    };
-  }
+// Define error callback data type (to match existing types)
+interface LemonSqueezyErrorData {
+  error: string;
+  [key: string]: unknown;
 }
 
 export const PricingCard: React.FC<PricingCardProps> = ({
@@ -68,21 +53,31 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
 
   useEffect(() => {
+    // Function to handle Lemon Squeezy initialization
     const loadLemonSqueezy = () => {
       if (window?.LemonSqueezy) {
         setIsLemonSqueezyReady(true);
-
-        // Configure LemonSqueezy with event handling
+        
+        // Setup with the activePopup option
         window.LemonSqueezy.Setup({
-          activePopup: true,
-          eventHandler: (data: LemonSqueezyEvent) => {
-            if (data.event === "Checkout.Success" && onSuccess) {
-              onSuccess(data.data);
-            }
-          }
+          activePopup: true
         });
       }
     };
+
+    // Attach a global event listener for Lemon Squeezy events
+    const handleLemonSqueezyEvents = (event: Event) => {
+      // Check if this is a custom event from Lemon Squeezy
+      if (event instanceof CustomEvent && event.detail && event.type.startsWith('lemonSqueezy:')) {
+        // Handle checkout success event
+        if (event.type === 'lemonSqueezy:checkout:success' && onSuccess) {
+          onSuccess(event.detail);
+        }
+      }
+    };
+
+    // Add event listener for Lemon Squeezy checkout success
+    window.addEventListener('lemonSqueezy:checkout:success', handleLemonSqueezyEvents);
 
     // Dynamically load the Lemon.js script
     const script = document.createElement("script");
@@ -92,6 +87,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     document.body.appendChild(script);
 
     return () => {
+      // Remove event listener
+      window.removeEventListener('lemonSqueezy:checkout:success', handleLemonSqueezyEvents);
+      
       // Clean up the script when the component unmounts
       if (script.parentNode) {
         document.body.removeChild(script);
@@ -107,9 +105,22 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       return;
     }
 
-    // Open the checkout using the LemonSqueezy.Url.Open method
-    const checkoutUrl = `https://[STORE].lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
-    window.LemonSqueezy.Url.Open(checkoutUrl);
+    try {
+      // Use EmbedCheckout.Open instead of Url.Open to match the existing type definition
+      window.LemonSqueezy.EmbedCheckout.Open({
+        variantId: lemonSqueezyVariantId,
+        onSuccess: (data) => {
+          if (onSuccess) onSuccess(data);
+        },
+        onError: (error) => {
+          console.error("Checkout error:", error);
+          if (onCancel) onCancel();
+        }
+      });
+    } catch (error) {
+      console.error("Failed to open checkout:", error);
+      alert("There was an error opening the checkout. Please try again later.");
+    }
   };
 
   return (
