@@ -33,7 +33,7 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-// Define error callback data type (to match existing types)
+// Define error callback data type
 interface LemonSqueezyErrorData {
   error: string;
   [key: string]: unknown;
@@ -53,24 +53,25 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
 
   useEffect(() => {
-    // Function to handle Lemon Squeezy initialization
-    const loadLemonSqueezy = () => {
-      if (window?.LemonSqueezy) {
+    // Setup a timer to check for Lemon Squeezy availability periodically
+    const checkInterval = setInterval(() => {
+      if (window.LemonSqueezy) {
+        clearInterval(checkInterval);
         setIsLemonSqueezyReady(true);
+        console.log("Lemon Squeezy is ready");
         
         // Setup with the activePopup option
         window.LemonSqueezy.Setup({
           activePopup: true
         });
       }
-    };
+    }, 500); // Check every 500ms
 
     // Attach a global event listener for Lemon Squeezy events
     const handleLemonSqueezyEvents = (event: Event) => {
       // Check if this is a custom event from Lemon Squeezy
-      if (event instanceof CustomEvent && event.detail && event.type.startsWith('lemonSqueezy:')) {
-        // Handle checkout success event
-        if (event.type === 'lemonSqueezy:checkout:success' && onSuccess) {
+      if (event instanceof CustomEvent && event.detail) {
+        if (onSuccess) {
           onSuccess(event.detail);
         }
       }
@@ -79,21 +80,28 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     // Add event listener for Lemon Squeezy checkout success
     window.addEventListener('lemonSqueezy:checkout:success', handleLemonSqueezyEvents);
 
-    // Dynamically load the Lemon.js script
-    const script = document.createElement("script");
-    script.src = "https://assets.lemonsqueezy.com/lemon.js";
-    script.defer = true;
-    script.onload = loadLemonSqueezy;
-    document.body.appendChild(script);
+    // Dynamically load the Lemon.js script if it's not already loaded
+    if (!document.querySelector('script[src="https://assets.lemonsqueezy.com/lemon.js"]')) {
+      const script = document.createElement("script");
+      script.src = "https://assets.lemonsqueezy.com/lemon.js";
+      script.defer = true;
+      document.body.appendChild(script);
+    } else {
+      // If script already exists, check if Lemon Squeezy is already loaded
+      if (window.LemonSqueezy) {
+        setIsLemonSqueezyReady(true);
+        window.LemonSqueezy.Setup({
+          activePopup: true
+        });
+      }
+    }
 
     return () => {
+      // Clear interval to prevent memory leaks
+      clearInterval(checkInterval);
+      
       // Remove event listener
       window.removeEventListener('lemonSqueezy:checkout:success', handleLemonSqueezyEvents);
-      
-      // Clean up the script when the component unmounts
-      if (script.parentNode) {
-        document.body.removeChild(script);
-      }
     };
   }, [onSuccess]);
 
@@ -106,7 +114,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }
 
     try {
-      // Use EmbedCheckout.Open instead of Url.Open to match the existing type definition
+      // Use EmbedCheckout.Open to match the existing type definition
       window.LemonSqueezy.EmbedCheckout.Open({
         variantId: lemonSqueezyVariantId,
         onSuccess: (data) => {
