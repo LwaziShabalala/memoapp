@@ -15,7 +15,7 @@ interface PricingCardProps {
   onCancel?: () => void;
 }
 
-// Define success and error callback data types
+// Define success callback data type
 interface LemonSqueezySuccessData {
   order?: {
     id: string;
@@ -34,9 +34,9 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-interface LemonSqueezyErrorData {
-  errorMessage: string;
-  errorCode: string;
+interface LemonSqueezyEventData {
+  event: string;
+  data?: LemonSqueezySuccessData;
 }
 
 export const PricingCard: React.FC<PricingCardProps> = ({
@@ -57,10 +57,10 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       // Add LemonSqueezy Setup and event handler
       if (window?.LemonSqueezy) {
         window.LemonSqueezy.Setup({
-          eventHandler: (data: any) => {
-            if (data.event === "Checkout.Success") {
+          eventHandler: (data: LemonSqueezyEventData) => {
+            if (data.event === "Checkout.Success" && data.data) {
               console.log("Checkout was successful:", data);
-              if (onSuccess) onSuccess(data);
+              if (onSuccess) onSuccess(data.data);
             }
           },
         });
