@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
-
 // Props interface
 interface PricingCardProps {
   title: string;
@@ -49,8 +48,11 @@ declare global {
         activePopup?: boolean;
         eventHandler?: (data: LemonSqueezyEventData) => void;
       }) => void;
-      Url: {
+      Url?: {
         Open: (url: string) => void;
+        EmbedCheckout?: {
+          Open: (options: { variantId: string }) => void;
+        };
       };
     };
   }
