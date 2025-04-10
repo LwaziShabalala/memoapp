@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Script from "next/script";
 
-// Define props for the card
+// Define types for the props
 interface PricingCardProps {
   title: string;
   price: string;
@@ -16,7 +16,7 @@ interface PricingCardProps {
   onCancel?: () => void;
 }
 
-// Define the types for success and error callback data
+// Define success and error callback data types
 interface LemonSqueezySuccessData {
   orderId: string;
   variantId: string;
@@ -72,7 +72,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
   return (
     <>
-      {/* Load LemonSqueezy SDK globally */}
       <Script
         src="https://assets.lemonsqueezy.com/lemon.js"
         strategy="afterInteractive"
