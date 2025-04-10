@@ -33,13 +33,19 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
+// Define event data types
+interface LemonSqueezyEvent {
+  event: string;
+  data: LemonSqueezySuccessData;
+}
+
 // Define the LemonSqueezy global type
 declare global {
   interface Window {
     LemonSqueezy?: {
       Setup: (options: { 
         activePopup?: boolean;
-        eventHandler?: (data: { event: string; data: any }) => void;
+        eventHandler?: (data: LemonSqueezyEvent) => void;
       }) => void;
       Url: {
         Open: (url: string) => void;
@@ -69,7 +75,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         // Configure LemonSqueezy with event handling
         window.LemonSqueezy.Setup({
           activePopup: true,
-          eventHandler: (data) => {
+          eventHandler: (data: LemonSqueezyEvent) => {
             if (data.event === "Checkout.Success" && onSuccess) {
               onSuccess(data.data);
             }
