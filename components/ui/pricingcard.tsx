@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import Script from "next/script";
 
 // Define types for the props
 interface PricingCardProps {
@@ -34,6 +33,21 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
+// Define the LemonSqueezy global type
+declare global {
+  interface Window {
+    LemonSqueezy?: {
+      Setup: (options: { 
+        activePopup?: boolean;
+        eventHandler?: (data: { event: string; data: any }) => void;
+      }) => void;
+      Url: {
+        Open: (url: string) => void;
+      };
+    };
+  }
+}
+
 export const PricingCard: React.FC<PricingCardProps> = ({
   title,
   price,
@@ -52,22 +66,15 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       if (window?.LemonSqueezy) {
         setIsLemonSqueezyReady(true);
 
-        // Call Setup to configure event handling (if Setup is the right method)
+        // Configure LemonSqueezy with event handling
         window.LemonSqueezy.Setup({
           activePopup: true,
+          eventHandler: (data) => {
+            if (data.event === "Checkout.Success" && onSuccess) {
+              onSuccess(data.data);
+            }
+          }
         });
-
-        // Handling Checkout.Success event using Setup
-        if (onSuccess) {
-          window.LemonSqueezy.Setup({
-            eventHandler: (data) => {
-              if (data.event === "Checkout.Success") {
-                // Passing the data when the checkout is successful
-                onSuccess(data.data);
-              }
-            },
-          });
-        }
       }
     };
 
@@ -80,7 +87,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
     return () => {
       // Clean up the script when the component unmounts
-      document.body.removeChild(script);
+      if (script.parentNode) {
+        document.body.removeChild(script);
+      }
     };
   }, [onSuccess]);
 
