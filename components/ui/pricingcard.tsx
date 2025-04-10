@@ -53,13 +53,21 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
 
   useEffect(() => {
-    if (window.LemonSqueezy) {
-      window.LemonSqueezy.Setup({ activePopup: true });
-      setIsLemonSqueezyReady(true);
-    }
+    const interval = setInterval(() => {
+      if (window?.LemonSqueezy?.EmbedCheckout) {
+        window.LemonSqueezy.Setup({ activePopup: true });
+        setIsLemonSqueezyReady(true);
+        console.log("✅ LemonSqueezy ready");
+        clearInterval(interval);
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handlePurchase = () => {
+    console.log("🛒 Starting purchase for variant:", lemonSqueezyVariantId);
+
     if (!isLemonSqueezyReady || !window.LemonSqueezy) {
       alert("Payment system is not ready yet. Please try again later.");
       return;
