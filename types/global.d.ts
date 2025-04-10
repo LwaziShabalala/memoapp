@@ -1,4 +1,5 @@
 // types/global.d.ts
+
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
