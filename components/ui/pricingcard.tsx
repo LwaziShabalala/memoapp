@@ -34,12 +34,6 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-// Define the event structure for LemonSqueezy events
-interface LemonSqueezyEvent {
-  event: string;
-  data?: LemonSqueezySuccessData; // For events like 'Checkout.Success'
-}
-
 export const PricingCard: React.FC<PricingCardProps> = ({
   title,
   price,
@@ -56,24 +50,22 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   useEffect(() => {
     const loadLemonSqueezy = () => {
       if (window?.LemonSqueezy) {
-        // Set up the event handler
-        window.LemonSqueezy.Setup({
-          eventHandler: (event: LemonSqueezyEvent) => {
-            // Handle specific events
-            if (event.event === "Checkout.Success") {
-              console.log("Checkout was successful:", event.data);
-              if (onSuccess) {
-                onSuccess(event.data);
-              }
-            }
+        setIsLemonSqueezyReady(true);
 
-            if (event.event === "PaymentMethodUpdate.Updated") {
-              console.log("Payment method updated:", event.data);
-            }
-          },
+        // Adding event listeners for events
+        window.LemonSqueezy.Event.addEventListener("Checkout.Success", (event: LemonSqueezyEvent) => {
+          if (event.data && onSuccess) {
+            onSuccess(event.data);
+          }
         });
 
-        setIsLemonSqueezyReady(true);
+        window.LemonSqueezy.Event.addEventListener("PaymentMethodUpdate.Updated", (event: LemonSqueezyEvent) => {
+          console.log("Payment method updated:", event);
+        });
+
+        window.LemonSqueezy.Event.addEventListener("PaymentMethodUpdate.Closed", (event: LemonSqueezyEvent) => {
+          console.log("Payment method update overlay closed:", event);
+        });
       }
     };
 
