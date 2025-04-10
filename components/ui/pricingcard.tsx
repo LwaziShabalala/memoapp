@@ -10,6 +10,7 @@ interface PricingCardProps {
   users: string;
   sendUp?: boolean;
   lemonSqueezyVariantId: string;
+  storeUrl: string; // Add store URL as a required prop
   onSuccess?: (data: LemonSqueezySuccessData) => void;
   onCancel?: () => void;
 }
@@ -33,10 +34,18 @@ interface LemonSqueezySuccessData {
   [key: string]: unknown;
 }
 
-// Define error data type for consistency
-interface LemonSqueezyErrorData {
-  error: string;
-  [key: string]: unknown;
+declare global {
+  interface Window {
+    LemonSqueezy?: {
+      Setup: (options: {
+        activePopup?: boolean;
+        eventHandler?: (data: { event: string; data?: any }) => void;
+      }) => void;
+      Url: {
+        Open: (url: string) => void;
+      };
+    };
+  }
 }
 
 export const PricingCard: React.FC<PricingCardProps> = ({
@@ -47,56 +56,54 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   users,
   sendUp,
   lemonSqueezyVariantId,
+  storeUrl,
   onSuccess,
   onCancel,
 }) => {
   const [isLemonSqueezyReady, setIsLemonSqueezyReady] = useState(false);
 
   useEffect(() => {
-    // Track whether the component is still mounted
-    let isMounted = true;
+    // Create and insert the script tag
+    const script = document.createElement("script");
+    script.src = "https://app.lemonsqueezy.com/js/lemon.js";
+    script.defer = true;
+    script.async = true;
     
-    // Setup a timer to check for Lemon Squeezy availability
-    const checkInterval = setInterval(() => {
-      if (window.LemonSqueezy && isMounted) {
-        clearInterval(checkInterval);
-        setIsLemonSqueezyReady(true);
-        console.log("Lemon Squeezy is ready");
+    // Define what happens on script load
+    script.onload = () => {
+      if (window.LemonSqueezy) {
+        console.log("Lemon.js loaded successfully");
         
-        // Setup if available (based on existing type)
-        if (typeof window.LemonSqueezy.Setup === 'function') {
-          window.LemonSqueezy.Setup({ activePopup: true });
-        }
-      }
-    }, 500);
-
-    // Attach event listeners for checkout success
-    const handleCheckoutSuccess = (event: Event) => {
-      console.log("Checkout success event received", event);
-      if (onSuccess && event instanceof CustomEvent && event.detail) {
-        onSuccess(event.detail);
-      }
-    };
-
-    window.addEventListener('lemonSqueezyPurchaseComplete', handleCheckoutSuccess);
-
-    // Load the Lemon Squeezy script
-    const loadScript = () => {
-      if (!document.querySelector('script[src="https://app.lemonsqueezy.com/js/lemon.js"]')) {
-        console.log("Loading Lemon Squeezy script");
-        const script = document.createElement("script");
-        script.src = "https://app.lemonsqueezy.com/js/lemon.js";
-        script.defer = true;
-        document.body.appendChild(script);
+        // Set up event handling
+        window.LemonSqueezy.Setup({
+          eventHandler: (data) => {
+            console.log("Lemon Squeezy event:", data);
+            if (data.event === "Checkout.Success" && onSuccess) {
+              console.log("Checkout success:", data.data);
+              onSuccess(data.data);
+            }
+          }
+        });
+        
+        setIsLemonSqueezyReady(true);
       }
     };
-
-    loadScript();
-
+    
+    // Handle errors
+    script.onerror = () => {
+      console.error("Failed to load Lemon.js");
+      alert("Payment system failed to load. Please refresh and try again.");
+    };
+    
+    // Add the script to the document
+    document.body.appendChild(script);
+    
+    // Cleanup function
     return () => {
-      isMounted = false;
-      clearInterval(checkInterval);
-      window.removeEventListener('lemonSqueezyPurchaseComplete', handleCheckoutSuccess);
+      // Only remove if it exists and has a parent
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
     };
   }, [onSuccess]);
 
@@ -104,46 +111,20 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     console.log("🛒 Starting purchase for variant:", lemonSqueezyVariantId);
 
     if (!isLemonSqueezyReady || !window.LemonSqueezy) {
-      alert("Payment system is not ready yet. Please try again.");
+      alert("Payment system is not ready yet. Please refresh and try again.");
       return;
     }
 
     try {
-      // We need to handle both API patterns based on what's available
-      // This avoids type errors while supporting multiple LemonSqueezy versions
+      // Construct the checkout URL according to the docs
+      const checkoutUrl = `https://${storeUrl}.lemonsqueezy.com/checkout/custom/${lemonSqueezyVariantId}`;
+      console.log("Opening checkout URL:", checkoutUrl);
       
-      // First try the EmbedCheckout method from the type definition
-      if (window.LemonSqueezy.EmbedCheckout && typeof window.LemonSqueezy.EmbedCheckout.Open === 'function') {
-        window.LemonSqueezy.EmbedCheckout.Open({
-          variantId: lemonSqueezyVariantId,
-          onSuccess: (data) => {
-            if (onSuccess) onSuccess(data);
-          },
-          onError: (error) => {
-            console.error("Checkout error:", error);
-            if (onCancel) onCancel();
-          }
-        });
-      } 
-      // If not available, try to use the URL approach mentioned in documentation
-      else {
-        // Create a custom link to the checkout page
-        const storeUrl = prompt("Please enter your Lemon Squeezy store URL (e.g., my-store.lemonsqueezy.com):");
-        if (!storeUrl) return;
-        
-        const checkoutUrl = `https://${storeUrl}/checkout/custom/${lemonSqueezyVariantId}`;
-        
-        // Create a temporary link and click it
-        const tempLink = document.createElement('a');
-        tempLink.href = checkoutUrl;
-        tempLink.className = 'lemonsqueezy-button';
-        tempLink.style.display = 'none';
-        document.body.appendChild(tempLink);
-        tempLink.click();
-        document.body.removeChild(tempLink);
-      }
+      // Use the Url.Open method as shown in the documentation
+      window.LemonSqueezy.Url.Open(checkoutUrl);
     } catch (error) {
       console.error("Failed to open checkout:", error);
+      if (onCancel) onCancel();
       alert("There was an error opening the checkout. Please try again later.");
     }
   };
