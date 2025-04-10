@@ -1,3 +1,5 @@
+// This file should only contain type declarations, not any implementation code.
+
 declare global {
   interface Window {
     LemonSqueezy?: {
@@ -19,4 +21,25 @@ declare global {
   }
 }
 
-export {};
+interface LemonSqueezyEventData {
+  event: string;
+  data?: LemonSqueezySuccessData;
+}
+
+interface LemonSqueezySuccessData {
+  order?: {
+    id: string;
+    identifier: string;
+    store_id: string;
+    customer_id: string;
+    total: string;
+    status: string;
+    [key: string]: unknown;
+  };
+  customer?: {
+    id: string;
+    email: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
