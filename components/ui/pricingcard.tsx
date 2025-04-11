@@ -13,6 +13,9 @@ interface PricingCardProps {
   highlighted?: boolean;
   checkoutUrl: string;
   updatedText?: string;
+  storage?: string;
+  users?: string;
+  sendUp?: boolean;
 }
 
 export const PricingCard: React.FC<PricingCardProps> = ({
@@ -23,6 +26,9 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   highlighted = false,
   checkoutUrl,
   updatedText,
+  storage,
+  users,
+  sendUp,
 }) => {
   const handlePurchase = () => {
     window.location.href = checkoutUrl;
@@ -38,16 +44,23 @@ export const PricingCard: React.FC<PricingCardProps> = ({
         <h2 className="text-xl font-bold text-white mb-5">{title}</h2>
         <div className="flex items-center gap-2 mb-2">
           {originalPrice && (
-            <span className="text-gray-400 line-through text-sm">${originalPrice}</span>
+            <span className="text-gray-400 line-through text-sm">{originalPrice}</span>
           )}
-          <span className="text-5xl font-bold text-white">${price}</span>
+          <span className="text-5xl font-bold text-white">{price}</span>
           <span className="text-gray-400 text-sm">USD</span>
         </div>
       </div>
 
+      {(storage || users) && (
+        <div className="mb-6">
+          {storage && <p className="text-gray-300 mb-2">{storage}</p>}
+          {users && <p className="text-gray-400 text-sm">{users}</p>}
+        </div>
+      )}
+
       <div className="flex-grow">
         <div className="space-y-4 mb-8">
-          {features.map((feature, index) => (
+          {features?.map((feature, index) => (
             <div key={index} className="flex items-start">
               {feature.included ? (
                 <svg className="w-5 h-5 text-green-500 mr-2 mt-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
