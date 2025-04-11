@@ -5,7 +5,7 @@ import PricingCard from "@/components/ui/pricingcard";
 
 const PaymentWall = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-10 px-4 bg-gray-50 dark:bg-background">
+    <div className="flex flex-col items-center justify-center min-h-screen py-10 px-4 bg-gray-950 dark:bg-background">
       <h1 className="text-4xl font-bold text-center mb-10 text-primary">
         Choose Your Plan
       </h1>
