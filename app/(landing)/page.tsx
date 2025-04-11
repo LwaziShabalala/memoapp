@@ -32,31 +32,68 @@ const LandingPage = () => {
         <FeaturesSection />
 
         {/* Pricing Section */}
-        <section className="max-w-4xl mx-auto px-4 py-20">
-          <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
-            Choose Your Plan
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <PricingCard
-              title="1-year access"
-              originalPrice="$150"
-              price="$99"
-              storage="Join now and get early access to exclusive updates and features."
-              users="Be among the first to experience advanced transcription tools and AI-powered features!"
-              sendUp={true}
-              checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
-            />
-            <PricingCard
-              title="Lifetime Access"
-              originalPrice="$199"
-              price="$149"
-              storage="Secure lifetime access with exclusive perks and continuous updates."
-              users="Enjoy permanent access to new features, including priority support and more!"
-              sendUp={true}
-              checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/ccfe9bd3-63b3-4c5e-afe8-c53860441e7b"
-            />
-          </div>
-        </section>
+// Inside your LandingPage component
+
+// Pricing Section
+<section className="max-w-6xl mx-auto px-4 py-20">
+  <h2 className="text-3xl font-bold text-gray-200 mb-8 text-center">
+    Choose Your Plan
+  </h2>
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <PricingCard
+      title="Starter"
+      originalPrice="299"
+      price="199"
+      features={[
+        { text: "NextJS boilerplate", included: true },
+        { text: "SEO & Blog", included: true },
+        { text: "Mailgun emails", included: true },
+        { text: "Stripe / Lemon Squeezy", included: true },
+        { text: "MongoDB / Supabase", included: true },
+        { text: "Google Oauth & Magic Links", included: true },
+        { text: "Components & animations", included: true },
+        { text: "ChatGPT prompts for terms & privacy", included: true },
+        { text: "Discord community & Leaderboard", included: false },
+        { text: "$1,210 worth of discounts", included: false },
+        { text: "Lifetime updates", included: false },
+      ]}
+      checkoutUrl="https://yourstorename.lemonsqueezy.com/buy/starter-plan"
+    />
+    
+    <PricingCard
+      title="All-in"
+      originalPrice="349"
+      price="249"
+      features={[
+        { text: "NextJS boilerplate", included: true },
+        { text: "SEO & Blog", included: true },
+        { text: "Mailgun emails", included: true },
+        { text: "Stripe / Lemon Squeezy", included: true },
+        { text: "MongoDB / Supabase", included: true },
+        { text: "Google Oauth & Magic Links", included: true },
+        { text: "Components & animations", included: true },
+        { text: "ChatGPT prompts for terms & privacy", included: true },
+        { text: "Discord community & Leaderboard", included: true },
+        { text: "$1,210 worth of discounts", included: true },
+        { text: "Lifetime updates", included: true },
+      ]}
+      updatedText="Updated 2 months ago"
+      checkoutUrl="https://yourstorename.lemonsqueezy.com/buy/all-in-plan"
+    />
+    
+    <PricingCard
+      title="ShipFast + CodeFast"
+      originalPrice="648"
+      price="299"
+      highlighted={true}
+      features={[
+        { text: "Everything in All-in, and...", included: true },
+        // Add additional features for this premium plan
+      ]}
+      checkoutUrl="https://yourstorename.lemonsqueezy.com/buy/shipfast-codefast"
+    />
+  </div>
+</section>
       </div>
     </VirtualizedWrapper>
   );
