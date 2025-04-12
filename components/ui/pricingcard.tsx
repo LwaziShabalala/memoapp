@@ -37,7 +37,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   return (
     <div 
       className={`flex flex-col rounded-xl ${
-        highlighted ? 'border border-green-500' : 'bg-gray-800'
+        highlighted ? 'border border-purple-500' : 'bg-gray-900'
       } p-8`}
     >
       <div className="mb-6">
@@ -63,7 +63,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
           {features?.map((feature, index) => (
             <div key={index} className="flex items-start">
               {feature.included ? (
-                <svg className="w-5 h-5 text-green-500 mr-2 mt-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 text-purple-500 mr-2 mt-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
@@ -79,7 +79,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
           
           {updatedText && (
             <div className="mt-4">
-              <span className="bg-green-500 text-black text-xs px-3 py-1 rounded-full">
+              <span className="bg-purple-500 text-white text-xs px-3 py-1 rounded-full">
                 {updatedText}
               </span>
             </div>
@@ -89,7 +89,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
       <button
         onClick={handlePurchase}
-        className="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-black font-semibold rounded-lg transition-colors"
+        className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all"
       >
         Get {title}
       </button>
