@@ -1,16 +1,18 @@
-import { ClerkLoaded, SignIn } from "@clerk/nextjs"
+import { SignIn } from "@clerk/nextjs"
 
 export default function Page() {
     return (
-        <ClerkLoaded>
-            <SignIn
-                path="/sign-in"
-                appearance={{
-                    elements: {
-                        footerAction: { display: "none" },
-                    },
-                }}
-            />
-        </ClerkLoaded>
+        <SignIn
+            appearance={{
+                elements: {
+                    // Target multiple possible elements that could contain the sign-up link
+                    footerAction: { display: "none" },
+                    footerActionLink: { display: "none" },
+                    footer: { 
+                        "& a[href*='sign-up']": { display: "none" }
+                    }
+                }
+            }}
+        />
     )
 }
