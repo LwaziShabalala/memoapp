@@ -46,7 +46,7 @@ const PaymentWall = () => {
             { text: "Lifetime updates", included: true },
           ]}
           updatedText="Updated 2 months ago"
-          checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/ccfe9bd3-63b3-4c5e-afe8-c53860441e7b"
+          checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
           highlighted={true}
         />
       </div>
