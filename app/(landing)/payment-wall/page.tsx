@@ -10,24 +10,24 @@ const PaymentWall = () => {
       </h1>
       <div className="grid gap-10 sm:grid-cols-1 md:grid-cols-2 max-w-5xl w-full">
         <PricingCard
-          title="1-year access"
-          originalPrice="150"
-          price="99"
-          features={[
-            { text: "NextJS boilerplate", included: true },
-            { text: "SEO & Blog", included: true },
-            { text: "Mailgun emails", included: true },
-            { text: "Stripe / Lemon Squeezy", included: true },
-            { text: "MongoDB / Supabase", included: true },
-            { text: "Google Oauth & Magic Links", included: true },
-            { text: "Components & animations", included: true },
-            { text: "ChatGPT prompts for terms & privacy", included: true },
-            { text: "Discord community & Leaderboard", included: false },
-            { text: "$1,210 worth of discounts", included: false },
-            { text: "Lifetime updates", included: false },
-          ]}
-          checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
-        />
+              title="1-year access"
+              originalPrice="$150"
+              price="$99"
+              features={[
+                { text: "Transcribe lecture audio to text", included: true },
+  { text: "Summarize long lectures automatically", included: true },
+  { text: "Create flashcards from notes", included: true },
+  { text: "Export notes as PDF", included: true },
+  { text: "Chat with your lecture notes", included: true },
+  { text: "Access to all current features", included: true },
+  { text: "Early beta access", included: true },
+  { text: "Priority transcription processing", included: false },
+  { text: "Future AI model upgrades", included: false },
+  { text: "Lifetime updates", included: false },
+  { text: "Exclusive access to premium UI features", included: false },
+              ]}
+              checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
+            />
         <PricingCard
           title="Lifetime Access"
           originalPrice="150"
