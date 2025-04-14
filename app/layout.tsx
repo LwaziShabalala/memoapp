@@ -32,22 +32,22 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
+        <head>
+          {/* 📊 Umami Analytics (added as-is with defer) */}
+          <script
+            defer
+            data-website-id="67fd031ccee849af2f02027f"
+            data-domain="memoapp.net"
+            src="https://datafa.st/js/script.js"
+          ></script>
+        </head>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           {/* 🍋 LemonSqueezy Affiliate Tracking */}
-<Script id="lemon-affiliate-config" strategy="beforeInteractive">
-  {`window.lemonSqueezyAffiliateConfig = { store: "thememoapp" };`}
-</Script>
-<Script
-  src="https://lmsqueezy.com/affiliate.js"
-  strategy="afterInteractive"
-/>
-
-
-          {/* 📊 Umami Analytics */}
+          <Script id="lemon-affiliate-config" strategy="beforeInteractive">
+            {`window.lemonSqueezyAffiliateConfig = { store: "thememoapp" };`}
+          </Script>
           <Script
-            src="https://datafa.st/js/script.js"
-            data-website-id="67fcffed185b579edb24c21b"
-            data-domain="memoapp.net"
+            src="https://lmsqueezy.com/affiliate.js"
             strategy="afterInteractive"
           />
 
