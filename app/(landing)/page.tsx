@@ -35,7 +35,7 @@ const LandingPage = () => {
             <PricingCard
               title="1-year access"
               originalPrice="$150"
-              price="$99"
+              price="$1"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
   { text: "Summarize long lectures automatically", included: true },
