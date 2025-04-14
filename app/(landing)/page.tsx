@@ -34,8 +34,8 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <PricingCard
               title="1-year access"
-              originalPrice="$150"
-              price="$1"
+              originalPrice="$100"
+              price="$45"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
   { text: "Summarize long lectures automatically", included: true },
@@ -54,7 +54,7 @@ const LandingPage = () => {
             <PricingCard
               title="Lifetime Access"
               originalPrice="$199"
-              price="$149"
+              price="$100"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
   { text: "Summarize long lectures automatically", included: true },
