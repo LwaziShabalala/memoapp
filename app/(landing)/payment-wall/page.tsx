@@ -11,8 +11,8 @@ const PaymentWall = () => {
       <div className="grid gap-10 sm:grid-cols-1 md:grid-cols-2 max-w-5xl w-full">
         <PricingCard
               title="1-year access"
-              originalPrice="$150"
-              price="$99"
+              originalPrice="$100"
+              price="$45"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
   { text: "Summarize long lectures automatically", included: true },
@@ -31,7 +31,7 @@ const PaymentWall = () => {
        <PricingCard
               title="Lifetime Access"
               originalPrice="$199"
-              price="$149"
+              price="$100"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
   { text: "Summarize long lectures automatically", included: true },
