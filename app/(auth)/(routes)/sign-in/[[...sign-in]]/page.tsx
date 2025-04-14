@@ -1,13 +1,16 @@
-import { SignIn } from "@clerk/nextjs"
+import { ClerkLoaded, SignIn } from "@clerk/nextjs"
 
 export default function Page() {
     return (
-        <SignIn 
-            appearance={{
-                elements: {
-                    footerAction: "hidden"
-                }
-            }}
-        />
+        <ClerkLoaded>
+            <SignIn
+                path="/sign-in"
+                appearance={{
+                    elements: {
+                        footerAction: { display: "none" },
+                    },
+                }}
+            />
+        </ClerkLoaded>
     )
 }
