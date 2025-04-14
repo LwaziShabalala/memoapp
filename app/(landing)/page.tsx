@@ -69,7 +69,7 @@ const LandingPage = () => {
   { text: "Exclusive access to premium UI features", included: true },
               ]}
               updatedText="Updated 2 months ago"
-              checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
+              checkoutUrl="https://lwazistore.lemonsqueezy.com/buy/7e4155fe-d4c1-4d02-8fc2-f951fada69b2"
               highlighted={true}
             />
           </div>
