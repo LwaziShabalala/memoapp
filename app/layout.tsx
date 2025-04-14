@@ -34,13 +34,14 @@ export default function RootLayout({
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           {/* 🍋 LemonSqueezy Affiliate Tracking */}
-          <Script id="lemon-affiliate-config" strategy="beforeInteractive">
-            {`window.lemonSqueezyAffiliateConfig = { store: "thememoapp" };`}
-          </Script>
-          <Script
-            src="https://lmsqueezy.com/affiliate.js"
-            strategy="defer"
-          />
+<Script id="lemon-affiliate-config" strategy="beforeInteractive">
+  {`window.lemonSqueezyAffiliateConfig = { store: "thememoapp" };`}
+</Script>
+<Script
+  src="https://lmsqueezy.com/affiliate.js"
+  strategy="afterInteractive"
+/>
+
 
           {/* 📊 Umami Analytics */}
           <Script
