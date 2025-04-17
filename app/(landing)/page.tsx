@@ -49,7 +49,7 @@ const LandingPage = () => {
   { text: "Lifetime updates", included: false },
   { text: "Exclusive access to premium UI features", included: false },
               ]}
-              checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
+              checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/ad196543-714d-4cc5-8506-fe9521c56e9c"
             />
             <PricingCard
               title="Lifetime Access"
