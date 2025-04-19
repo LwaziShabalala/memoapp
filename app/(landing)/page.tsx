@@ -27,27 +27,45 @@ const LandingPage = () => {
         </section>
         <FeaturesSection />
         {/* Pricing Section */}
-        <section className="max-w-4xl mx-auto px-4 py-20">
+        <section className="max-w-6xl mx-auto px-4 py-20">
           <h2 className="text-3xl font-bold text-gray-200 mb-6 text-center">
             Choose Your Plan
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <PricingCard
+              title="Starter"
+              price="$5"
+              billingPeriod="/month"
+              features={[
+                { text: "Transcribe lecture audio to text", included: true },
+                { text: "Summarize long lectures automatically", included: true },
+                { text: "Create flashcards from notes", included: true },
+                { text: "Export notes as PDF", included: true },
+                { text: "Chat with your lecture notes", included: false },
+                { text: "Early beta access", included: false },
+                { text: "Priority transcription processing", included: false },
+                { text: "Future AI model upgrades", included: false },
+                { text: "Lifetime updates", included: false },
+                { text: "Exclusive access to premium UI features", included: false },
+              ]}
+              checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/starter-plan"
+            />
             <PricingCard
               title="1-year access"
               originalPrice="$100"
               price="$45"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
-  { text: "Summarize long lectures automatically", included: true },
-  { text: "Create flashcards from notes", included: true },
-  { text: "Export notes as PDF", included: true },
-  { text: "Chat with your lecture notes", included: true },
-  { text: "Access to all current features", included: true },
-  { text: "Early beta access", included: true },
-  { text: "Priority transcription processing", included: false },
-  { text: "Future AI model upgrades", included: false },
-  { text: "Lifetime updates", included: false },
-  { text: "Exclusive access to premium UI features", included: false },
+                { text: "Summarize long lectures automatically", included: true },
+                { text: "Create flashcards from notes", included: true },
+                { text: "Export notes as PDF", included: true },
+                { text: "Chat with your lecture notes", included: true },
+                { text: "Access to all current features", included: true },
+                { text: "Early beta access", included: true },
+                { text: "Priority transcription processing", included: false },
+                { text: "Future AI model upgrades", included: false },
+                { text: "Lifetime updates", included: false },
+                { text: "Exclusive access to premium UI features", included: false },
               ]}
               checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/ad196543-714d-4cc5-8506-fe9521c56e9c"
             />
@@ -57,16 +75,16 @@ const LandingPage = () => {
               price="$100"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
-  { text: "Summarize long lectures automatically", included: true },
-  { text: "Create flashcards from notes", included: true },
-  { text: "Export notes as PDF", included: true },
-  { text: "Chat with your lecture notes", included: true },
-  { text: "Access to all current features", included: true },
-  { text: "Early beta access", included: true },
-  { text: "Priority transcription processing", included: true },
-  { text: "Future AI model upgrades", included: true },
-  { text: "Lifetime updates", included: true },
-  { text: "Exclusive access to premium UI features", included: true },
+                { text: "Summarize long lectures automatically", included: true },
+                { text: "Create flashcards from notes", included: true },
+                { text: "Export notes as PDF", included: true },
+                { text: "Chat with your lecture notes", included: true },
+                { text: "Access to all current features", included: true },
+                { text: "Early beta access", included: true },
+                { text: "Priority transcription processing", included: true },
+                { text: "Future AI model upgrades", included: true },
+                { text: "Lifetime updates", included: true },
+                { text: "Exclusive access to premium UI features", included: true },
               ]}
               updatedText="Updated 2 months ago"
               checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/7e4155fe-d4c1-4d02-8fc2-f951fada69b2"
