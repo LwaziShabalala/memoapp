@@ -35,7 +35,6 @@ const LandingPage = () => {
             <PricingCard
               title="Starter"
               price="$5"
-              billingPeriod="/month"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
                 { text: "Summarize long lectures automatically", included: true },
