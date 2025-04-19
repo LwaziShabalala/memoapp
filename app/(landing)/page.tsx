@@ -34,7 +34,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <PricingCard
               title="Starter"
-              price="$5"
+              price="$5/pm"
               features={[
                 { text: "Transcribe lecture audio to text", included: true },
                 { text: "Summarize long lectures automatically", included: true },
