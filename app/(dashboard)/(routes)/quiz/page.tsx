@@ -84,44 +84,53 @@ export default function Quiz() {
     }
 
     return (
-        <div className="flex flex-col flex-1">
-            <div className="position-sticky top-0 z-10 shadow-md py-4 w-full">
-                <header className="grid grid-cols-[auto,1fr,auto] grid-flow-col items-center justify-between py-2 gap-2">
+        <div className="flex flex-col h-full max-h-screen overflow-hidden">
+            {/* Header - Fixed height, sticky */}
+            <div className="sticky top-0 z-10 shadow-md py-2 bg-white">
+                <header className="grid grid-cols-[auto,1fr,auto] items-center justify-between py-2 px-4 gap-2">
                     <Button size="icon" variant="outline"><ChevronLeft /></Button>
                     <ProgressBar value={(currentQuestion / questions.length) * 100} />
                     <Button size="icon" variant="outline"><X /></Button>
                 </header>
             </div>
-            <main className="flex justify-center flex-1">
-                {!started ? <h1 className="text-3xl font-bold">Welcome to the quizz page</h1> : (
-                    <div>
-                        <h2 className="text-3xl font-bold">{questions[currentQuestion].questionText}</h2>
-                        <div className="grid grid-cols-1 gap-6 mt-6">
-                            {
-                                questions[currentQuestion].answers.map(answer => {
-                                    return (
-                                        <Button
-                                            key={answer.id}
-                                            onClick={() => handleAnswer(answer)}
-                                            className={selectedAnswer === answer.id ? 'bg-blue-500' : ''}
-                                        >
-                                            {answer.answerText}
-                                        </Button>
-                                    );
-                                })
-                            }
+            
+            {/* Main content - Scrollable if needed */}
+            <main className="flex flex-col flex-1 px-4 py-6 overflow-y-auto">
+                {!started ? (
+                    <div className="flex justify-center items-center h-full">
+                        <h1 className="text-2xl font-bold text-center">Welcome to the quizz page</h1>
+                    </div>
+                ) : (
+                    <div className="w-full max-w-md mx-auto">
+                        <h2 className="text-xl font-bold mb-6">{questions[currentQuestion].questionText}</h2>
+                        <div className="grid grid-cols-1 gap-4">
+                            {questions[currentQuestion].answers.map(answer => (
+                                <Button
+                                    key={answer.id}
+                                    onClick={() => handleAnswer(answer)}
+                                    className={`w-full text-left justify-start p-4 ${selectedAnswer === answer.id ? 'bg-blue-500' : ''}`}
+                                >
+                                    {answer.answerText}
+                                </Button>
+                            ))}
                         </div>
                     </div>
                 )}
             </main>
-            <footer className="footer pb-9 px-6 relative mb-0">
-                <ResultCard
-                    isCorrect={isCorrect}
-                    correctAnswer={
-                        questions[currentQuestion].answers.find(answer => answer.isCorrect)?.answerText || "No correct answer"
-                    }
-                />
-                <Button onClick={handleNext}>{!started ? 'Start' : (currentQuestion === questions.length - 1) ? 'Submit' : 'Next'}</Button>
+            
+            {/* Footer - Fixed height at bottom */}
+            <footer className="sticky bottom-0 py-4 px-4 bg-white border-t">
+                <div className="mb-4">
+                    <ResultCard
+                        isCorrect={isCorrect}
+                        correctAnswer={
+                            questions[currentQuestion].answers.find(answer => answer.isCorrect)?.answerText || "No correct answer"
+                        }
+                    />
+                </div>
+                <Button className="w-full" onClick={handleNext}>
+                    {!started ? 'Start' : (currentQuestion === questions.length - 1) ? 'Submit' : 'Next'}
+                </Button>
             </footer>
         </div>
     );
