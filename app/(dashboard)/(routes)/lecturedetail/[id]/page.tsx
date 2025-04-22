@@ -152,7 +152,7 @@ const LectureDetail: React.FC<LectureDetailProps> = ({ params }) => {
                                 {loading ? (
                                     <div className="flex items-center gap-2">
                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                        Generating Quiz... This may take up to 60 seconds
+                                        Generating Quiz...
                                     </div>
                                 ) : (
                                     "Generate Quiz"
