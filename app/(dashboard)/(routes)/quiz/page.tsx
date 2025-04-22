@@ -82,9 +82,10 @@ export default function Quiz() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen w-screen overflow-x-hidden bg-gray-900 text-white">
+    // Container set to fixed width and hide overflow
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-gray-900 text-white">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-gray-800 shadow-md">
+      <div className="sticky top-0 z-10 bg-gray-800 shadow-md w-full">
         <header className="grid grid-cols-[auto,1fr,auto] items-center py-2 px-4 gap-2">
           <Button size="icon" variant="outline"><ChevronLeft /></Button>
           <div className="text-center">
@@ -97,14 +98,14 @@ export default function Quiz() {
         </div>
       </div>
 
-      {/* Main content */}
-      <main className="flex-1 px-4 py-6 overflow-y-auto overflow-x-hidden">
+      {/* Main content - Allow vertical scroll but force horizontal containment */}
+      <main className="flex-1 px-4 py-6 overflow-y-auto overflow-hidden">
         {!started ? (
           <div className="flex justify-center items-center h-full">
             <h1 className="text-2xl font-bold text-center">Welcome to the quiz page</h1>
           </div>
         ) : (
-          <div className="w-full max-w-full">
+          <div className="w-full">
             <h2 className="text-xl font-bold mb-6 break-words">{questions[currentQuestion].questionText}</h2>
             <div className="flex flex-col gap-4 w-full">
               {questions[currentQuestion].answers.map(answer => (
@@ -114,12 +115,15 @@ export default function Quiz() {
                     selectedAnswer === answer.id ? 'border-blue-500 bg-blue-900/30' : 'border-gray-700'
                   }`}
                 >
-                  <button
+                  {/* Use div instead of button for more control */}
+                  <div
                     onClick={() => handleAnswer(answer)}
-                    className="w-full px-4 py-3 text-left break-words whitespace-normal"
+                    className="w-full px-4 py-3 text-left break-words whitespace-normal cursor-pointer"
                   >
-                    {answer.answerText}
-                  </button>
+                    <div className="w-full inline-block overflow-hidden text-ellipsis">
+                      {answer.answerText}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -127,8 +131,8 @@ export default function Quiz() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="sticky bottom-0 w-full py-4 px-4 bg-gray-800 border-t border-gray-700">
+      {/* Footer - Fixed at bottom */}
+      <div className="sticky bottom-0 w-full py-4 px-4 bg-gray-800 border-t border-gray-700">
         <div className="mb-4 w-full overflow-hidden">
           <ResultCard
             isCorrect={isCorrect}
@@ -143,7 +147,7 @@ export default function Quiz() {
         >
           {!started ? 'Start' : (currentQuestion === questions.length - 1) ? 'Submit' : 'Next Question'}
         </Button>
-      </footer>
+      </div>
     </div>
   );
 }
