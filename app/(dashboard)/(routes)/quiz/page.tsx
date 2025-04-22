@@ -82,10 +82,9 @@ export default function Quiz() {
   }
 
   return (
-    // Container set to fixed width and hide overflow
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-gray-900 text-white">
+    <div className="fixed inset-0 flex flex-col bg-gray-900 text-white">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-gray-800 shadow-md w-full">
+      <div className="w-full bg-gray-800 shadow-md">
         <header className="grid grid-cols-[auto,1fr,auto] items-center py-2 px-4 gap-2">
           <Button size="icon" variant="outline"><ChevronLeft /></Button>
           <div className="text-center">
@@ -98,42 +97,43 @@ export default function Quiz() {
         </div>
       </div>
 
-      {/* Main content - Allow vertical scroll but force horizontal containment */}
-      <main className="flex-1 px-4 py-6 overflow-y-auto overflow-hidden">
-        {!started ? (
-          <div className="flex justify-center items-center h-full">
-            <h1 className="text-2xl font-bold text-center">Welcome to the quiz page</h1>
-          </div>
-        ) : (
-          <div className="w-full">
-            <h2 className="text-xl font-bold mb-6 break-words">{questions[currentQuestion].questionText}</h2>
-            <div className="flex flex-col gap-4 w-full">
-              {questions[currentQuestion].answers.map(answer => (
-                <div
-                  key={answer.id}
-                  className={`border rounded-md overflow-hidden w-full ${
-                    selectedAnswer === answer.id ? 'border-blue-500 bg-blue-900/30' : 'border-gray-700'
-                  }`}
-                >
-                  {/* Use div instead of button for more control */}
+      {/* Main content - Allow vertical scroll */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <main className="p-4">
+          {!started ? (
+            <div className="flex justify-center items-center h-full">
+              <h1 className="text-2xl font-bold text-center">Welcome to the quiz page</h1>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-xl font-bold mb-6 break-words hyphens-auto">{questions[currentQuestion].questionText}</h2>
+              <div className="flex flex-col gap-4">
+                {questions[currentQuestion].answers.map(answer => (
                   <div
-                    onClick={() => handleAnswer(answer)}
-                    className="w-full px-4 py-3 text-left break-words whitespace-normal cursor-pointer"
+                    key={answer.id}
+                    className={`border rounded-md ${
+                      selectedAnswer === answer.id ? 'border-blue-500 bg-blue-900/30' : 'border-gray-700'
+                    }`}
                   >
-                    <div className="w-full inline-block overflow-hidden text-ellipsis">
-                      {answer.answerText}
+                    <div
+                      onClick={() => selectedAnswer === null ? handleAnswer(answer) : null}
+                      className={`px-4 py-3 cursor-pointer ${selectedAnswer !== null ? 'cursor-default' : ''}`}
+                    >
+                      <p className="text-left break-all hyphens-auto">
+                        {answer.answerText}
+                      </p>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+        </main>
+      </div>
 
       {/* Footer - Fixed at bottom */}
-      <div className="sticky bottom-0 w-full py-4 px-4 bg-gray-800 border-t border-gray-700">
-        <div className="mb-4 w-full overflow-hidden">
+      <div className="w-full py-4 px-4 bg-gray-800 border-t border-gray-700">
+        <div className="mb-4">
           <ResultCard
             isCorrect={isCorrect}
             correctAnswer={
@@ -144,6 +144,7 @@ export default function Quiz() {
         <Button 
           className="w-full bg-indigo-600 hover:bg-indigo-700" 
           onClick={handleNext}
+          disabled={started && selectedAnswer === null}
         >
           {!started ? 'Start' : (currentQuestion === questions.length - 1) ? 'Submit' : 'Next Question'}
         </Button>
