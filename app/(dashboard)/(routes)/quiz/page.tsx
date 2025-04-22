@@ -110,15 +110,19 @@ export default function Quiz() {
                             {questions[currentQuestion].answers.map(answer => (
                                 <div 
                                     key={answer.id} 
-                                    className={`border rounded-md overflow-hidden w-full ${
-                                        selectedAnswer === answer.id ? 'border-blue-500 bg-blue-900/30' : 'border-gray-700'
+                                    className={`border rounded-md w-full transition-colors duration-200 ${
+                                        selectedAnswer === answer.id
+                                            ? isCorrect 
+                                                ? 'border-green-500 bg-green-900/30'
+                                                : 'border-red-500 bg-red-900/30'
+                                            : 'border-gray-700'
                                     }`}
                                 >
                                     <button
                                         onClick={() => handleAnswer(answer)}
-                                        className="w-full px-4 py-3 text-left break-words whitespace-normal overflow-hidden"
+                                        className="w-full px-4 py-3 text-left whitespace-normal break-words text-wrap"
                                     >
-                                        <span className="block w-full break-words overflow-hidden text-ellipsis">
+                                        <span className="block w-full break-words text-wrap">
                                             {answer.answerText}
                                         </span>
                                     </button>
