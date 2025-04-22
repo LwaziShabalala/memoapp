@@ -84,34 +84,45 @@ export default function Quiz() {
     }
 
     return (
-        <div className="flex flex-col h-full max-h-screen overflow-hidden">
+        <div className="flex flex-col h-full max-h-screen">
             {/* Header - Fixed height, sticky */}
             <div className="sticky top-0 z-10 shadow-md py-2 bg-white">
                 <header className="grid grid-cols-[auto,1fr,auto] items-center justify-between py-2 px-4 gap-2">
                     <Button size="icon" variant="outline"><ChevronLeft /></Button>
-                    <ProgressBar value={(currentQuestion / questions.length) * 100} />
+                    <div className="flex items-center justify-center">
+                        <span className="text-sm font-medium">Question {currentQuestion + 1} of {questions.length}</span>
+                    </div>
                     <Button size="icon" variant="outline"><X /></Button>
                 </header>
+                <div className="px-4 pb-2">
+                    <ProgressBar value={(currentQuestion / questions.length) * 100} />
+                </div>
             </div>
             
             {/* Main content - Scrollable if needed */}
-            <main className="flex flex-col flex-1 px-4 py-6 overflow-y-auto">
+            <main className="flex-1 px-4 py-6 overflow-y-auto">
                 {!started ? (
                     <div className="flex justify-center items-center h-full">
-                        <h1 className="text-2xl font-bold text-center">Welcome to the quizz page</h1>
+                        <h1 className="text-2xl font-bold text-center">Welcome to the quiz page</h1>
                     </div>
                 ) : (
-                    <div className="w-full max-w-md mx-auto">
+                    <div className="w-full">
                         <h2 className="text-xl font-bold mb-6">{questions[currentQuestion].questionText}</h2>
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="flex flex-col gap-4">
                             {questions[currentQuestion].answers.map(answer => (
-                                <Button
-                                    key={answer.id}
-                                    onClick={() => handleAnswer(answer)}
-                                    className={`w-full text-left justify-start p-4 ${selectedAnswer === answer.id ? 'bg-blue-500' : ''}`}
+                                <div 
+                                    key={answer.id} 
+                                    className={`border rounded-md p-0 overflow-hidden ${
+                                        selectedAnswer === answer.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                                    }`}
                                 >
-                                    {answer.answerText}
-                                </Button>
+                                    <button
+                                        onClick={() => handleAnswer(answer)}
+                                        className="w-full px-4 py-3 text-left break-words"
+                                    >
+                                        {answer.answerText}
+                                    </button>
+                                </div>
                             ))}
                         </div>
                     </div>
