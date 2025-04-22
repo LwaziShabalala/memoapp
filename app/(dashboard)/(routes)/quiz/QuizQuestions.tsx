@@ -64,12 +64,9 @@ export default function QuizQuestions(props: Props) {
     return (
         <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
             <div className="sticky top-0 z-10 bg-slate-800 shadow-lg py-4 px-4">
-                <div className="sticky top-0 z-10 bg-slate-800 shadow-lg py-4 px-4">
-                    <header className="grid grid-cols-[1fr] items-center max-w-4xl mx-auto">
-                        <ProgressBar value={(currentQuestion / questions.length) * 100} />
-                    </header>
-                </div>
-
+                <header className="grid grid-cols-[1fr] items-center max-w-4xl mx-auto">
+                    <ProgressBar value={(currentQuestion / questions.length) * 100} />
+                </header>
             </div>
 
             <main className="flex-1 flex items-center justify-center p-6">
@@ -101,14 +98,14 @@ export default function QuizQuestions(props: Props) {
                                         onClick={() => handleAnswer(answer)}
                                         variant={selectedAnswer === answer.id ? "secondary" : "outline"}
                                         className={`p-4 h-auto text-left justify-start transition-transform 
-                                            duration-300 hover:scale-105 
+                                            duration-300 hover:scale-105 whitespace-normal break-words
                                             ${selectedAnswer === answer.id
                                                 ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white"
                                                 : "bg-slate-800 text-slate-300"
                                             }`}
                                         disabled={selectedAnswer !== null}
                                     >
-                                        {answer.answerText}
+                                        <span className="block w-full">{answer.answerText}</span>
                                     </Button>
                                 ))}
                             </div>
