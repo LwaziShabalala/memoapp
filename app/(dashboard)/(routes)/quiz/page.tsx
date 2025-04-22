@@ -84,12 +84,13 @@ export default function Quiz() {
     }
 
     return (
-        <div className="flex flex-col h-full max-h-screen">
-            {/* Header - Fixed height, sticky */}
-            <div className="sticky top-0 z-10 shadow-md py-2 bg-white">
-                <header className="grid grid-cols-[auto,1fr,auto] items-center justify-between py-2 px-4 gap-2">
+        // Add overflow-x-hidden to prevent horizontal scrolling
+        <div className="flex flex-col min-h-screen max-w-full overflow-x-hidden bg-gray-900 text-white">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-gray-800 shadow-md">
+                <header className="grid grid-cols-[auto,1fr,auto] items-center py-2 px-4 gap-2">
                     <Button size="icon" variant="outline"><ChevronLeft /></Button>
-                    <div className="flex items-center justify-center">
+                    <div className="text-center">
                         <span className="text-sm font-medium">Question {currentQuestion + 1} of {questions.length}</span>
                     </div>
                     <Button size="icon" variant="outline"><X /></Button>
@@ -99,26 +100,26 @@ export default function Quiz() {
                 </div>
             </div>
             
-            {/* Main content - Scrollable if needed */}
-            <main className="flex-1 px-4 py-6 overflow-y-auto">
+            {/* Main content */}
+            <main className="flex-1 px-4 py-6 overflow-y-auto overflow-x-hidden">
                 {!started ? (
                     <div className="flex justify-center items-center h-full">
                         <h1 className="text-2xl font-bold text-center">Welcome to the quiz page</h1>
                     </div>
                 ) : (
-                    <div className="w-full">
-                        <h2 className="text-xl font-bold mb-6">{questions[currentQuestion].questionText}</h2>
-                        <div className="flex flex-col gap-4">
+                    <div className="w-full max-w-full">
+                        <h2 className="text-xl font-bold mb-6 break-words">{questions[currentQuestion].questionText}</h2>
+                        <div className="flex flex-col gap-4 w-full">
                             {questions[currentQuestion].answers.map(answer => (
                                 <div 
                                     key={answer.id} 
-                                    className={`border rounded-md p-0 overflow-hidden ${
-                                        selectedAnswer === answer.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                                    className={`border rounded-md overflow-hidden w-full ${
+                                        selectedAnswer === answer.id ? 'border-blue-500 bg-blue-900/30' : 'border-gray-700'
                                     }`}
                                 >
                                     <button
                                         onClick={() => handleAnswer(answer)}
-                                        className="w-full px-4 py-3 text-left break-words"
+                                        className="w-full px-4 py-3 text-left break-words whitespace-normal"
                                     >
                                         {answer.answerText}
                                     </button>
@@ -129,9 +130,9 @@ export default function Quiz() {
                 )}
             </main>
             
-            {/* Footer - Fixed height at bottom */}
-            <footer className="sticky bottom-0 py-4 px-4 bg-white border-t">
-                <div className="mb-4">
+            {/* Footer */}
+            <footer className="sticky bottom-0 w-full py-4 px-4 bg-gray-800 border-t border-gray-700">
+                <div className="mb-4 w-full overflow-hidden">
                     <ResultCard
                         isCorrect={isCorrect}
                         correctAnswer={
@@ -139,8 +140,11 @@ export default function Quiz() {
                         }
                     />
                 </div>
-                <Button className="w-full" onClick={handleNext}>
-                    {!started ? 'Start' : (currentQuestion === questions.length - 1) ? 'Submit' : 'Next'}
+                <Button 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700" 
+                    onClick={handleNext}
+                >
+                    {!started ? 'Start' : (currentQuestion === questions.length - 1) ? 'Submit' : 'Next Question'}
                 </Button>
             </footer>
         </div>
