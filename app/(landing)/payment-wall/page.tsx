@@ -11,7 +11,7 @@ const PaymentWall = () => {
       <div className="grid gap-10 sm:grid-cols-1 md:grid-cols-3 max-w-6xl w-full">
         <PricingCard
           title="Starter"
-          price="$5/pm"
+          price={<span>$5<span className="text-sm text-gray-400 font-normal">/month</span></span>}
           features={[
             { text: "Transcribe lecture audio to text", included: true },
             { text: "Summarize long lectures automatically", included: true },
