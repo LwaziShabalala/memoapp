@@ -11,7 +11,7 @@ const PaymentWall = () => {
       <div className="grid gap-10 sm:grid-cols-1 md:grid-cols-3 max-w-6xl w-full">
         <PricingCard
           title="Starter"
-          price="$5"
+          price="$5/pm"
           features={[
             { text: "Transcribe lecture audio to text", included: true },
             { text: "Summarize long lectures automatically", included: true },
@@ -24,7 +24,6 @@ const PaymentWall = () => {
             { text: "Lifetime updates", included: false },
             { text: "Exclusive access to premium UI features", included: false },
           ]}
-          users="Billed monthly"
           checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/starter-plan"
         />
         <PricingCard
@@ -44,7 +43,6 @@ const PaymentWall = () => {
             { text: "Lifetime updates", included: false },
             { text: "Exclusive access to premium UI features", included: false },
           ]}
-          users="One-time payment for 1 year of access"
           checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
         />
         <PricingCard
@@ -65,7 +63,6 @@ const PaymentWall = () => {
             { text: "Exclusive access to premium UI features", included: true },
           ]}
           updatedText="Updated 2 months ago"
-          users="One-time payment for permanent access"
           checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/7e4155fe-d4c1-4d02-8fc2-f951fada69b2"
           highlighted={true}
         />
