@@ -64,36 +64,45 @@ const RecordButton: React.FC = () => {
                             console.log("📀 WAV file created:", wavBlob.size, "bytes");
 
                             const formData = new FormData();
-                            formData.append("audio", new File([wavBlob], "recording.wav", { type: "audio/wav" }));
-
-                            console.log("📡 Sending audio file to backend...");
+                            formData.append("file", new File([wavBlob], "recording.wav", { type: "audio/wav" }));
+                            formData.append("model", "whisper-1");
+                            
+                            console.log("📡 Sending audio file to OpenAI API...");
 
                             const controller = new AbortController();
                             const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-                            const response = await fetch("https://8001-01jd6w67mbzjnztarkx6j3a1he.cloudspaces.litng.ai/predict", {
+                            // Replace with OpenAI API call
+                            const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
                                 method: "POST",
+                                headers: {
+                                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
+                                    // No Content-Type header as FormData sets it with the boundary
+                                },
                                 body: formData,
-                                headers: { 'Accept': 'application/json' }
+                                signal: controller.signal
                             });
 
                             clearTimeout(timeoutId);
 
                             if (!response.ok) {
                                 const errorText = await response.text();
-                                throw new Error(`Server error (${response.status}): ${errorText}`);
+                                throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
                             }
 
                             const result = await response.json();
-                            console.log("✅ Transcription received:", result.transcription);
-                            setTranscription(result.transcription);
+                            console.log("✅ Transcription received:", result.text);
+                            
+                            // Format response to match your expected format
+                            const formattedResult = { transcription: result.text };
+                            setTranscription(formattedResult.transcription);
                             setShowFilenameModal(true);
                         } catch (error) {
                             console.error("❌ Error processing recording:", error);
                             let errorMessage = "Failed to process recording. ";
                             
                             if (error instanceof TypeError && error.message.includes("fetch")) {
-                                errorMessage += "Could not connect to the server. Please check your internet connection and try again.";
+                                errorMessage += "Could not connect to OpenAI API. Please check your internet connection and API key configuration.";
                             } else if (error instanceof DOMException && error.name === "AbortError") {
                                 errorMessage += "Request timed out. Please try again.";
                             } else {
