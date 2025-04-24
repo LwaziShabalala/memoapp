@@ -47,7 +47,7 @@ const LandingPage = () => {
                 { text: "Lifetime updates", included: false },
                 { text: "Exclusive access to premium UI features", included: false },
               ]}
-              checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/starter-plan"
+              checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/c744bf3e-8961-44b2-a980-7c1011006e55"
             />
             <PricingCard
               title="1-year access"
@@ -86,7 +86,7 @@ const LandingPage = () => {
                 { text: "Exclusive access to premium UI features", included: true },
               ]}
               updatedText="Updated 2 months ago"
-              checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/7e4155fe-d4c1-4d02-8fc2-f951fada69b2"
+              checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/ba96f43a-e5cb-4f0a-a7a0-64ce78a11a12"
               highlighted={true}
             />
           </div>
