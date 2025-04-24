@@ -24,7 +24,7 @@ const PaymentWall = () => {
             { text: "Lifetime updates", included: false },
             { text: "Exclusive access to premium UI features", included: false },
           ]}
-          checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/starter-plan"
+          checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/c744bf3e-8961-44b2-a980-7c1011006e55"
         />
         <PricingCard
           title="1-year access"
@@ -43,7 +43,7 @@ const PaymentWall = () => {
             { text: "Lifetime updates", included: false },
             { text: "Exclusive access to premium UI features", included: false },
           ]}
-          checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/fbf50ea6-eed4-4a16-92d4-5bd3bae29162"
+          checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/ad196543-714d-4cc5-8506-fe9521c56e9c"
         />
         <PricingCard
           title="Lifetime Access"
@@ -63,7 +63,7 @@ const PaymentWall = () => {
             { text: "Exclusive access to premium UI features", included: true },
           ]}
           updatedText="Updated 2 months ago"
-          checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/7e4155fe-d4c1-4d02-8fc2-f951fada69b2"
+          checkoutUrl="https://thememoapp.lemonsqueezy.com/buy/ba96f43a-e5cb-4f0a-a7a0-64ce78a11a12"
           highlighted={true}
         />
       </div>
