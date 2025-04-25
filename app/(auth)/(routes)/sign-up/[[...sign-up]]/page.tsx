@@ -3,8 +3,8 @@ import { SignUp } from "@clerk/nextjs";
 export default function Page() {
   return (
     <SignUp 
-      redirectUrl="/dashboard" 
-      routing="path"
+      redirectUrl="/dashboard"
+      path="/sign-up"
     />
   );
 }
