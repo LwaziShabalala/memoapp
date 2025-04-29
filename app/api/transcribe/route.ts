@@ -7,13 +7,11 @@ import * as os from 'os';
 // Set the maximum file size to 25MB (OpenAI's maximum limit)
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB in bytes
 
-export const config = {
-  api: {
-    bodyParser: false, // Disabling Next.js's body parser for file uploads
-    responseLimit: '50mb', // Increased response size limit for large transcriptions
-  },
-};
+// This is the new way to set config options in App Router
+export const maxDuration = 300; // 5 minutes max duration for API function
+export const dynamic = 'force-dynamic'; // Always run on-demand
 
+// Custom middleware to handle large request bodies
 export async function POST(request: NextRequest) {
   try {
     // Get form data from the request
