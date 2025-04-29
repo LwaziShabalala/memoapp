@@ -61,11 +61,17 @@ export async function POST(request: NextRequest) {
     openaiFormData.append('file', new Blob([buffer], { type: audioFile.type }), fileName);
     openaiFormData.append('model', 'whisper-1');
     
+    // FIX: Add response format parameter for more consistent results
+    openaiFormData.append('response_format', 'json');
+    
+    // FIX: Add temperature parameter to reduce hallucinations
+    openaiFormData.append('temperature', '0.0');
+    
     console.log('🔄 Transcribe API: Sending request to OpenAI');
     
-    // Send request to OpenAI with proper timeout
+    // FIX: Reduce timeout for better error handling
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 second timeout (safer than the full 60)
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout (safer than 50)
     
     try {
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -90,6 +96,15 @@ export async function POST(request: NextRequest) {
         }
         
         console.error(`❌ Transcribe API: OpenAI API error (${response.status})`, errorData);
+        
+        // FIX: Better error messaging for specific cases
+        if (response.status === 429) {
+          return NextResponse.json(
+            { error: 'Rate limit exceeded. Please try again in a few moments.' },
+            { status: 429 }
+          );
+        }
+        
         return NextResponse.json(
           { 
             error: errorData.error?.message || `Failed to transcribe audio (${response.status})`,
@@ -99,8 +114,28 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      const data = await response.json();
+      // FIX: Better error handling for JSON parsing
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('❌ Transcribe API: Failed to parse OpenAI response as JSON', jsonError);
+        return NextResponse.json(
+          { error: 'Failed to parse transcription response' },
+          { status: 500 }
+        );
+      }
+      
       console.log('✅ Transcribe API: Successfully transcribed audio');
+      
+      // FIX: Check if the response has the expected structure
+      if (!data.text) {
+        console.error('❌ Transcribe API: OpenAI response missing text field', data);
+        return NextResponse.json(
+          { error: 'Transcription response missing text field' },
+          { status: 500 }
+        );
+      }
       
       // Format response as expected by frontend
       return NextResponse.json({ transcription: data.text });
@@ -115,7 +150,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { 
-        error: isAbortError ? 'Request timed out. The audio file may be too large.' : errorMessage 
+        error: isAbortError ? 'Request timed out. The audio file may be too large or the server is busy.' : errorMessage 
       },
       { status: isAbortError ? 408 : 500 }
     );
