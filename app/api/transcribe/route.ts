@@ -8,7 +8,7 @@ import * as os from 'os';
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB in bytes
 
 // This is the new way to set config options in App Router
-export const maxDuration = 300; // 5 minutes max duration for API function
+export const maxDuration = 60; // 60 seconds max duration for API function (Hobby plan limit)
 export const dynamic = 'force-dynamic'; // Always run on-demand
 
 // Custom middleware to handle large request bodies
