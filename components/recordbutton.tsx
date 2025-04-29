@@ -25,7 +25,8 @@ const RecordButton: React.FC = () => {
     const allTranscriptionsRef = useRef<string[]>([]);
     
     // Settings for chunking and recording
-    const SEGMENT_DURATION = 60; // Record in 60-second segments to avoid payload size issues
+    // IMPORTANT FIX: Reducing segment duration to avoid timeouts and memory issues
+    const SEGMENT_DURATION = 30; // Reduced from 60 to 30 seconds to avoid timeouts
     const MAX_SEGMENTS = 180; // Allow up to 180 segments (3 hours total)
     
     // Audio settings optimized for lectures & smaller file size
@@ -66,6 +67,12 @@ const RecordButton: React.FC = () => {
             }
             mediaRecorderRef.current = null;
         }
+        
+        // FIX: Clear audio context to prevent memory leaks
+        if (audioContextRef.current) {
+            audioContextRef.current.close().catch(console.error);
+            audioContextRef.current = null;
+        }
     };
     
     // Process a segment of audio
@@ -90,7 +97,9 @@ const RecordButton: React.FC = () => {
 
             const audioArrayBuffer = await audioBlob.arrayBuffer();
             
-            if (!audioContextRef.current) {
+            // FIX: Create a new AudioContext for each segment to avoid issues with stale contexts
+            let segmentAudioContext;
+            try {
                 const AudioContextClass = window.AudioContext || 
                     ((window as unknown as {webkitAudioContext?: typeof AudioContext}).webkitAudioContext);
                 
@@ -98,73 +107,84 @@ const RecordButton: React.FC = () => {
                     throw new Error("AudioContext not supported in this browser");
                 }
                 
-                audioContextRef.current = new AudioContextClass();
-            }
-
-            // Decode the audio - this can fail if the audio data is corrupted
-            let audioBuffer;
-            try {
-                audioBuffer = await audioContextRef.current.decodeAudioData(audioArrayBuffer);
-            } catch (decodeError) {
-                console.error(`❌ Failed to decode audio segment ${currentSegment}:`, decodeError);
-                throw new Error("Failed to decode audio. The recording may be corrupted.");
-            }
-            
-            // Check if audio buffer contains actual audio data
-            if (audioBuffer.duration < 0.5) { // Less than 0.5 seconds is suspicious
-                console.warn(`⚠️ Segment ${currentSegment} has very short duration: ${audioBuffer.duration} seconds`);
-            }
-            
-            // Converting to WAV with lower quality settings
-            const wavData = await WavEncoder.encode({
-                sampleRate: AUDIO_SAMPLE_RATE,
-                channelData: Array.from({ length: AUDIO_CHANNELS }, (_, i) => 
-                    i < audioBuffer.numberOfChannels ? audioBuffer.getChannelData(i) : new Float32Array(audioBuffer.length)
-                ),
-            });
-
-            const wavBlob = new Blob([wavData], { type: "audio/wav" });
-            console.log(`📀 Segment ${currentSegment} WAV file: ${wavBlob.size} bytes`);
-
-            const formData = new FormData();
-            formData.append("file", new File([wavBlob], `segment_${currentSegment}.wav`, { type: "audio/wav" }));
-            
-            console.log(`📡 Sending segment ${currentSegment} to API...`);
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout (server has 60s)
-
-            try {
-                const response = await fetch("/api/transcribe", {
-                    method: "POST",
-                    body: formData,
-                    signal: controller.signal
+                segmentAudioContext = new AudioContextClass();
+                
+                // Decode the audio - this can fail if the audio data is corrupted
+                const audioBuffer = await segmentAudioContext.decodeAudioData(audioArrayBuffer);
+                
+                // Check if audio buffer contains actual audio data
+                if (audioBuffer.duration < 0.5) { // Less than 0.5 seconds is suspicious
+                    console.warn(`⚠️ Segment ${currentSegment} has very short duration: ${audioBuffer.duration} seconds`);
+                }
+                
+                // Converting to WAV with lower quality settings
+                const wavData = await WavEncoder.encode({
+                    sampleRate: AUDIO_SAMPLE_RATE,
+                    channelData: Array.from({ length: AUDIO_CHANNELS }, (_, i) => 
+                        i < audioBuffer.numberOfChannels ? audioBuffer.getChannelData(i) : new Float32Array(audioBuffer.length)
+                    ),
                 });
 
-                clearTimeout(timeoutId);
+                // Close the audio context when done
+                await segmentAudioContext.close();
+                segmentAudioContext = null;
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    let errorData;
-                    try {
-                        errorData = JSON.parse(errorText);
-                    } catch {
-                        errorData = { raw: errorText };
+                const wavBlob = new Blob([wavData], { type: "audio/wav" });
+                console.log(`📀 Segment ${currentSegment} WAV file: ${wavBlob.size} bytes`);
+
+                // FIX: Check if WAV file is too large
+                if (wavBlob.size > 25 * 1024 * 1024) { // 25MB limit for OpenAI
+                    throw new Error("Segment audio file exceeds the 25MB size limit. Try reducing recording quality or segment duration.");
+                }
+
+                const formData = new FormData();
+                formData.append("file", new File([wavBlob], `segment_${currentSegment}.wav`, { type: "audio/wav" }));
+                
+                console.log(`📡 Sending segment ${currentSegment} to API...`);
+
+                // FIX: Reduce timeout to match server constraints
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 40000); // 40 second timeout (server has 60s)
+
+                try {
+                    const response = await fetch("/api/transcribe", {
+                        method: "POST",
+                        body: formData,
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        let errorData;
+                        try {
+                            errorData = JSON.parse(errorText);
+                        } catch {
+                            errorData = { raw: errorText };
+                        }
+                        
+                        console.error(`❌ API error (${response.status}):`, errorData);
+                        throw new Error(`Server error (${response.status}): ${errorData.error || errorText}`);
                     }
-                    
-                    console.error(`❌ API error (${response.status}):`, errorData);
-                    throw new Error(`Server error (${response.status}): ${errorData.error || errorText}`);
-                }
 
-                const result = await response.json();
-                console.log(`✅ Segment ${currentSegment} transcription received`);
-                return result.transcription || "";
-            } catch (fetchError) {
-                clearTimeout(timeoutId);
-                if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
-                    throw new Error("Transcription request timed out. The audio segment may be too large.");
+                    const result = await response.json();
+                    console.log(`✅ Segment ${currentSegment} transcription received`);
+                    return result.transcription || "";
+                } catch (fetchError) {
+                    clearTimeout(timeoutId);
+                    if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+                        throw new Error("Transcription request timed out. The audio segment may be too large.");
+                    }
+                    throw fetchError;
                 }
-                throw fetchError;
+            } catch (audioError) {
+                console.error(`❌ Audio processing error in segment ${currentSegment}:`, audioError);
+                // Ensure we clean up the audio context
+                if (segmentAudioContext) {
+                    await segmentAudioContext.close().catch(console.error);
+                }
+                throw audioError;
             }
             
         } catch (error) {
@@ -185,6 +205,9 @@ const RecordButton: React.FC = () => {
         allTranscriptionsRef.current = [];
         
         try {
+            // FIX: Clean up any existing resources first
+            cleanupRecording();
+            
             const AudioContextClass = window.AudioContext || 
                 ((window as unknown as {webkitAudioContext?: typeof AudioContext}).webkitAudioContext);
             
@@ -242,8 +265,8 @@ const RecordButton: React.FC = () => {
                 }
             };
 
-            // Request data at intervals (every 2 seconds)
-            mediaRecorder.start(2000);
+            // FIX: Request data more frequently (every 1 second instead of 2)
+            mediaRecorder.start(1000);
             setIsRecording(true);
             
         } catch (error) {
@@ -263,6 +286,7 @@ const RecordButton: React.FC = () => {
                 mediaRecorderRef.current.pause();
             }
             
+            // FIX: Make a copy of the chunks and clear immediately to prevent memory buildup
             const currentChunks = [...audioChunksRef.current];
             audioChunksRef.current = []; // Reset for next segment
             
@@ -300,31 +324,75 @@ const RecordButton: React.FC = () => {
         }
     };
 
+    // FIX: Completely rewritten stopRecording function to be more robust
     const stopRecording = async () => {
         setIsProcessing(true);
         console.log("🛑 Stopping recording and processing final segment...");
         
         try {
-            // First stop the MediaRecorder to ensure we get the final data
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-                // Request the final chunk of data
-                mediaRecorderRef.current.requestData();
-                
-                // Wait a bit to ensure the ondataavailable event fires
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // Now stop the recorder
-                mediaRecorderRef.current.stop();
+            // Stop the timer first
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
             }
             
-            // Wait a bit more to ensure all data is processed
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Proper stopping of MediaRecorder with error handling
+            try {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                    // Create a promise that resolves when MediaRecorder stops
+                    const stopPromise = new Promise<void>((resolve) => {
+                        if (mediaRecorderRef.current) {
+                            const originalOnStop = mediaRecorderRef.current.onstop;
+                            
+                            mediaRecorderRef.current.onstop = (event) => {
+                                if (originalOnStop) originalOnStop.call(mediaRecorderRef.current, event);
+                                resolve();
+                            };
+                            
+                            // Request the final chunk of data before stopping
+                            mediaRecorderRef.current.requestData();
+                            
+                            // Stop with a timeout
+                            setTimeout(() => {
+                                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                                    mediaRecorderRef.current.stop();
+                                }
+                                // Resolve anyway after timeout in case onstop doesn't fire
+                                setTimeout(resolve, 500);
+                            }, 500);
+                        } else {
+                            resolve();
+                        }
+                    });
+                    
+                    // Wait for MediaRecorder to stop with a 3-second timeout
+                    const timeoutPromise = new Promise<void>((_, reject) => {
+                        setTimeout(() => reject(new Error("MediaRecorder stop timeout")), 3000);
+                    });
+                    
+                    await Promise.race([stopPromise, timeoutPromise]).catch(error => {
+                        console.warn("⏱️ MediaRecorder stop timed out, continuing anyway:", error);
+                    });
+                }
+            } catch (recorderError) {
+                console.error("❌ Error stopping MediaRecorder:", recorderError);
+                // Continue despite errors
+            }
+            
+            // Stop microphone tracks
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
+            }
             
             // Process final segment if there's any data
+            let finalTranscription = "";
             if (audioChunksRef.current.length > 0) {
                 try {
-                    const finalTranscription = await processAudioSegment(audioChunksRef.current);
+                    console.log(`🔄 Processing final segment with ${audioChunksRef.current.length} chunks...`);
+                    finalTranscription = await processAudioSegment(audioChunksRef.current);
                     allTranscriptionsRef.current.push(finalTranscription);
+                    console.log("✅ Final segment processed successfully");
                 } catch (finalSegmentError) {
                     console.error("❌ Error processing final segment:", finalSegmentError);
                     setWarning(`Warning: Final segment failed to process. Previous segments will be saved.`);
@@ -335,7 +403,16 @@ const RecordButton: React.FC = () => {
             
             // Combine all transcriptions
             const fullTranscription = allTranscriptionsRef.current.join(" ");
-            console.log("✅ Full transcription complete");
+            console.log("✅ Full transcription complete with", allTranscriptionsRef.current.length, "segments");
+            
+            // Extra safety check for empty transcription
+            if (!fullTranscription.trim()) {
+                setError("No transcription was generated. Please try recording again.");
+                setIsProcessing(false);
+                setIsRecording(false);
+                return;
+            }
+            
             setTranscription(fullTranscription);
             
             // Show filename dialog
