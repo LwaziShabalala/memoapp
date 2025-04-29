@@ -106,7 +106,15 @@ const RecordButton: React.FC = () => {
             }, 1000);
 
             try {
-                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+                // Create audio context with proper TypeScript handling
+                const AudioContextClass = window.AudioContext || 
+                    ((window as unknown as {webkitAudioContext?: typeof AudioContext}).webkitAudioContext);
+                
+                if (!AudioContextClass) {
+                    throw new Error("AudioContext not supported in this browser");
+                }
+                
+                audioContextRef.current = new AudioContextClass({
                     sampleRate: AUDIO_SAMPLE_RATE
                 });
 
@@ -244,7 +252,15 @@ const RecordButton: React.FC = () => {
             console.log("🛑 Stopping recording...");
             cleanupRecording();
         }
-    }, [isRecording, setTranscription, setIsProcessing]);
+    }, [
+        isRecording, 
+        setTranscription, 
+        setIsProcessing, 
+        FILE_SIZE_WARNING_THRESHOLD,
+        MAX_RECORDING_DURATION,
+        WARNING_THRESHOLD,
+        warning
+    ]);
 
     const handleSave = (filename: string) => {
         console.log("💾 Saving filename:", filename);
