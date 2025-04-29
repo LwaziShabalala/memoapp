@@ -345,7 +345,9 @@ const RecordButton: React.FC = () => {
                             const originalOnStop = mediaRecorderRef.current.onstop;
                             
                             mediaRecorderRef.current.onstop = (event) => {
-                                if (originalOnStop) originalOnStop.call(mediaRecorderRef.current, event);
+                                if (originalOnStop && mediaRecorderRef.current) {
+                                    originalOnStop.call(mediaRecorderRef.current, event);
+                                }
                                 resolve();
                             };
                             
