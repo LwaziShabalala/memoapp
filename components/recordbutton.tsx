@@ -80,6 +80,14 @@ const RecordButton: React.FC = () => {
             });
             console.log(`📁 Segment ${currentSegment} audio blob: ${audioBlob.size} bytes`);
 
+            // Check if blob size is too small (likely empty or corrupted audio)
+            if (audioBlob.size < 1000) { // Less than 1KB is suspicious
+                console.warn(`⚠️ Segment ${currentSegment} has suspiciously small size: ${audioBlob.size} bytes`);
+                if (audioBlob.size === 0) {
+                    throw new Error("Empty audio segment detected");
+                }
+            }
+
             const audioArrayBuffer = await audioBlob.arrayBuffer();
             
             if (!audioContextRef.current) {
@@ -93,12 +101,26 @@ const RecordButton: React.FC = () => {
                 audioContextRef.current = new AudioContextClass();
             }
 
-            const audioBuffer = await audioContextRef.current.decodeAudioData(audioArrayBuffer);
+            // Decode the audio - this can fail if the audio data is corrupted
+            let audioBuffer;
+            try {
+                audioBuffer = await audioContextRef.current.decodeAudioData(audioArrayBuffer);
+            } catch (decodeError) {
+                console.error(`❌ Failed to decode audio segment ${currentSegment}:`, decodeError);
+                throw new Error("Failed to decode audio. The recording may be corrupted.");
+            }
+            
+            // Check if audio buffer contains actual audio data
+            if (audioBuffer.duration < 0.5) { // Less than 0.5 seconds is suspicious
+                console.warn(`⚠️ Segment ${currentSegment} has very short duration: ${audioBuffer.duration} seconds`);
+            }
             
             // Converting to WAV with lower quality settings
             const wavData = await WavEncoder.encode({
-                sampleRate: audioBuffer.sampleRate,
-                channelData: [audioBuffer.getChannelData(0)],
+                sampleRate: AUDIO_SAMPLE_RATE,
+                channelData: Array.from({ length: AUDIO_CHANNELS }, (_, i) => 
+                    i < audioBuffer.numberOfChannels ? audioBuffer.getChannelData(i) : new Float32Array(audioBuffer.length)
+                ),
             });
 
             const wavBlob = new Blob([wavData], { type: "audio/wav" });
@@ -112,22 +134,38 @@ const RecordButton: React.FC = () => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout (server has 60s)
 
-            const response = await fetch("/api/transcribe", {
-                method: "POST",
-                body: formData,
-                signal: controller.signal
-            });
+            try {
+                const response = await fetch("/api/transcribe", {
+                    method: "POST",
+                    body: formData,
+                    signal: controller.signal
+                });
 
-            clearTimeout(timeoutId);
+                clearTimeout(timeoutId);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Server error (${response.status}): ${errorText}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(errorText);
+                    } catch {
+                        errorData = { raw: errorText };
+                    }
+                    
+                    console.error(`❌ API error (${response.status}):`, errorData);
+                    throw new Error(`Server error (${response.status}): ${errorData.error || errorText}`);
+                }
+
+                const result = await response.json();
+                console.log(`✅ Segment ${currentSegment} transcription received`);
+                return result.transcription || "";
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+                if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+                    throw new Error("Transcription request timed out. The audio segment may be too large.");
+                }
+                throw fetchError;
             }
-
-            const result = await response.json();
-            console.log(`✅ Segment ${currentSegment} transcription received`);
-            return result.transcription || "";
             
         } catch (error) {
             console.error(`❌ Error processing segment ${currentSegment}:`, error);
@@ -204,8 +242,9 @@ const RecordButton: React.FC = () => {
                 }
             };
 
-            // Request data at intervals (every 5 seconds)
-            mediaRecorder.start(5000);
+            // Request data at intervals (every 2 seconds)
+            mediaRecorder.start(2000);
+            setIsRecording(true);
             
         } catch (error) {
             console.error("❌ Error starting recording:", error);
@@ -266,10 +305,32 @@ const RecordButton: React.FC = () => {
         console.log("🛑 Stopping recording and processing final segment...");
         
         try {
+            // First stop the MediaRecorder to ensure we get the final data
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                // Request the final chunk of data
+                mediaRecorderRef.current.requestData();
+                
+                // Wait a bit to ensure the ondataavailable event fires
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Now stop the recorder
+                mediaRecorderRef.current.stop();
+            }
+            
+            // Wait a bit more to ensure all data is processed
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             // Process final segment if there's any data
             if (audioChunksRef.current.length > 0) {
-                const finalTranscription = await processAudioSegment(audioChunksRef.current);
-                allTranscriptionsRef.current.push(finalTranscription);
+                try {
+                    const finalTranscription = await processAudioSegment(audioChunksRef.current);
+                    allTranscriptionsRef.current.push(finalTranscription);
+                } catch (finalSegmentError) {
+                    console.error("❌ Error processing final segment:", finalSegmentError);
+                    setWarning(`Warning: Final segment failed to process. Previous segments will be saved.`);
+                }
+            } else {
+                console.log("ℹ️ No audio data in final segment");
             }
             
             // Combine all transcriptions
@@ -293,7 +354,7 @@ const RecordButton: React.FC = () => {
             cleanupRecording();
             setIsProcessing(false);
             audioChunksRef.current = [];
-            setWarning(null);
+            setIsRecording(false);
         }
     };
 
