@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     
     // Create a temporary file path
     const tempDir = os.tmpdir();
-    const fileName = `recording-${uuidv4()}.wav`;
+    const fileExtension = audioFile.type.includes('webm') ? '.webm' : '.wav';
+    const fileName = `recording-${uuidv4()}${fileExtension}`;
     const filePath = join(tempDir, fileName);
     
     // Write the file to disk
@@ -33,17 +34,35 @@ export async function POST(request: NextRequest) {
     
     // Check file size
     const fileSize = buffer.length;
-    console.log(`Processing audio file: ${fileName}, size: ${fileSize} bytes`);
+    console.log(`Processing audio file: ${fileName}, size: ${fileSize} bytes, type: ${audioFile.type}`);
+    
+    // Reject if file is too large for API
+    if (fileSize > MAX_CHUNK_SIZE) {
+      await unlink(filePath).catch(() => {});
+      return NextResponse.json(
+        { error: `File too large (${(fileSize / (1024 * 1024)).toFixed(2)}MB). Maximum allowed size is ${(MAX_CHUNK_SIZE / (1024 * 1024)).toFixed(2)}MB.` },
+        { status: 413 }
+      );
+    }
     
     let transcription = '';
     
-    // If the file is larger than the maximum chunk size, process it in parts
-    if (fileSize > MAX_CHUNK_SIZE) {
-      console.log(`File exceeds maximum size. Processing in chunks...`);
-      transcription = await processLargeFile(filePath, audioFile.type);
-    } else {
+    try {
       // Process the whole file at once
       transcription = await transcribeAudio(buffer, fileName, audioFile.type);
+    } catch (transcriptionError) {
+      console.error('Transcription error:', transcriptionError);
+      // Clean up the temporary file
+      await unlink(filePath).catch(() => {});
+      
+      if (transcriptionError instanceof Error && transcriptionError.message.includes('413')) {
+        return NextResponse.json(
+          { error: `File too large for the API server. Try recording a shorter message.` },
+          { status: 413 }
+        );
+      }
+      
+      throw transcriptionError;
     }
     
     // Clean up the temporary file
@@ -62,22 +81,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Function to process a large audio file in chunks
-async function processLargeFile(filePath: string, fileType: string): Promise<string> {
-  // For large files, we'd ideally split the audio properly based on silence detection
-  // For simplicity, we'll just use the first 25MB of the file which should be ~30 minutes of audio
-  // In production, consider using ffmpeg to properly split audio files
-  
-  const fileBuffer = await readFile(filePath);
-  
-  // Just use the first chunk for now - in a real app you might want to split by silence
-  const chunk = fileBuffer.subarray(0, MAX_CHUNK_SIZE);
-  const fileName = `chunk-${uuidv4()}.wav`;
-  
-  console.log(`Processing first ${chunk.length} bytes of audio...`);
-  return await transcribeAudio(chunk, fileName, fileType);
 }
 
 // Function to transcribe audio using OpenAI's API
