@@ -82,25 +82,49 @@ async function processLargeFile(filePath: string, fileType: string): Promise<str
 
 // Function to transcribe audio using OpenAI's API
 async function transcribeAudio(buffer: Buffer, fileName: string, fileType: string): Promise<string> {
-  // Create form data for OpenAI API
-  const openaiFormData = new FormData();
-  openaiFormData.append('file', new Blob([buffer], { type: fileType }), fileName);
-  openaiFormData.append('model', 'whisper-1');
-  
-  // Send request to OpenAI
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: openaiFormData,
-  });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(data.error?.message || `OpenAI API error: ${response.status}`);
+  try {
+    // Log file size for debugging
+    console.log(`Sending file to OpenAI API. Size: ${buffer.length} bytes`);
+    
+    // Create form data for OpenAI API
+    const openaiFormData = new FormData();
+    openaiFormData.append('file', new Blob([buffer], { type: fileType }), fileName);
+    openaiFormData.append('model', 'whisper-1');
+    
+    // Send request to OpenAI with increased timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: openaiFormData,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.status === 413) {
+      throw new Error(`File too large (${buffer.length} bytes). Maximum allowed size is ${MAX_CHUNK_SIZE} bytes.`);
+    }
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || `OpenAI API error: ${response.status}`);
+    }
+    
+    return data.text;
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`Transcription error: ${error.message}`);
+      if (error.message.includes('AbortError')) {
+        throw new Error('Request timed out. The audio file may be too large or the server is busy.');
+      }
+      throw error;
+    }
+    throw new Error('Unknown transcription error');
   }
-  
-  return data.text;
 }
