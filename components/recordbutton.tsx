@@ -477,7 +477,7 @@ const RecordButton: React.FC = () => {
                     )}
                 </div>
                 <div className="font-semibold mt-4 text-black">
-                    {isRecording ? `Recording: ${formatTime(recordingDuration)}` : "Record Lecture"}
+                    {isRecording ? `Recording: ${formatTime(recordingDuration)}` : "Record"}
                 </div>
                 {isRecording && (
                     <div className="text-xs mt-2 text-gray-500">
