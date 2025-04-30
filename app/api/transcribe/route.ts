@@ -7,12 +7,10 @@ import * as os from 'os';
 // Maximum size for an API request to OpenAI in bytes (25MB)
 const MAX_CHUNK_SIZE = 25 * 1024 * 1024;
 
-export const config = {
-  api: {
-    bodyParser: false, // Disable the default body parser
-    responseLimit: '50mb', // Increase response limit for large transcriptions
-  },
-};
+// Use the new route segment config format for Next.js App Router
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60; // Set maximum execution time to 60 seconds
 
 export async function POST(request: NextRequest) {
   try {
