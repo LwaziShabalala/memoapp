@@ -467,7 +467,7 @@ const RecordButton: React.FC = () => {
                         setIsRecording((prev) => !prev);
                     }
                 }}
-                className="p-6 border-black/5 flex flex-col items-center justify-center hover:shadow-md transition cursor-pointer w-48 h-48 bg-gray-50"
+                className="p-6 border-black/5 flex flex-col items-center justify-center hover:shadow-md transition cursor-pointer w-40 h-40 bg-gray-50"
             >
                 <div className="p-4 w-fit h-fit rounded-full bg-violet-500/10">
                     {isRecording ? (
@@ -482,8 +482,8 @@ const RecordButton: React.FC = () => {
                 {isRecording && (
                     <div className="text-xs mt-2 text-gray-500">
                         {isProcessingSegment 
-                            ? `Processing segment ${currentSegment}...` 
-                            : `Segment ${currentSegment}: ${formatTime(segmentDuration)}`}
+                            ? `Processing ${currentSegment}...` 
+                            : `Seg ${currentSegment}: ${formatTime(segmentDuration)}`}
                     </div>
                 )}
             </Card>
